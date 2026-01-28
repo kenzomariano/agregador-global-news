@@ -1,14 +1,55 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { SEOHead } from "@/components/seo/SEOHead";
+import { FeaturedSection } from "@/components/news/FeaturedSection";
+import { CategorySection } from "@/components/news/CategorySection";
+import { TrendingSidebar } from "@/components/news/TrendingSidebar";
+import type { CategoryKey } from "@/lib/categories";
 
-const Index = () => {
+const MAIN_CATEGORIES: CategoryKey[] = [
+  "politica",
+  "economia",
+  "tecnologia",
+  "esportes",
+  "mundo",
+  "entretenimento",
+];
+
+export default function Index() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
-    </div>
-  );
-};
+    <>
+      <SEOHead
+        title="Notícias do Brasil e do Mundo"
+        description="NewsHub Brasil - Seu portal de notícias agregadas. As informações mais importantes da política, economia, tecnologia, esportes e mais em um só lugar."
+        keywords={[
+          "notícias",
+          "brasil",
+          "política",
+          "economia",
+          "tecnologia",
+          "esportes",
+          "portal de notícias",
+          "agregador de notícias",
+        ]}
+      />
 
-export default Index;
+      <div className="container py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          {/* Main content */}
+          <div className="lg:col-span-8 xl:col-span-9">
+            <FeaturedSection />
+            
+            {MAIN_CATEGORIES.map((category) => (
+              <CategorySection key={category} category={category} />
+            ))}
+          </div>
+
+          {/* Sidebar */}
+          <aside className="lg:col-span-4 xl:col-span-3">
+            <div className="sticky top-32 space-y-6">
+              <TrendingSidebar />
+            </div>
+          </aside>
+        </div>
+      </div>
+    </>
+  );
+}
