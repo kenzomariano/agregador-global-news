@@ -14,16 +14,153 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      article_tags: {
+        Row: {
+          article_id: string | null
+          created_at: string | null
+          id: string
+          tag: string
+        }
+        Insert: {
+          article_id?: string | null
+          created_at?: string | null
+          id?: string
+          tag: string
+        }
+        Update: {
+          article_id?: string | null
+          created_at?: string | null
+          id?: string
+          tag?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "article_tags_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "articles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      articles: {
+        Row: {
+          category: Database["public"]["Enums"]["news_category"]
+          content: string | null
+          created_at: string | null
+          excerpt: string | null
+          id: string
+          image_url: string | null
+          is_featured: boolean | null
+          is_translated: boolean | null
+          original_url: string
+          published_at: string | null
+          slug: string
+          source_id: string | null
+          title: string
+          updated_at: string | null
+          views_count: number | null
+        }
+        Insert: {
+          category?: Database["public"]["Enums"]["news_category"]
+          content?: string | null
+          created_at?: string | null
+          excerpt?: string | null
+          id?: string
+          image_url?: string | null
+          is_featured?: boolean | null
+          is_translated?: boolean | null
+          original_url: string
+          published_at?: string | null
+          slug: string
+          source_id?: string | null
+          title: string
+          updated_at?: string | null
+          views_count?: number | null
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["news_category"]
+          content?: string | null
+          created_at?: string | null
+          excerpt?: string | null
+          id?: string
+          image_url?: string | null
+          is_featured?: boolean | null
+          is_translated?: boolean | null
+          original_url?: string
+          published_at?: string | null
+          slug?: string
+          source_id?: string | null
+          title?: string
+          updated_at?: string | null
+          views_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "articles_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "news_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      news_sources: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          is_foreign: boolean | null
+          logo_url: string | null
+          name: string
+          updated_at: string | null
+          url: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_foreign?: boolean | null
+          logo_url?: string | null
+          name: string
+          updated_at?: string | null
+          url: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_foreign?: boolean | null
+          logo_url?: string | null
+          name?: string
+          updated_at?: string | null
+          url?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_slug: { Args: { title: string }; Returns: string }
+      increment_article_views: {
+        Args: { article_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
-      [_ in never]: never
+      news_category:
+        | "politica"
+        | "economia"
+        | "tecnologia"
+        | "esportes"
+        | "entretenimento"
+        | "saude"
+        | "ciencia"
+        | "mundo"
+        | "brasil"
+        | "cultura"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +287,19 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      news_category: [
+        "politica",
+        "economia",
+        "tecnologia",
+        "esportes",
+        "entretenimento",
+        "saude",
+        "ciencia",
+        "mundo",
+        "brasil",
+        "cultura",
+      ],
+    },
   },
 } as const
