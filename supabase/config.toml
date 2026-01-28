@@ -1,1 +1,4 @@
 project_id = "dhofljvzufostpmrxgpy"
+
+[functions.scrape-news]
+verify_jwt = false
