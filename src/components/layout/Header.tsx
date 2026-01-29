@@ -1,19 +1,39 @@
 import { Link } from "react-router-dom";
-import { Menu, Search, X } from "lucide-react";
+import { Menu, Search, X, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { CATEGORIES } from "@/lib/categories";
 import { useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 
 export function Header() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const { user, signOut } = useAuth();
+  const { toast } = useToast();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
       window.location.href = `/buscar?q=${encodeURIComponent(searchQuery)}`;
+    }
+  };
+
+  const handleSignOut = async () => {
+    const { error } = await signOut();
+    if (error) {
+      toast({
+        title: "Erro ao sair",
+        description: "Tente novamente.",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Até logo!",
+        description: "Você saiu da sua conta.",
+      });
     }
   };
 
@@ -30,9 +50,25 @@ export function Header() {
               day: "numeric",
             })}
           </span>
-          <Link to="/admin/fontes" className="hover:underline">
-            Gerenciar Fontes
-          </Link>
+          <div className="flex items-center gap-4">
+            {user ? (
+              <>
+                <Link to="/admin/fontes" className="hover:underline flex items-center gap-1">
+                  <User className="h-3 w-3" />
+                  Gerenciar Fontes
+                </Link>
+                <button onClick={handleSignOut} className="hover:underline flex items-center gap-1">
+                  <LogOut className="h-3 w-3" />
+                  Sair
+                </button>
+              </>
+            ) : (
+              <Link to="/auth" className="hover:underline flex items-center gap-1">
+                <User className="h-3 w-3" />
+                Entrar
+              </Link>
+            )}
+          </div>
         </div>
       </div>
 
