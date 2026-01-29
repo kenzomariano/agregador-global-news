@@ -131,6 +131,7 @@ serve(async (req) => {
             url: articleUrl,
             formats: ["markdown"],
             onlyMainContent: true,
+            waitFor: 2000, // Wait for dynamic content
           }),
         });
 
@@ -142,7 +143,7 @@ serve(async (req) => {
         }
 
         let title = articleData.data?.metadata?.title || "";
-        let content = articleData.data?.markdown || "";
+        let rawContent = articleData.data?.markdown || "";
         let excerpt = articleData.data?.metadata?.description || "";
         let imageUrl = articleData.data?.metadata?.ogImage || articleData.data?.metadata?.image || null;
 
@@ -154,11 +155,50 @@ serve(async (req) => {
           continue;
         }
 
-        // Translate if foreign source
-        if (source.is_foreign && lovableApiKey) {
-          console.log(`Translating article: ${title}`);
+        let content = "";
 
-          const translateResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        // Use AI to clean and extract article content
+        if (lovableApiKey && rawContent) {
+          console.log(`Cleaning article content: ${title}`);
+
+          const cleanPrompt = source.is_foreign
+            ? `Você é um editor de notícias. Extraia APENAS o conteúdo principal do artigo abaixo, removendo:
+- Anúncios e links de "Remove Ads"
+- Elementos de reCAPTCHA
+- Controles de player de vídeo
+- Menus de navegação
+- Rodapés e cabeçalhos do site
+- Links de compartilhamento social
+- Comentários
+- Conteúdo relacionado/sugerido
+
+Depois, traduza o conteúdo limpo para Português do Brasil mantendo o tom jornalístico.
+
+IMPORTANTE: Retorne APENAS o texto do artigo traduzido, formatado em parágrafos, sem nenhum elemento extra.
+
+Título original: ${title}
+Resumo original: ${excerpt}
+
+Conteúdo bruto:
+${rawContent.slice(0, 8000)}`
+            : `Você é um editor de notícias. Extraia APENAS o conteúdo principal do artigo abaixo, removendo:
+- Anúncios e links de "Remove Ads"
+- Elementos de reCAPTCHA
+- Controles de player de vídeo
+- Menus de navegação
+- Rodapés e cabeçalhos do site
+- Links de compartilhamento social
+- Comentários
+- Conteúdo relacionado/sugerido
+
+IMPORTANTE: Retorne APENAS o texto do artigo, formatado em parágrafos, sem nenhum elemento extra.
+
+Título: ${title}
+
+Conteúdo bruto:
+${rawContent.slice(0, 8000)}`;
+
+          const cleanResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
             method: "POST",
             headers: {
               "Authorization": `Bearer ${lovableApiKey}`,
@@ -168,30 +208,67 @@ serve(async (req) => {
               model: "google/gemini-3-flash-preview",
               messages: [
                 {
-                  role: "system",
-                  content: "Você é um tradutor profissional. Traduza o texto para Português do Brasil mantendo o tom jornalístico. Retorne APENAS a tradução, sem explicações.",
-                },
-                {
                   role: "user",
-                  content: `Traduza para Português do Brasil:\n\nTítulo: ${title}\n\nResumo: ${excerpt}\n\nConteúdo: ${content.slice(0, 3000)}`,
+                  content: cleanPrompt,
                 },
               ],
             }),
           });
 
-          if (translateResponse.ok) {
-            const translateData = await translateResponse.json();
-            const translatedText = translateData.choices?.[0]?.message?.content || "";
+          if (cleanResponse.ok) {
+            const cleanData = await cleanResponse.json();
+            content = cleanData.choices?.[0]?.message?.content || "";
+            
+            // If foreign source, also translate title and excerpt
+            if (source.is_foreign && content) {
+              const translateMetaResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                  "Authorization": `Bearer ${lovableApiKey}`,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  model: "google/gemini-3-flash-preview",
+                  messages: [
+                    {
+                      role: "system",
+                      content: "Traduza para Português do Brasil. Responda em JSON: {\"title\": \"...\", \"excerpt\": \"...\"}",
+                    },
+                    {
+                      role: "user",
+                      content: `Título: ${title}\nResumo: ${excerpt}`,
+                    },
+                  ],
+                }),
+              });
 
-            // Parse translated content
-            const titleMatch = translatedText.match(/Título:\s*(.+?)(?:\n|Resumo:|$)/i);
-            const excerptMatch = translatedText.match(/Resumo:\s*(.+?)(?:\n|Conteúdo:|$)/i);
-            const contentMatch = translatedText.match(/Conteúdo:\s*([\s\S]+)/i);
-
-            if (titleMatch) title = titleMatch[1].trim();
-            if (excerptMatch) excerpt = excerptMatch[1].trim();
-            if (contentMatch) content = contentMatch[1].trim();
+              if (translateMetaResponse.ok) {
+                const metaData = await translateMetaResponse.json();
+                const metaContent = metaData.choices?.[0]?.message?.content || "";
+                try {
+                  const jsonMatch = metaContent.match(/\{[\s\S]*\}/);
+                  if (jsonMatch) {
+                    const parsed = JSON.parse(jsonMatch[0]);
+                    if (parsed.title) title = parsed.title;
+                    if (parsed.excerpt) excerpt = parsed.excerpt;
+                  }
+                } catch (e) {
+                  console.log("Could not parse translated metadata");
+                }
+              }
+            }
+          } else {
+            console.error("Failed to clean content with AI");
+            content = rawContent;
           }
+        } else {
+          content = rawContent;
+        }
+
+        // Skip if no content was extracted
+        if (!content || content.length < 100) {
+          console.log(`Skipping article with no content: ${articleUrl}`);
+          continue;
         }
 
         // Determine category using AI
