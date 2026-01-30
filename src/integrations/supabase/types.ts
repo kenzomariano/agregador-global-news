@@ -59,6 +59,7 @@ export type Database = {
           source_id: string | null
           title: string
           updated_at: string | null
+          video_url: string | null
           views_count: number | null
         }
         Insert: {
@@ -76,6 +77,7 @@ export type Database = {
           source_id?: string | null
           title: string
           updated_at?: string | null
+          video_url?: string | null
           views_count?: number | null
         }
         Update: {
@@ -93,6 +95,7 @@ export type Database = {
           source_id?: string | null
           title?: string
           updated_at?: string | null
+          video_url?: string | null
           views_count?: number | null
         }
         Relationships: [
@@ -162,6 +165,96 @@ export type Database = {
           id?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      tmdb_cache: {
+        Row: {
+          backdrop_path: string | null
+          created_at: string | null
+          genre_ids: number[] | null
+          id: string
+          is_trending: boolean | null
+          media_type: string
+          original_title: string | null
+          overview: string | null
+          popularity: number | null
+          poster_path: string | null
+          release_date: string | null
+          title: string
+          tmdb_id: number
+          updated_at: string | null
+          vote_average: number | null
+        }
+        Insert: {
+          backdrop_path?: string | null
+          created_at?: string | null
+          genre_ids?: number[] | null
+          id?: string
+          is_trending?: boolean | null
+          media_type: string
+          original_title?: string | null
+          overview?: string | null
+          popularity?: number | null
+          poster_path?: string | null
+          release_date?: string | null
+          title: string
+          tmdb_id: number
+          updated_at?: string | null
+          vote_average?: number | null
+        }
+        Update: {
+          backdrop_path?: string | null
+          created_at?: string | null
+          genre_ids?: number[] | null
+          id?: string
+          is_trending?: boolean | null
+          media_type?: string
+          original_title?: string | null
+          overview?: string | null
+          popularity?: number | null
+          poster_path?: string | null
+          release_date?: string | null
+          title?: string
+          tmdb_id?: number
+          updated_at?: string | null
+          vote_average?: number | null
+        }
+        Relationships: []
+      }
+      tmdb_trailers: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_official: boolean | null
+          media_type: string
+          tmdb_id: number
+          video_key: string
+          video_name: string | null
+          video_site: string | null
+          video_type: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_official?: boolean | null
+          media_type: string
+          tmdb_id: number
+          video_key: string
+          video_name?: string | null
+          video_site?: string | null
+          video_type?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_official?: boolean | null
+          media_type?: string
+          tmdb_id?: number
+          video_key?: string
+          video_name?: string | null
+          video_site?: string | null
+          video_type?: string | null
         }
         Relationships: []
       }

@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { formatDistanceToNow, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ExternalLink, Clock, Eye, Globe } from "lucide-react";
+import { ExternalLink, Clock, Eye, Globe, Play } from "lucide-react";
 import { SEOHead } from "@/components/seo/SEOHead";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,29 @@ import { ArticleCard } from "@/components/news/ArticleCard";
 import { TrendingSidebar } from "@/components/news/TrendingSidebar";
 import { useArticleBySlug, useRelatedArticles, useIncrementViews } from "@/hooks/useArticles";
 import { CATEGORIES, type CategoryKey } from "@/lib/categories";
+
+interface ArticleWithVideo {
+  id: string;
+  source_id: string;
+  title: string;
+  slug: string;
+  excerpt: string | null;
+  content: string | null;
+  image_url: string | null;
+  video_url: string | null;
+  original_url: string;
+  category: CategoryKey;
+  views_count: number;
+  is_featured: boolean;
+  is_translated: boolean;
+  published_at: string | null;
+  created_at: string;
+  updated_at: string;
+  news_sources?: {
+    name: string;
+    logo_url: string | null;
+  };
+}
 
 export default function ArticlePage() {
   const { slug } = useParams<{ slug: string }>();
@@ -132,8 +155,23 @@ export default function ArticlePage() {
               </div>
             </header>
 
+            {/* Embedded Video */}
+            {(article as ArticleWithVideo).video_url && (
+              <div className="mb-8">
+                <div className="aspect-video rounded-lg overflow-hidden shadow-md">
+                  <iframe
+                    src={(article as ArticleWithVideo).video_url!}
+                    className="w-full h-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    title="Vídeo do artigo"
+                  />
+                </div>
+              </div>
+            )}
+
             {/* Featured image */}
-            {article.image_url && (
+            {article.image_url && !(article as ArticleWithVideo).video_url && (
               <figure className="mb-8">
                 <img
                   src={article.image_url}
