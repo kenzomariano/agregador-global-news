@@ -111,14 +111,11 @@ serve(async (req) => {
         // Check if article already exists
         const { data: existing } = await supabase
           .from("articles")
-          .select("id")
+          .select("id, title")
           .eq("original_url", articleUrl)
           .maybeSingle();
 
-        if (existing) {
-          console.log(`Article already exists: ${articleUrl}`);
-          continue;
-        }
+        const existingId = existing?.id;
 
         // Scrape the article
         const articleResponse = await fetch("https://api.firecrawl.dev/v1/scrape", {
@@ -314,28 +311,51 @@ ${rawContent.slice(0, 8000)}`;
           .replace(/\s+/g, "-")
           .slice(0, 80) + "-" + Date.now().toString(36);
 
-        // Insert article
-        const { error: insertError } = await supabase.from("articles").insert({
-          source_id: source.id,
-          title,
-          slug,
-          excerpt: excerpt.slice(0, 500),
-          content,
-          image_url: imageUrl,
-          original_url: articleUrl,
-          category,
-          is_featured: articlesCount === 0,
-          is_translated: source.is_foreign,
-          published_at: new Date().toISOString(),
-        });
+        // Upsert article - update if exists, insert if new
+        if (existingId) {
+          const { error: updateError } = await supabase
+            .from("articles")
+            .update({
+              title,
+              excerpt: excerpt.slice(0, 500),
+              content,
+              image_url: imageUrl,
+              category,
+              is_translated: source.is_foreign,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", existingId);
 
-        if (insertError) {
-          console.error(`Failed to insert article: ${insertError.message}`);
-          continue;
+          if (updateError) {
+            console.error(`Failed to update article: ${updateError.message}`);
+            continue;
+          }
+
+          articlesCount++;
+          console.log(`Updated article: ${title}`);
+        } else {
+          const { error: insertError } = await supabase.from("articles").insert({
+            source_id: source.id,
+            title,
+            slug,
+            excerpt: excerpt.slice(0, 500),
+            content,
+            image_url: imageUrl,
+            original_url: articleUrl,
+            category,
+            is_featured: articlesCount === 0,
+            is_translated: source.is_foreign,
+            published_at: new Date().toISOString(),
+          });
+
+          if (insertError) {
+            console.error(`Failed to insert article: ${insertError.message}`);
+            continue;
+          }
+
+          articlesCount++;
+          console.log(`Inserted article: ${title}`);
         }
-
-        articlesCount++;
-        console.log(`Inserted article: ${title}`);
       } catch (error) {
         console.error(`Error processing article ${articleUrl}:`, error);
       }

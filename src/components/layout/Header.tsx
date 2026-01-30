@@ -7,6 +7,7 @@ import { CATEGORIES } from "@/lib/categories";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 
 export function Header() {
   const [searchOpen, setSearchOpen] = useState(false);
@@ -51,7 +52,7 @@ export function Header() {
             })}
           </span>
           <div className="flex items-center gap-4">
-            {user ? (
+            {user && (
               <>
                 <Link to="/admin/fontes" className="hover:underline flex items-center gap-1">
                   <User className="h-3 w-3" />
@@ -62,11 +63,6 @@ export function Header() {
                   Sair
                 </button>
               </>
-            ) : (
-              <Link to="/auth" className="hover:underline flex items-center gap-1">
-                <User className="h-3 w-3" />
-                Entrar
-              </Link>
             )}
           </div>
         </div>
@@ -109,15 +105,15 @@ export function Header() {
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-xl">
-            N
+            D
           </div>
           <div className="hidden sm:block">
-            <h1 className="text-xl font-bold tracking-tight font-serif">NewsHub</h1>
-            <p className="text-xs text-muted-foreground -mt-1">Brasil</p>
+            <h1 className="text-xl font-bold tracking-tight font-serif">DESIGNE</h1>
+            <p className="text-xs text-muted-foreground -mt-1">Notícias</p>
           </div>
         </Link>
 
-        {/* Search */}
+        {/* Search and Theme Toggle */}
         <div className="flex items-center gap-2">
           {searchOpen ? (
             <form onSubmit={handleSearch} className="flex items-center gap-2">
@@ -139,6 +135,7 @@ export function Header() {
               <span className="sr-only">Buscar</span>
             </Button>
           )}
+          <ThemeToggle />
         </div>
       </div>
 

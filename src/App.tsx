@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { Layout } from "@/components/layout/Layout";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import Index from "./pages/Index";
@@ -17,30 +18,32 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route element={<Layout />}>
-            <Route path="/" element={<Index />} />
-            <Route path="/categoria/:category" element={<CategoryPage />} />
-            <Route path="/noticia/:slug" element={<ArticlePage />} />
-            <Route path="/mais-lidas" element={<TrendingPage />} />
-            <Route
-              path="/admin/fontes"
-              element={
-                <ProtectedRoute>
-                  <SourcesPage />
-                </ProtectedRoute>
-              }
-            />
-          </Route>
-          <Route path="/auth" element={<AuthPage />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <ThemeProvider defaultTheme="light" storageKey="designe-theme" attribute="class">
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route element={<Layout />}>
+              <Route path="/" element={<Index />} />
+              <Route path="/categoria/:category" element={<CategoryPage />} />
+              <Route path="/noticia/:slug" element={<ArticlePage />} />
+              <Route path="/mais-lidas" element={<TrendingPage />} />
+              <Route
+                path="/admin/fontes"
+                element={
+                  <ProtectedRoute>
+                    <SourcesPage />
+                  </ProtectedRoute>
+                }
+              />
+            </Route>
+            <Route path="/login" element={<AuthPage />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 
