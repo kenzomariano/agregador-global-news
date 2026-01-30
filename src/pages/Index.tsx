@@ -2,6 +2,8 @@ import { SEOHead } from "@/components/seo/SEOHead";
 import { FeaturedSection } from "@/components/news/FeaturedSection";
 import { CategorySection } from "@/components/news/CategorySection";
 import { TrendingSidebar } from "@/components/news/TrendingSidebar";
+import { TrendingMovies } from "@/components/entertainment/TrendingMovies";
+import { TrendingTrailers } from "@/components/entertainment/TrendingTrailers";
 import type { CategoryKey } from "@/lib/categories";
 
 const MAIN_CATEGORIES: CategoryKey[] = [
@@ -18,7 +20,7 @@ export default function Index() {
     <>
       <SEOHead
         title="Notícias do Brasil e do Mundo"
-        description="NewsHub Brasil - Seu portal de notícias agregadas. As informações mais importantes da política, economia, tecnologia, esportes e mais em um só lugar."
+        description="DESIGNE - Seu portal de notícias agregadas. As informações mais importantes da política, economia, tecnologia, esportes e mais em um só lugar."
         keywords={[
           "notícias",
           "brasil",
@@ -37,6 +39,9 @@ export default function Index() {
           <div className="lg:col-span-8 xl:col-span-9">
             <FeaturedSection />
             
+            {/* Entertainment section with TMDB */}
+            <TrendingMovies />
+            
             {MAIN_CATEGORIES.map((category) => (
               <CategorySection key={category} category={category} />
             ))}
@@ -45,6 +50,7 @@ export default function Index() {
           {/* Sidebar */}
           <aside className="lg:col-span-4 xl:col-span-3">
             <div className="sticky top-32 space-y-6">
+              <TrendingTrailers />
               <TrendingSidebar />
             </div>
           </aside>
