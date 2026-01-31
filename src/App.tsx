@@ -12,6 +12,7 @@ import ArticlePage from "./pages/ArticlePage";
 import TrendingPage from "./pages/TrendingPage";
 import AuthPage from "./pages/AuthPage";
 import SourcesPage from "./pages/admin/SourcesPage";
+import ArticlesPage from "./pages/admin/ArticlesPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +35,14 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <SourcesPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/artigos"
+                element={
+                  <ProtectedRoute>
+                    <ArticlesPage />
                   </ProtectedRoute>
                 }
               />
