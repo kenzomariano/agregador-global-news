@@ -353,46 +353,82 @@ Início do conteúdo: ${rawContent.slice(0, 2000)}`;
             }
           }
 
-          // Clean the content
+          // Clean the content with proper semantic HTML
           const cleanPrompt = source.is_foreign
-            ? `Você é um editor de notícias. Extraia APENAS o conteúdo principal do artigo abaixo, removendo:
-- Anúncios, banners e links de "Remove Ads"
-- Elementos de reCAPTCHA e captchas
+            ? `Você é um editor de notícias profissional. Extraia e formate o conteúdo principal do artigo abaixo.
+
+REMOVA completamente:
+- Anúncios, banners, links de "Remove Ads", promoções
+- Elementos de reCAPTCHA, captchas, popups
 - Controles de player de vídeo e texto de legendas de player
-- Menus de navegação e breadcrumbs
+- Menus de navegação, breadcrumbs, sidebar
 - Rodapés e cabeçalhos do site
-- Links de compartilhamento social
-- Seções de comentários
-- Conteúdo relacionado/sugerido
-- Texto repetido ou duplicado
-- Links de navegação interna
+- Links de compartilhamento social e botões de redes sociais
+- Seções de comentários e formulários
+- Conteúdo relacionado/sugerido e "Leia também"
+- Texto repetido, duplicado ou spam
+- Links de navegação interna e paginação
+- Avisos de cookies e GDPR
+- Conteúdo de lista de categorias ou índices
 
-Depois, traduza o conteúdo limpo para Português do Brasil mantendo o tom jornalístico.
+DEPOIS traduza para Português do Brasil mantendo tom jornalístico.
 
-IMPORTANTE: Retorne APENAS o texto do artigo traduzido, formatado em parágrafos HTML (<p>), sem nenhum elemento extra.
+FORMATE o conteúdo usando HTML semântico:
+- <h2> para subtítulos principais (seções do artigo)
+- <h3> para subtítulos secundários
+- <p> para parágrafos de texto
+- <blockquote> para citações e declarações de fontes
+- <ul>/<li> para listas não ordenadas
+- <ol>/<li> para listas ordenadas/cronológicas
+- <strong> para destaques importantes
+- <em> para ênfase
+
+REGRAS:
+1. NÃO inclua o título principal (já temos separadamente)
+2. Mantenha a hierarquia lógica do conteúdo
+3. Preserve citações importantes com atribuição
+4. Retorne APENAS o HTML formatado, sem explicações
 
 Título original: ${title}
 
 Conteúdo bruto:
-${rawContent.slice(0, 10000)}`
-            : `Você é um editor de notícias. Extraia APENAS o conteúdo principal do artigo abaixo, removendo:
-- Anúncios, banners e links de "Remove Ads"
-- Elementos de reCAPTCHA e captchas
-- Controles de player de vídeo e texto de legendas de player
-- Menus de navegação e breadcrumbs
-- Rodapés e cabeçalhos do site
-- Links de compartilhamento social
-- Seções de comentários
-- Conteúdo relacionado/sugerido
-- Texto repetido ou duplicado
-- Links de navegação interna
+${rawContent.slice(0, 12000)}`
+            : `Você é um editor de notícias profissional. Extraia e formate o conteúdo principal do artigo abaixo.
 
-IMPORTANTE: Retorne APENAS o texto do artigo, formatado em parágrafos HTML (<p>), sem nenhum elemento extra.
+REMOVA completamente:
+- Anúncios, banners, links de "Remove Ads", promoções
+- Elementos de reCAPTCHA, captchas, popups
+- Controles de player de vídeo e texto de legendas de player
+- Menus de navegação, breadcrumbs, sidebar
+- Rodapés e cabeçalhos do site
+- Links de compartilhamento social e botões de redes sociais
+- Seções de comentários e formulários
+- Conteúdo relacionado/sugerido e "Leia também"
+- Texto repetido, duplicado ou spam
+- Links de navegação interna e paginação
+- Avisos de cookies e GDPR
+- Conteúdo de lista de categorias ou índices
+
+FORMATE o conteúdo usando HTML semântico:
+- <h2> para subtítulos principais (seções do artigo)
+- <h3> para subtítulos secundários
+- <p> para parágrafos de texto
+- <blockquote> para citações e declarações de fontes
+- <ul>/<li> para listas não ordenadas
+- <ol>/<li> para listas ordenadas/cronológicas
+- <strong> para destaques importantes
+- <em> para ênfase
+
+REGRAS:
+1. NÃO inclua o título principal (já temos separadamente)
+2. Mantenha a hierarquia lógica do conteúdo
+3. Preserve citações importantes com atribuição
+4. Retorne APENAS o HTML formatado, sem explicações
 
 Título: ${title}
 
 Conteúdo bruto:
-${rawContent.slice(0, 10000)}`;
+${rawContent.slice(0, 12000)}`;
 
           const cleanResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
             method: "POST",

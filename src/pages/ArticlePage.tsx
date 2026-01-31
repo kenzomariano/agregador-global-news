@@ -2,13 +2,14 @@ import { useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { formatDistanceToNow, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ExternalLink, Clock, Eye, Globe, Play } from "lucide-react";
+import { ExternalLink, Clock, Eye, Globe } from "lucide-react";
 import { SEOHead } from "@/components/seo/SEOHead";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArticleCard } from "@/components/news/ArticleCard";
+import { ArticleContent } from "@/components/news/ArticleContent";
 import { TrendingSidebar } from "@/components/news/TrendingSidebar";
 import { useArticleBySlug, useRelatedArticles, useIncrementViews } from "@/hooks/useArticles";
 import { CATEGORIES, type CategoryKey } from "@/lib/categories";
@@ -182,9 +183,9 @@ export default function ArticlePage() {
             )}
 
             {/* Article content */}
-            <div className="prose prose-lg max-w-none mb-8">
+            <div className="mb-8">
               {article.content ? (
-                <div dangerouslySetInnerHTML={{ __html: article.content }} />
+                <ArticleContent content={article.content} />
               ) : (
                 <p className="text-muted-foreground italic">
                   Este artigo é um resumo. Clique no botão abaixo para ler o conteúdo completo na fonte original.

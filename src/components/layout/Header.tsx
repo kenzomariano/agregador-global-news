@@ -54,9 +54,12 @@ export function Header() {
           <div className="flex items-center gap-4">
             {user && (
               <>
+                <Link to="/admin/artigos" className="hover:underline flex items-center gap-1">
+                  Artigos
+                </Link>
                 <Link to="/admin/fontes" className="hover:underline flex items-center gap-1">
                   <User className="h-3 w-3" />
-                  Gerenciar Fontes
+                  Fontes
                 </Link>
                 <button onClick={handleSignOut} className="hover:underline flex items-center gap-1">
                   <LogOut className="h-3 w-3" />
