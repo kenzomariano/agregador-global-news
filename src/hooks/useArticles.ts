@@ -31,6 +31,8 @@ export interface NewsSource {
   logo_url: string | null;
   is_foreign: boolean;
   is_active: boolean;
+  source_type: "article" | "product";
+  sitemap_url: string | null;
   created_at: string;
 }
 

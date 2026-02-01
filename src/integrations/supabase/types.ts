@@ -116,6 +116,8 @@ export type Database = {
           is_foreign: boolean | null
           logo_url: string | null
           name: string
+          sitemap_url: string | null
+          source_type: Database["public"]["Enums"]["source_type"]
           updated_at: string | null
           url: string
         }
@@ -126,6 +128,8 @@ export type Database = {
           is_foreign?: boolean | null
           logo_url?: string | null
           name: string
+          sitemap_url?: string | null
+          source_type?: Database["public"]["Enums"]["source_type"]
           updated_at?: string | null
           url: string
         }
@@ -136,10 +140,71 @@ export type Database = {
           is_foreign?: boolean | null
           logo_url?: string | null
           name?: string
+          sitemap_url?: string | null
+          source_type?: Database["public"]["Enums"]["source_type"]
           updated_at?: string | null
           url?: string
         }
         Relationships: []
+      }
+      products: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          currency: string | null
+          description: string | null
+          id: string
+          image_url: string | null
+          is_available: boolean | null
+          name: string
+          original_url: string
+          price: number | null
+          scraped_at: string | null
+          slug: string
+          source_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          currency?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_available?: boolean | null
+          name: string
+          original_url: string
+          price?: number | null
+          scraped_at?: string | null
+          slug: string
+          source_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          currency?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_available?: boolean | null
+          name?: string
+          original_url?: string
+          price?: number | null
+          scraped_at?: string | null
+          slug?: string
+          source_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "news_sources"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -310,6 +375,7 @@ export type Database = {
         | "mundo"
         | "brasil"
         | "cultura"
+      source_type: "article" | "product"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -450,6 +516,7 @@ export const Constants = {
         "brasil",
         "cultura",
       ],
+      source_type: ["article", "product"],
     },
   },
 } as const

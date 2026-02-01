@@ -11,6 +11,8 @@ interface NewsSource {
   name: string;
   url: string;
   is_foreign: boolean;
+  source_type: "article" | "product";
+  sitemap_url: string | null;
 }
 
 // Patterns that indicate non-article pages
@@ -53,12 +55,17 @@ const NON_ARTICLE_PATTERNS = [
   /\.jpg$/i,
   /\.png$/i,
   /\.gif$/i,
+  /\/cart\/?$/i,
+  /\/checkout\/?$/i,
+  /\/account\/?$/i,
+  /\/wishlist\/?$/i,
+  /\/compare\/?$/i,
 ];
 
 // Patterns that indicate article URLs
 const ARTICLE_PATTERNS = [
-  /\/\d{4}\/\d{2}\/\d{2}\//,  // Date-based URLs like /2024/01/15/
-  /\/\d{4}\/\d{2}\//,         // Year/month URLs like /2024/01/
+  /\/\d{4}\/\d{2}\/\d{2}\//,
+  /\/\d{4}\/\d{2}\//,
   /\/article\//i,
   /\/articles\//i,
   /\/story\//i,
@@ -68,36 +75,66 @@ const ARTICLE_PATTERNS = [
   /\/news\//i,
   /\/noticia\//i,
   /\/noticias\//i,
-  /\/-[a-z0-9]{6,}$/i,         // Slug with ID suffix
-  /\/[a-z0-9-]+\d{5,}/i,       // Slug with numeric ID
-  /watch-.*-online-\d+/i,      // Movie/TV show pages
+  /\/-[a-z0-9]{6,}$/i,
+  /\/[a-z0-9-]+\d{5,}/i,
 ];
 
+// Patterns that indicate product URLs
+const PRODUCT_PATTERNS = [
+  /\/product\//i,
+  /\/products\//i,
+  /\/produto\//i,
+  /\/produtos\//i,
+  /\/item\//i,
+  /\/items\//i,
+  /\/shop\//i,
+  /\/store\//i,
+  /\/loja\//i,
+  /\/p\/[a-z0-9-]+/i,
+  /\/dp\/[A-Z0-9]+/i, // Amazon style
+  /\?sku=/i,
+  /\?product_id=/i,
+];
+
+const MAX_ARTICLES_PER_SCRAPE = 10;
+const MAX_PRODUCTS_PER_SCRAPE = 10;
+
 function isLikelyArticleUrl(url: string, baseUrl: string): boolean {
-  // Must start with the base URL
   if (!url.startsWith(baseUrl)) return false;
   
-  // Must not be the homepage
   const path = url.replace(baseUrl, "").replace(/^\/+/, "");
   if (!path || path === "/" || path.length < 5) return false;
   
-  // Check for non-article patterns
   for (const pattern of NON_ARTICLE_PATTERNS) {
     if (pattern.test(url)) return false;
   }
   
-  // Check for article patterns (positive signal)
   for (const pattern of ARTICLE_PATTERNS) {
     if (pattern.test(url)) return true;
   }
   
-  // Check URL structure - articles usually have longer paths with dashes
   const segments = path.split("/").filter(Boolean);
   if (segments.length >= 1) {
     const lastSegment = segments[segments.length - 1];
-    // Good article slugs have multiple words separated by dashes
     const dashCount = (lastSegment.match(/-/g) || []).length;
     if (dashCount >= 2 && lastSegment.length > 20) return true;
+  }
+  
+  return false;
+}
+
+function isLikelyProductUrl(url: string, baseUrl: string): boolean {
+  if (!url.startsWith(baseUrl)) return false;
+  
+  const path = url.replace(baseUrl, "").replace(/^\/+/, "");
+  if (!path || path === "/" || path.length < 3) return false;
+  
+  for (const pattern of NON_ARTICLE_PATTERNS) {
+    if (pattern.test(url)) return false;
+  }
+  
+  for (const pattern of PRODUCT_PATTERNS) {
+    if (pattern.test(url)) return true;
   }
   
   return false;
@@ -110,16 +147,15 @@ function isValidArticleTitle(title: string, sourceName: string): boolean {
   const lowerTitle = title.toLowerCase();
   const lowerSourceName = sourceName.toLowerCase();
   
-  // Title shouldn't be just the source name
   if (lowerTitle === lowerSourceName) return false;
   if (lowerTitle.replace(/[^a-z0-9]/g, "") === lowerSourceName.replace(/[^a-z0-9]/g, "")) return false;
   
-  // Skip generic titles
   const genericTitles = [
     "home", "homepage", "index", "main", "news", "latest", "trending",
     "popular", "featured", "top stories", "breaking news", "all news",
     "category", "categories", "archive", "archives", "search", "results",
     "author", "authors", "about", "contact", "privacy", "terms",
+    "shop", "store", "cart", "checkout", "products", "all products",
   ];
   
   for (const generic of genericTitles) {
@@ -128,7 +164,6 @@ function isValidArticleTitle(title: string, sourceName: string): boolean {
     }
   }
   
-  // Title should have multiple words
   const wordCount = title.split(/\s+/).length;
   if (wordCount < 3) return false;
   
@@ -136,7 +171,6 @@ function isValidArticleTitle(title: string, sourceName: string): boolean {
 }
 
 function extractVideoUrl(content: string): string | null {
-  // YouTube patterns
   const youtubePatterns = [
     /https?:\/\/(?:www\.)?youtube\.com\/watch\?v=([a-zA-Z0-9_-]+)/,
     /https?:\/\/(?:www\.)?youtube\.com\/embed\/([a-zA-Z0-9_-]+)/,
@@ -150,7 +184,6 @@ function extractVideoUrl(content: string): string | null {
     }
   }
   
-  // Vimeo patterns
   const vimeoPatterns = [
     /https?:\/\/(?:www\.)?vimeo\.com\/(\d+)/,
     /https?:\/\/player\.vimeo\.com\/video\/(\d+)/,
@@ -163,7 +196,6 @@ function extractVideoUrl(content: string): string | null {
     }
   }
   
-  // Twitter/X video embeds
   const twitterPattern = /https?:\/\/(?:twitter\.com|x\.com)\/\w+\/status\/(\d+)/;
   const twitterMatch = content.match(twitterPattern);
   if (twitterMatch) {
@@ -173,13 +205,66 @@ function extractVideoUrl(content: string): string | null {
   return null;
 }
 
+// Parse sitemap XML and extract URLs with dates
+async function parseSitemap(sitemapUrl: string): Promise<{ url: string; lastmod?: string }[]> {
+  try {
+    console.log(`Fetching sitemap: ${sitemapUrl}`);
+    const response = await fetch(sitemapUrl);
+    if (!response.ok) {
+      console.error(`Failed to fetch sitemap: ${response.status}`);
+      return [];
+    }
+    
+    const xmlText = await response.text();
+    const urls: { url: string; lastmod?: string }[] = [];
+    
+    // Check if this is a sitemap index
+    if (xmlText.includes("<sitemapindex")) {
+      const sitemapMatches = xmlText.matchAll(/<sitemap[^>]*>[\s\S]*?<loc>([^<]+)<\/loc>[\s\S]*?<\/sitemap>/gi);
+      const childSitemaps: string[] = [];
+      
+      for (const match of sitemapMatches) {
+        childSitemaps.push(match[1].trim());
+      }
+      
+      // Parse child sitemaps (limit to first 2 to avoid timeout)
+      for (const childUrl of childSitemaps.slice(0, 2)) {
+        const childUrls = await parseSitemap(childUrl);
+        urls.push(...childUrls);
+      }
+    } else {
+      // Parse regular sitemap
+      const urlMatches = xmlText.matchAll(/<url[^>]*>([\s\S]*?)<\/url>/gi);
+      
+      for (const match of urlMatches) {
+        const urlBlock = match[1];
+        const locMatch = urlBlock.match(/<loc>([^<]+)<\/loc>/);
+        const lastmodMatch = urlBlock.match(/<lastmod>([^<]+)<\/lastmod>/);
+        
+        if (locMatch) {
+          urls.push({
+            url: locMatch[1].trim(),
+            lastmod: lastmodMatch ? lastmodMatch[1].trim() : undefined,
+          });
+        }
+      }
+    }
+    
+    console.log(`Found ${urls.length} URLs in sitemap`);
+    return urls;
+  } catch (error) {
+    console.error("Error parsing sitemap:", error);
+    return [];
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    const { sourceId } = await req.json();
+    const { sourceId, sitemapContent } = await req.json();
 
     if (!sourceId) {
       return new Response(
@@ -216,128 +301,323 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Scraping ${source.name} from ${source.url}`);
+    const typedSource = source as NewsSource;
+    const isProductSource = typedSource.source_type === "product";
+    const maxItems = isProductSource ? MAX_PRODUCTS_PER_SCRAPE : MAX_ARTICLES_PER_SCRAPE;
 
-    // Scrape the website using Firecrawl
-    const scrapeResponse = await fetch("https://api.firecrawl.dev/v1/scrape", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${firecrawlKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        url: source.url,
-        formats: ["links", "markdown"],
-        onlyMainContent: true,
-      }),
-    });
+    console.log(`Scraping ${typedSource.name} (${typedSource.source_type}) from ${typedSource.url}`);
 
-    const scrapeData = await scrapeResponse.json();
+    let itemLinks: string[] = [];
+    const baseUrl = typedSource.url.replace(/\/+$/, "");
 
-    if (!scrapeResponse.ok) {
-      console.error("Firecrawl error:", scrapeData);
-      return new Response(
-        JSON.stringify({ error: "Failed to scrape website" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    // Check if we have a sitemap to use
+    if (typedSource.sitemap_url || sitemapContent) {
+      let sitemapUrls: { url: string; lastmod?: string }[] = [];
+      
+      if (sitemapContent) {
+        // Parse sitemap from uploaded content
+        const urlMatches = sitemapContent.matchAll(/<url[^>]*>([\s\S]*?)<\/url>/gi);
+        for (const match of urlMatches) {
+          const urlBlock = match[1];
+          const locMatch = urlBlock.match(/<loc>([^<]+)<\/loc>/);
+          const lastmodMatch = urlBlock.match(/<lastmod>([^<]+)<\/lastmod>/);
+          if (locMatch) {
+            sitemapUrls.push({
+              url: locMatch[1].trim(),
+              lastmod: lastmodMatch ? lastmodMatch[1].trim() : undefined,
+            });
+          }
+        }
+      } else if (typedSource.sitemap_url) {
+        sitemapUrls = await parseSitemap(typedSource.sitemap_url);
+      }
+
+      // Sort by lastmod (most recent first)
+      sitemapUrls.sort((a, b) => {
+        if (!a.lastmod && !b.lastmod) return 0;
+        if (!a.lastmod) return 1;
+        if (!b.lastmod) return -1;
+        return new Date(b.lastmod).getTime() - new Date(a.lastmod).getTime();
+      });
+
+      // Filter URLs based on source type
+      if (isProductSource) {
+        itemLinks = sitemapUrls
+          .map(u => u.url)
+          .filter(url => isLikelyProductUrl(url, baseUrl) || !NON_ARTICLE_PATTERNS.some(p => p.test(url)))
+          .slice(0, maxItems);
+      } else {
+        itemLinks = sitemapUrls
+          .map(u => u.url)
+          .filter(url => isLikelyArticleUrl(url, baseUrl))
+          .slice(0, maxItems);
+      }
+
+      console.log(`Using ${itemLinks.length} URLs from sitemap`);
     }
 
-    console.log("Scrape successful, processing links...");
+    // If no sitemap or not enough URLs, scrape the homepage
+    if (itemLinks.length < maxItems) {
+      const scrapeResponse = await fetch("https://api.firecrawl.dev/v1/scrape", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${firecrawlKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          url: typedSource.url,
+          formats: ["links", "markdown"],
+          onlyMainContent: true,
+        }),
+      });
 
-    // Get article links from the page with improved filtering
-    const links = scrapeData.data?.links || [];
-    const baseUrl = source.url.replace(/\/+$/, "");
-    
-    const articleLinks = links
-      .filter((link: string) => isLikelyArticleUrl(link, baseUrl))
-      .slice(0, 10);
+      const scrapeData = await scrapeResponse.json();
 
-    console.log(`Found ${articleLinks.length} likely article links out of ${links.length} total`);
+      if (!scrapeResponse.ok) {
+        console.error("Firecrawl error:", scrapeData);
+        return new Response(
+          JSON.stringify({ error: "Failed to scrape website" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
 
-    let articlesCount = 0;
+      const links = scrapeData.data?.links || [];
+      
+      if (isProductSource) {
+        const productLinks = links.filter((link: string) => isLikelyProductUrl(link, baseUrl));
+        itemLinks = [...new Set([...itemLinks, ...productLinks])].slice(0, maxItems);
+      } else {
+        const articleLinks = links.filter((link: string) => isLikelyArticleUrl(link, baseUrl));
+        itemLinks = [...new Set([...itemLinks, ...articleLinks])].slice(0, maxItems);
+      }
+    }
+
+    console.log(`Found ${itemLinks.length} ${isProductSource ? "product" : "article"} links to process`);
+
+    let processedCount = 0;
     let skippedCount = 0;
     const categories = ["politica", "economia", "tecnologia", "esportes", "entretenimento", "saude", "ciencia", "mundo", "brasil", "cultura"];
 
-    for (const articleUrl of articleLinks) {
+    for (const itemUrl of itemLinks) {
       try {
-        // Check if article already exists
-        const { data: existing } = await supabase
-          .from("articles")
-          .select("id, title")
-          .eq("original_url", articleUrl)
-          .maybeSingle();
+        if (isProductSource) {
+          // Process as product
+          const { data: existing } = await supabase
+            .from("products")
+            .select("id")
+            .eq("original_url", itemUrl)
+            .maybeSingle();
 
-        const existingId = existing?.id;
+          const existingId = existing?.id;
 
-        // Scrape the article
-        const articleResponse = await fetch("https://api.firecrawl.dev/v1/scrape", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${firecrawlKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            url: articleUrl,
-            formats: ["markdown", "html"],
-            onlyMainContent: true,
-            waitFor: 2000,
-          }),
-        });
+          // Scrape the product page
+          const productResponse = await fetch("https://api.firecrawl.dev/v1/scrape", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${firecrawlKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              url: itemUrl,
+              formats: ["markdown"],
+              onlyMainContent: true,
+              waitFor: 2000,
+            }),
+          });
 
-        const articleData = await articleResponse.json();
+          const productData = await productResponse.json();
 
-        if (!articleResponse.ok) {
-          console.error(`Failed to scrape article: ${articleUrl}`);
-          continue;
-        }
-
-        let title = articleData.data?.metadata?.title || "";
-        let rawContent = articleData.data?.markdown || "";
-        const rawHtml = articleData.data?.html || "";
-        let excerpt = articleData.data?.metadata?.description || "";
-        let imageUrl = articleData.data?.metadata?.ogImage || articleData.data?.metadata?.image || null;
-
-        // Clean up title
-        title = title.split(" - ")[0].split(" | ")[0].trim();
-
-        // Validate title is a real article title
-        if (!isValidArticleTitle(title, source.name)) {
-          console.log(`Skipping non-article page: ${title} (${articleUrl})`);
-          skippedCount++;
-          continue;
-        }
-
-        // Extract video URL if present
-        const videoUrl = extractVideoUrl(rawContent + rawHtml);
-
-        let content = "";
-
-        // Use AI to clean article content (skip AI validation - rely on URL/title filters)
-        if (lovableApiKey && rawContent) {
-          console.log(`Processing article: ${title}`);
-
-          // Check if content looks like a list page (many links, little text)
-          const linkCount = (rawContent.match(/\[.*?\]\(.*?\)/g) || []).length;
-          const textLength = rawContent.replace(/\[.*?\]\(.*?\)/g, "").replace(/\s+/g, " ").length;
-          const linkRatio = linkCount / (textLength / 100);
-          
-          // Skip if content is mostly links (like category pages)
-          if (linkRatio > 2 && textLength < 1500) {
-            console.log(`Skipping link-heavy page: ${title} (${linkCount} links, ${textLength} chars)`);
-            skippedCount++;
+          if (!productResponse.ok) {
+            console.error(`Failed to scrape product: ${itemUrl}`);
             continue;
           }
-          
-          // Skip if content is too short to be an article
-          if (textLength < 500) {
-            console.log(`Skipping short content page: ${title} (${textLength} chars)`);
+
+          let name = productData.data?.metadata?.title || "";
+          const rawContent = productData.data?.markdown || "";
+          let description = productData.data?.metadata?.description || "";
+          let imageUrl = productData.data?.metadata?.ogImage || productData.data?.metadata?.image || null;
+
+          name = name.split(" - ")[0].split(" | ")[0].trim();
+
+          if (!name || name.length < 3) {
+            console.log(`Skipping product with invalid name: ${itemUrl}`);
             skippedCount++;
             continue;
           }
 
-          // Clean the content with proper semantic HTML
-          const cleanPrompt = source.is_foreign
-            ? `Você é um editor de notícias profissional. Extraia e formate o conteúdo principal do artigo abaixo.
+          // Use AI to extract product info
+          let price: number | null = null;
+          let currency = "BRL";
+          let category = "";
+
+          if (lovableApiKey && rawContent) {
+            const extractPrompt = `Extraia as informações do produto abaixo e retorne em JSON:
+{
+  "name": "nome do produto limpo",
+  "description": "descrição curta do produto (max 200 chars)",
+  "price": 0.00,
+  "currency": "BRL",
+  "category": "categoria do produto",
+  "is_available": true
+}
+
+Se não encontrar preço, use null.
+Se for site estrangeiro, converta a moeda para o código correto (USD, EUR, etc).
+
+Conteúdo:
+${rawContent.slice(0, 5000)}`;
+
+            const extractResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+              method: "POST",
+              headers: {
+                "Authorization": `Bearer ${lovableApiKey}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                model: "google/gemini-3-flash-preview",
+                messages: [{ role: "user", content: extractPrompt }],
+              }),
+            });
+
+            if (extractResponse.ok) {
+              const extractData = await extractResponse.json();
+              const extractContent = extractData.choices?.[0]?.message?.content || "";
+              try {
+                const jsonMatch = extractContent.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                  const parsed = JSON.parse(jsonMatch[0]);
+                  if (parsed.name) name = parsed.name;
+                  if (parsed.description) description = parsed.description;
+                  if (parsed.price !== null && parsed.price !== undefined) price = parsed.price;
+                  if (parsed.currency) currency = parsed.currency;
+                  if (parsed.category) category = parsed.category;
+                }
+              } catch (e) {
+                console.log("Could not parse product info");
+              }
+            }
+          }
+
+          const slug = name
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/[^a-z0-9\s-]/g, "")
+            .replace(/\s+/g, "-")
+            .slice(0, 80) + "-" + Date.now().toString(36);
+
+          if (existingId) {
+            const { error: updateError } = await supabase
+              .from("products")
+              .update({
+                name,
+                description: description?.slice(0, 500),
+                price,
+                currency,
+                image_url: imageUrl,
+                category,
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", existingId);
+
+            if (updateError) {
+              console.error(`Failed to update product: ${updateError.message}`);
+              continue;
+            }
+
+            processedCount++;
+            console.log(`Updated product: ${name}`);
+          } else {
+            const { error: insertError } = await supabase.from("products").insert({
+              source_id: typedSource.id,
+              name,
+              slug,
+              description: description?.slice(0, 500),
+              price,
+              currency,
+              image_url: imageUrl,
+              original_url: itemUrl,
+              category,
+            });
+
+            if (insertError) {
+              console.error(`Failed to insert product: ${insertError.message}`);
+              continue;
+            }
+
+            processedCount++;
+            console.log(`Inserted product: ${name}`);
+          }
+        } else {
+          // Process as article (existing logic)
+          const { data: existing } = await supabase
+            .from("articles")
+            .select("id, title")
+            .eq("original_url", itemUrl)
+            .maybeSingle();
+
+          const existingId = existing?.id;
+
+          const articleResponse = await fetch("https://api.firecrawl.dev/v1/scrape", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${firecrawlKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              url: itemUrl,
+              formats: ["markdown", "html"],
+              onlyMainContent: true,
+              waitFor: 2000,
+            }),
+          });
+
+          const articleData = await articleResponse.json();
+
+          if (!articleResponse.ok) {
+            console.error(`Failed to scrape article: ${itemUrl}`);
+            continue;
+          }
+
+          let title = articleData.data?.metadata?.title || "";
+          let rawContent = articleData.data?.markdown || "";
+          const rawHtml = articleData.data?.html || "";
+          let excerpt = articleData.data?.metadata?.description || "";
+          let imageUrl = articleData.data?.metadata?.ogImage || articleData.data?.metadata?.image || null;
+
+          title = title.split(" - ")[0].split(" | ")[0].trim();
+
+          if (!isValidArticleTitle(title, typedSource.name)) {
+            console.log(`Skipping non-article page: ${title} (${itemUrl})`);
+            skippedCount++;
+            continue;
+          }
+
+          const videoUrl = extractVideoUrl(rawContent + rawHtml);
+
+          let content = "";
+
+          if (lovableApiKey && rawContent) {
+            console.log(`Processing article: ${title}`);
+
+            const linkCount = (rawContent.match(/\[.*?\]\(.*?\)/g) || []).length;
+            const textLength = rawContent.replace(/\[.*?\]\(.*?\)/g, "").replace(/\s+/g, " ").length;
+            const linkRatio = linkCount / (textLength / 100);
+            
+            if (linkRatio > 2 && textLength < 1500) {
+              console.log(`Skipping link-heavy page: ${title} (${linkCount} links, ${textLength} chars)`);
+              skippedCount++;
+              continue;
+            }
+            
+            if (textLength < 500) {
+              console.log(`Skipping short content page: ${title} (${textLength} chars)`);
+              skippedCount++;
+              continue;
+            }
+
+            const cleanPrompt = typedSource.is_foreign
+              ? `Você é um editor de notícias profissional. Extraia e formate o conteúdo principal do artigo abaixo.
 
 REMOVA completamente:
 - Anúncios, banners, links de "Remove Ads", promoções
@@ -375,7 +655,7 @@ Título original: ${title}
 
 Conteúdo bruto:
 ${rawContent.slice(0, 12000)}`
-            : `Você é um editor de notícias profissional. Extraia e formate o conteúdo principal do artigo abaixo.
+              : `Você é um editor de notícias profissional. Extraia e formate o conteúdo principal do artigo abaixo.
 
 REMOVA completamente:
 - Anúncios, banners, links de "Remove Ads", promoções
@@ -412,174 +692,177 @@ Título: ${title}
 Conteúdo bruto:
 ${rawContent.slice(0, 12000)}`;
 
-          const cleanResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${lovableApiKey}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              model: "google/gemini-3-flash-preview",
-              messages: [{ role: "user", content: cleanPrompt }],
-            }),
-          });
+            const cleanResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+              method: "POST",
+              headers: {
+                "Authorization": `Bearer ${lovableApiKey}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                model: "google/gemini-3-flash-preview",
+                messages: [{ role: "user", content: cleanPrompt }],
+              }),
+            });
 
-          if (cleanResponse.ok) {
-            const cleanData = await cleanResponse.json();
-            content = cleanData.choices?.[0]?.message?.content || "";
-            
-            // If foreign source, also translate title and excerpt
-            if (source.is_foreign && content) {
-              const translateMetaResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-                method: "POST",
-                headers: {
-                  "Authorization": `Bearer ${lovableApiKey}`,
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  model: "google/gemini-3-flash-preview",
-                  messages: [
-                    {
-                      role: "system",
-                      content: "Traduza para Português do Brasil. Responda em JSON: {\"title\": \"...\", \"excerpt\": \"...\"}",
-                    },
-                    {
-                      role: "user",
-                      content: `Título: ${title}\nResumo: ${excerpt}`,
-                    },
-                  ],
-                }),
-              });
+            if (cleanResponse.ok) {
+              const cleanData = await cleanResponse.json();
+              content = cleanData.choices?.[0]?.message?.content || "";
+              
+              if (typedSource.is_foreign && content) {
+                const translateMetaResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+                  method: "POST",
+                  headers: {
+                    "Authorization": `Bearer ${lovableApiKey}`,
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    model: "google/gemini-3-flash-preview",
+                    messages: [
+                      {
+                        role: "system",
+                        content: "Traduza para Português do Brasil. Responda em JSON: {\"title\": \"...\", \"excerpt\": \"...\"}",
+                      },
+                      {
+                        role: "user",
+                        content: `Título: ${title}\nResumo: ${excerpt}`,
+                      },
+                    ],
+                  }),
+                });
 
-              if (translateMetaResponse.ok) {
-                const metaData = await translateMetaResponse.json();
-                const metaContent = metaData.choices?.[0]?.message?.content || "";
-                try {
-                  const jsonMatch = metaContent.match(/\{[\s\S]*\}/);
-                  if (jsonMatch) {
-                    const parsed = JSON.parse(jsonMatch[0]);
-                    if (parsed.title) title = parsed.title;
-                    if (parsed.excerpt) excerpt = parsed.excerpt;
+                if (translateMetaResponse.ok) {
+                  const metaData = await translateMetaResponse.json();
+                  const metaContent = metaData.choices?.[0]?.message?.content || "";
+                  try {
+                    const jsonMatch = metaContent.match(/\{[\s\S]*\}/);
+                    if (jsonMatch) {
+                      const parsed = JSON.parse(jsonMatch[0]);
+                      if (parsed.title) title = parsed.title;
+                      if (parsed.excerpt) excerpt = parsed.excerpt;
+                    }
+                  } catch (e) {
+                    console.log("Could not parse translated metadata");
                   }
-                } catch (e) {
-                  console.log("Could not parse translated metadata");
                 }
               }
+            } else {
+              console.error("Failed to clean content with AI");
+              content = rawContent;
             }
           } else {
-            console.error("Failed to clean content with AI");
             content = rawContent;
           }
-        } else {
-          content = rawContent;
-        }
 
-        // Skip if no substantial content was extracted
-        if (!content || content.length < 200) {
-          console.log(`Skipping article with insufficient content: ${title}`);
-          skippedCount++;
-          continue;
-        }
+          if (!content || content.length < 200) {
+            console.log(`Skipping article with insufficient content: ${title}`);
+            skippedCount++;
+            continue;
+          }
 
-        // Determine category using AI
-        let category = "brasil";
+          let category = "brasil";
 
-        if (lovableApiKey) {
-          const categoryResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${lovableApiKey}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              model: "google/gemini-3-flash-preview",
-              messages: [
-                {
-                  role: "system",
-                  content: `Classifique a notícia em UMA das categorias: ${categories.join(", ")}. Responda APENAS com o nome da categoria, sem explicações.`,
-                },
-                {
-                  role: "user",
-                  content: `Título: ${title}\nResumo: ${excerpt}`,
-                },
-              ],
-            }),
-          });
+          if (lovableApiKey) {
+            const categoryResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+              method: "POST",
+              headers: {
+                "Authorization": `Bearer ${lovableApiKey}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                model: "google/gemini-3-flash-preview",
+                messages: [
+                  {
+                    role: "system",
+                    content: `Classifique a notícia em UMA das categorias: ${categories.join(", ")}. Responda APENAS com o nome da categoria, sem explicações.`,
+                  },
+                  {
+                    role: "user",
+                    content: `Título: ${title}\nResumo: ${excerpt}`,
+                  },
+                ],
+              }),
+            });
 
-          if (categoryResponse.ok) {
-            const categoryData = await categoryResponse.json();
-            const detectedCategory = categoryData.choices?.[0]?.message?.content?.toLowerCase().trim();
-            if (categories.includes(detectedCategory)) {
-              category = detectedCategory;
+            if (categoryResponse.ok) {
+              const categoryData = await categoryResponse.json();
+              const detectedCategory = categoryData.choices?.[0]?.message?.content?.toLowerCase().trim();
+              if (categories.includes(detectedCategory)) {
+                category = detectedCategory;
+              }
             }
           }
-        }
 
-        // Generate slug
-        const slug = title
-          .toLowerCase()
-          .normalize("NFD")
-          .replace(/[\u0300-\u036f]/g, "")
-          .replace(/[^a-z0-9\s-]/g, "")
-          .replace(/\s+/g, "-")
-          .slice(0, 80) + "-" + Date.now().toString(36);
+          const slug = title
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/[^a-z0-9\s-]/g, "")
+            .replace(/\s+/g, "-")
+            .slice(0, 80) + "-" + Date.now().toString(36);
 
-        // Upsert article
-        if (existingId) {
-          const { error: updateError } = await supabase
-            .from("articles")
-            .update({
+          if (existingId) {
+            const { error: updateError } = await supabase
+              .from("articles")
+              .update({
+                title,
+                excerpt: excerpt.slice(0, 500),
+                content,
+                image_url: imageUrl,
+                video_url: videoUrl,
+                category,
+                is_translated: typedSource.is_foreign,
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", existingId);
+
+            if (updateError) {
+              console.error(`Failed to update article: ${updateError.message}`);
+              continue;
+            }
+
+            processedCount++;
+            console.log(`Updated article: ${title}`);
+          } else {
+            const { error: insertError } = await supabase.from("articles").insert({
+              source_id: typedSource.id,
               title,
+              slug,
               excerpt: excerpt.slice(0, 500),
               content,
               image_url: imageUrl,
               video_url: videoUrl,
+              original_url: itemUrl,
               category,
-              is_translated: source.is_foreign,
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", existingId);
+              is_featured: processedCount === 0,
+              is_translated: typedSource.is_foreign,
+              published_at: new Date().toISOString(),
+            });
 
-          if (updateError) {
-            console.error(`Failed to update article: ${updateError.message}`);
-            continue;
+            if (insertError) {
+              console.error(`Failed to insert article: ${insertError.message}`);
+              continue;
+            }
+
+            processedCount++;
+            console.log(`Inserted article: ${title}`);
           }
-
-          articlesCount++;
-          console.log(`Updated article: ${title}`);
-        } else {
-          const { error: insertError } = await supabase.from("articles").insert({
-            source_id: source.id,
-            title,
-            slug,
-            excerpt: excerpt.slice(0, 500),
-            content,
-            image_url: imageUrl,
-            video_url: videoUrl,
-            original_url: articleUrl,
-            category,
-            is_featured: articlesCount === 0,
-            is_translated: source.is_foreign,
-            published_at: new Date().toISOString(),
-          });
-
-          if (insertError) {
-            console.error(`Failed to insert article: ${insertError.message}`);
-            continue;
-          }
-
-          articlesCount++;
-          console.log(`Inserted article: ${title}`);
         }
       } catch (error) {
-        console.error(`Error processing article ${articleUrl}:`, error);
+        console.error(`Error processing ${itemUrl}:`, error);
       }
     }
 
-    console.log(`Scraping complete. Processed ${articlesCount} articles, skipped ${skippedCount} non-articles.`);
+    const itemType = isProductSource ? "produtos" : "artigos";
+    console.log(`Scraping complete. Processed ${processedCount} ${itemType}, skipped ${skippedCount}.`);
 
     return new Response(
-      JSON.stringify({ success: true, articlesCount, skippedCount }),
+      JSON.stringify({ 
+        success: true, 
+        articlesCount: isProductSource ? 0 : processedCount,
+        productsCount: isProductSource ? processedCount : 0,
+        skippedCount,
+        sourceType: typedSource.source_type,
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
