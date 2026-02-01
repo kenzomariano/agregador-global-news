@@ -312,45 +312,27 @@ serve(async (req) => {
 
         let content = "";
 
-        // Use AI to validate and clean article content
+        // Use AI to clean article content (skip AI validation - rely on URL/title filters)
         if (lovableApiKey && rawContent) {
           console.log(`Processing article: ${title}`);
 
-          // First, ask AI to validate if this is actually an article
-          const validatePrompt = `Analise o conteúdo abaixo e responda APENAS com "SIM" ou "NAO":
-É este o conteúdo de um artigo de notícias real (com corpo de texto, parágrafos, informações jornalísticas)?
-Responda "NAO" se for:
-- Uma página de categoria/seção
-- Uma página de listagem
-- Uma página de autor/perfil
-- Uma homepage
-- Uma página de busca
-- Apenas links e títulos sem corpo de texto
-
-Título: ${title}
-Início do conteúdo: ${rawContent.slice(0, 2000)}`;
-
-          const validateResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${lovableApiKey}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              model: "google/gemini-3-flash-preview",
-              messages: [{ role: "user", content: validatePrompt }],
-            }),
-          });
-
-          if (validateResponse.ok) {
-            const validateData = await validateResponse.json();
-            const isArticle = validateData.choices?.[0]?.message?.content?.toUpperCase().includes("SIM");
-            
-            if (!isArticle) {
-              console.log(`AI determined this is not an article: ${title}`);
-              skippedCount++;
-              continue;
-            }
+          // Check if content looks like a list page (many links, little text)
+          const linkCount = (rawContent.match(/\[.*?\]\(.*?\)/g) || []).length;
+          const textLength = rawContent.replace(/\[.*?\]\(.*?\)/g, "").replace(/\s+/g, " ").length;
+          const linkRatio = linkCount / (textLength / 100);
+          
+          // Skip if content is mostly links (like category pages)
+          if (linkRatio > 2 && textLength < 1500) {
+            console.log(`Skipping link-heavy page: ${title} (${linkCount} links, ${textLength} chars)`);
+            skippedCount++;
+            continue;
+          }
+          
+          // Skip if content is too short to be an article
+          if (textLength < 500) {
+            console.log(`Skipping short content page: ${title} (${textLength} chars)`);
+            skippedCount++;
+            continue;
           }
 
           // Clean the content with proper semantic HTML
