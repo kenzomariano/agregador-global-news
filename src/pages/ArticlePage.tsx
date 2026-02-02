@@ -11,7 +11,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ArticleCard } from "@/components/news/ArticleCard";
 import { ArticleContent } from "@/components/news/ArticleContent";
 import { TrendingSidebar } from "@/components/news/TrendingSidebar";
+import { TMDBMentions } from "@/components/entertainment/TMDBMention";
 import { useArticleBySlug, useRelatedArticles, useIncrementViews } from "@/hooks/useArticles";
+import { useArticleTMDBMentions } from "@/hooks/useArticleTMDBMentions";
 import { CATEGORIES, type CategoryKey } from "@/lib/categories";
 
 interface ArticleWithVideo {
@@ -46,6 +48,13 @@ export default function ArticlePage() {
     4
   );
   const incrementViews = useIncrementViews();
+  
+  // Fetch TMDB mentions for entertainment-related articles
+  const { data: tmdbMentions } = useArticleTMDBMentions(
+    article?.content || null,
+    article?.title || "",
+    article?.category || ""
+  );
 
   useEffect(() => {
     if (article?.id) {
@@ -180,6 +189,11 @@ export default function ArticlePage() {
                   className="w-full rounded-lg shadow-md"
                 />
               </figure>
+            )}
+
+            {/* TMDB Mentions */}
+            {tmdbMentions && tmdbMentions.length > 0 && (
+              <TMDBMentions mentions={tmdbMentions} />
             )}
 
             {/* Article content */}
