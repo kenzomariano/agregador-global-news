@@ -101,6 +101,12 @@ export function Header() {
               >
                 Mais Lidas
               </Link>
+              <Link
+                to="/produtos"
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Produtos
+              </Link>
             </nav>
           </SheetContent>
         </Sheet>
@@ -170,6 +176,14 @@ export function Header() {
                 className="px-3 py-1.5 text-sm font-medium rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
               >
                 🔥 Mais Lidas
+              </Link>
+            </li>
+            <li>
+              <Link
+                to="/produtos"
+                className="px-3 py-1.5 text-sm font-medium rounded-md hover:bg-accent transition-colors"
+              >
+                🛒 Produtos
               </Link>
             </li>
           </ul>

@@ -187,16 +187,77 @@ serve(async (req) => {
       );
     }
 
+    if (action === "get_details") {
+      const body = await req.clone().json();
+      const { tmdb_id, media_type } = body;
+      
+      if (!tmdb_id || !media_type) {
+        return new Response(
+          JSON.stringify({ error: "tmdb_id and media_type are required" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Fetch details from TMDB
+      const detailsResponse = await fetch(
+        `${TMDB_BASE_URL}/${media_type}/${tmdb_id}?api_key=${TMDB_API_KEY}&language=pt-BR`
+      );
+      const detailsData = await detailsResponse.json();
+
+      // Fetch watch providers for Brazil
+      const providersResponse = await fetch(
+        `${TMDB_BASE_URL}/${media_type}/${tmdb_id}/watch/providers?api_key=${TMDB_API_KEY}`
+      );
+      const providersData = await providersResponse.json();
+      const brProviders = providersData.results?.BR || null;
+
+      // Get trailers from cache
+      const { data: trailers } = await supabase
+        .from("tmdb_trailers")
+        .select("*")
+        .eq("tmdb_id", tmdb_id)
+        .eq("media_type", media_type);
+
+      const result = {
+        tmdb_id: detailsData.id,
+        media_type,
+        title: detailsData.title || detailsData.name,
+        original_title: detailsData.original_title || detailsData.original_name,
+        overview: detailsData.overview,
+        poster_path: detailsData.poster_path,
+        backdrop_path: detailsData.backdrop_path,
+        release_date: detailsData.release_date || detailsData.first_air_date,
+        vote_average: detailsData.vote_average,
+        runtime: detailsData.runtime || (detailsData.episode_run_time?.[0] || null),
+        genres: detailsData.genres || [],
+        tagline: detailsData.tagline || null,
+        watch_providers: brProviders,
+      };
+
+      return new Response(
+        JSON.stringify({ success: true, data: result, trailers: trailers || [] }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     if (action === "search") {
-      const { query, type = "multi" } = await req.json();
+      const body = await req.clone().json();
+      const { query, type = "multi" } = body;
       
       const searchResponse = await fetch(
         `${TMDB_BASE_URL}/search/${type}?api_key=${TMDB_API_KEY}&language=pt-BR&query=${encodeURIComponent(query)}`
       );
       const searchData = await searchResponse.json();
 
+      // Add media_type to results if searching multi
+      const results = searchData.results?.map((item: any) => ({
+        ...item,
+        media_type: item.media_type || type,
+        title: item.title || item.name,
+      })) || [];
+
       return new Response(
-        JSON.stringify({ success: true, data: searchData.results }),
+        JSON.stringify({ success: true, data: results }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }

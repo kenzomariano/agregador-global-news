@@ -1,23 +1,24 @@
 import { useState } from "react";
-import { Play, Film, Tv, Star, RefreshCw } from "lucide-react";
+import { Play, Film, Tv, Star, RefreshCw, Info } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import {
   useTrendingTrailers,
   useSyncTMDB,
-  getTMDBImageUrl,
   getYouTubeEmbedUrl,
   getYouTubeThumbnail,
   type TMDBItem,
 } from "@/hooks/useTMDB";
+import { MovieDetailModal } from "./MovieDetailModal";
 
 export function TrendingTrailers() {
   const { data: items, isLoading } = useTrendingTrailers();
   const syncMutation = useSyncTMDB();
   const [selectedTrailer, setSelectedTrailer] = useState<string | null>(null);
+  const [selectedItem, setSelectedItem] = useState<TMDBItem | null>(null);
 
   if (isLoading) {
     return (
@@ -69,30 +70,33 @@ export function TrendingTrailers() {
   }
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-3">
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <Play className="h-5 w-5 text-primary" />
-          Trailers em Alta
-        </CardTitle>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => syncMutation.mutate()}
-          disabled={syncMutation.isPending}
-        >
-          <RefreshCw className={`h-4 w-4 ${syncMutation.isPending ? "animate-spin" : ""}`} />
-        </Button>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        {itemsWithTrailers.slice(0, 5).map((item) => (
-          <TrailerItem
-            key={item.id}
-            item={item}
-            onPlay={(key) => setSelectedTrailer(key)}
-          />
-        ))}
-      </CardContent>
+    <>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Play className="h-5 w-5 text-primary" />
+            Trailers em Alta
+          </CardTitle>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => syncMutation.mutate()}
+            disabled={syncMutation.isPending}
+          >
+            <RefreshCw className={`h-4 w-4 ${syncMutation.isPending ? "animate-spin" : ""}`} />
+          </Button>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {itemsWithTrailers.slice(0, 5).map((item) => (
+            <TrailerItem
+              key={item.id}
+              item={item}
+              onPlay={(key) => setSelectedTrailer(key)}
+              onInfo={() => setSelectedItem(item as TMDBItem)}
+            />
+          ))}
+        </CardContent>
+      </Card>
 
       <Dialog open={!!selectedTrailer} onOpenChange={() => setSelectedTrailer(null)}>
         <DialogContent className="max-w-4xl p-0 overflow-hidden">
@@ -108,16 +112,24 @@ export function TrendingTrailers() {
           )}
         </DialogContent>
       </Dialog>
-    </Card>
+
+      <MovieDetailModal
+        item={selectedItem}
+        open={!!selectedItem}
+        onOpenChange={(open) => !open && setSelectedItem(null)}
+      />
+    </>
   );
 }
 
 function TrailerItem({
   item,
   onPlay,
+  onInfo,
 }: {
   item: TMDBItem;
   onPlay: (key: string) => void;
+  onInfo: () => void;
 }) {
   const trailer = item.trailers?.[0];
   if (!trailer) return null;
@@ -125,11 +137,11 @@ function TrailerItem({
   const thumbnailUrl = getYouTubeThumbnail(trailer.video_key);
 
   return (
-    <button
-      onClick={() => onPlay(trailer.video_key)}
-      className="flex gap-3 w-full text-left hover:bg-accent/50 rounded-lg p-2 -mx-2 transition-colors group"
-    >
-      <div className="relative w-24 h-14 rounded overflow-hidden flex-shrink-0">
+    <div className="flex gap-3 w-full text-left hover:bg-accent/50 rounded-lg p-2 -mx-2 transition-colors group">
+      <button
+        onClick={() => onPlay(trailer.video_key)}
+        className="relative w-24 h-14 rounded overflow-hidden flex-shrink-0"
+      >
         <img
           src={thumbnailUrl}
           alt={item.title}
@@ -138,7 +150,7 @@ function TrailerItem({
         <div className="absolute inset-0 bg-black/40 flex items-center justify-center group-hover:bg-black/60 transition-colors">
           <Play className="h-6 w-6 text-white fill-white" />
         </div>
-      </div>
+      </button>
       <div className="flex-1 min-w-0">
         <h4 className="font-medium text-sm line-clamp-2 group-hover:text-primary transition-colors">
           {item.title}
@@ -165,6 +177,15 @@ function TrailerItem({
           )}
         </div>
       </div>
-    </button>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-8 w-8 flex-shrink-0"
+        onClick={onInfo}
+        title="Ver detalhes"
+      >
+        <Info className="h-4 w-4" />
+      </Button>
+    </div>
   );
 }

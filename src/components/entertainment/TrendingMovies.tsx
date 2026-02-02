@@ -1,13 +1,15 @@
-import { Link } from "react-router-dom";
+import { useState } from "react";
 import { Film, Tv, Star, TrendingUp } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { useTrendingContent, getTMDBImageUrl, type TMDBItem } from "@/hooks/useTMDB";
+import { MovieDetailModal } from "./MovieDetailModal";
 
 export function TrendingMovies() {
   const { data: items, isLoading } = useTrendingContent();
+  const [selectedItem, setSelectedItem] = useState<TMDBItem | null>(null);
 
   if (isLoading) {
     return (
@@ -43,7 +45,7 @@ export function TrendingMovies() {
           <ScrollArea className="w-full">
             <div className="flex gap-4 pb-4">
               {movies.map((item) => (
-                <MovieCard key={item.id} item={item} />
+                <MovieCard key={item.id} item={item} onClick={() => setSelectedItem(item)} />
               ))}
             </div>
             <ScrollBar orientation="horizontal" />
@@ -61,23 +63,32 @@ export function TrendingMovies() {
           <ScrollArea className="w-full">
             <div className="flex gap-4 pb-4">
               {tvShows.map((item) => (
-                <MovieCard key={item.id} item={item} />
+                <MovieCard key={item.id} item={item} onClick={() => setSelectedItem(item)} />
               ))}
             </div>
             <ScrollBar orientation="horizontal" />
           </ScrollArea>
         </div>
       )}
+
+      <MovieDetailModal
+        item={selectedItem}
+        open={!!selectedItem}
+        onOpenChange={(open) => !open && setSelectedItem(null)}
+      />
     </section>
   );
 }
 
-function MovieCard({ item }: { item: TMDBItem }) {
+function MovieCard({ item, onClick }: { item: TMDBItem; onClick: () => void }) {
   const posterUrl = getTMDBImageUrl(item.poster_path, "w300");
   const year = item.release_date ? new Date(item.release_date).getFullYear() : null;
 
   return (
-    <Card className="w-36 flex-shrink-0 overflow-hidden group hover:shadow-lg transition-shadow">
+    <Card 
+      className="w-36 flex-shrink-0 overflow-hidden group hover:shadow-lg transition-shadow cursor-pointer"
+      onClick={onClick}
+    >
       <div className="relative aspect-[2/3] overflow-hidden">
         {posterUrl ? (
           <img
