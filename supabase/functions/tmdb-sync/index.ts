@@ -49,7 +49,8 @@ serve(async (req) => {
   }
 
   try {
-    const { action } = await req.json();
+    const body = await req.json();
+    const { action, tmdb_id, media_type, query, type } = body;
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -188,9 +189,6 @@ serve(async (req) => {
     }
 
     if (action === "get_details") {
-      const body = await req.clone().json();
-      const { tmdb_id, media_type } = body;
-      
       if (!tmdb_id || !media_type) {
         return new Response(
           JSON.stringify({ error: "tmdb_id and media_type are required" }),
@@ -241,18 +239,16 @@ serve(async (req) => {
     }
 
     if (action === "search") {
-      const body = await req.clone().json();
-      const { query, type = "multi" } = body;
-      
+      const searchType = type || "multi";
       const searchResponse = await fetch(
-        `${TMDB_BASE_URL}/search/${type}?api_key=${TMDB_API_KEY}&language=pt-BR&query=${encodeURIComponent(query)}`
+        `${TMDB_BASE_URL}/search/${searchType}?api_key=${TMDB_API_KEY}&language=pt-BR&query=${encodeURIComponent(query)}`
       );
       const searchData = await searchResponse.json();
 
       // Add media_type to results if searching multi
       const results = searchData.results?.map((item: any) => ({
         ...item,
-        media_type: item.media_type || type,
+        media_type: item.media_type || searchType,
         title: item.title || item.name,
       })) || [];
 
