@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
 import {
   Select,
   SelectContent,
@@ -42,6 +43,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useArticles, type Article } from "@/hooks/useArticles";
 import { CATEGORIES, type CategoryKey } from "@/lib/categories";
 import { supabase } from "@/integrations/supabase/client";
+import { ArticleTagsManager } from "@/components/admin/ArticleTagsManager";
 
 export default function ArticlesPage() {
   const { toast } = useToast();
@@ -444,6 +446,16 @@ export default function ArticlesPage() {
                 onChange={(e) => setEditForm({ ...editForm, video_url: e.target.value })}
               />
             </div>
+
+            <Separator className="my-4" />
+
+            {/* Tags Manager */}
+            {editingArticle && (
+              <ArticleTagsManager
+                articleId={editingArticle.id}
+                articleTitle={editingArticle.title}
+              />
+            )}
           </div>
 
           <DialogFooter>
