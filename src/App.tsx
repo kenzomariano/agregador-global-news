@@ -11,6 +11,7 @@ import CategoryPage from "./pages/CategoryPage";
 import ArticlePage from "./pages/ArticlePage";
 import TrendingPage from "./pages/TrendingPage";
 import ProductsPage from "./pages/ProductsPage";
+import TagPage from "./pages/TagPage";
 import AuthPage from "./pages/AuthPage";
 import SourcesPage from "./pages/admin/SourcesPage";
 import ArticlesPage from "./pages/admin/ArticlesPage";
@@ -32,6 +33,7 @@ const App = () => (
               <Route path="/noticia/:slug" element={<ArticlePage />} />
               <Route path="/mais-lidas" element={<TrendingPage />} />
               <Route path="/produtos" element={<ProductsPage />} />
+              <Route path="/tag/:tag" element={<TagPage />} />
               <Route
                 path="/admin/fontes"
                 element={

@@ -30,9 +30,26 @@ function isMarkdown(content: string): boolean {
   return markdownPatterns.some((pattern) => pattern.test(content));
 }
 
+// Convert markdown-style bold/italic to HTML
+function convertMarkdownFormats(content: string): string {
+  let converted = content;
+  
+  // Convert **text** or __text__ to <strong>
+  converted = converted.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  converted = converted.replace(/__([^_]+)__/g, '<strong>$1</strong>');
+  
+  // Convert *text* or _text_ to <em> (but not if part of a word like file_name)
+  // Only match if surrounded by spaces or at start/end
+  converted = converted.replace(/(?<!\w)\*([^*\n]+)\*(?!\w)/g, '<strong>$1</strong>');
+  converted = converted.replace(/(?<!\w)_([^_\n]+)_(?!\w)/g, '<em>$1</em>');
+  
+  return converted;
+}
+
 // Clean and enhance HTML content
 function enhanceHtmlContent(content: string): string {
-  let enhanced = content;
+  // First convert any markdown-style formatting
+  let enhanced = convertMarkdownFormats(content);
   
   // Ensure proper heading hierarchy
   // If there are multiple h1s, convert them to h2
@@ -61,7 +78,10 @@ function enhanceHtmlContent(content: string): string {
 
 // Convert plain text with line breaks to proper paragraphs
 function convertPlainTextToHtml(content: string): string {
-  const paragraphs = content
+  // First convert markdown formatting
+  const formatted = convertMarkdownFormats(content);
+  
+  const paragraphs = formatted
     .split(/\n\n+/)
     .filter((p) => p.trim())
     .map((p) => `<p class="mb-4 text-foreground/90 leading-relaxed">${p.trim().replace(/\n/g, "<br>")}</p>`)
