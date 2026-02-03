@@ -10,6 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArticleCard } from "@/components/news/ArticleCard";
 import { ArticleContent } from "@/components/news/ArticleContent";
+import { ArticleTags } from "@/components/news/ArticleTags";
 import { TrendingSidebar } from "@/components/news/TrendingSidebar";
 import { TMDBMentions } from "@/components/entertainment/TMDBMention";
 import { useArticleBySlug, useRelatedArticles, useIncrementViews } from "@/hooks/useArticles";
@@ -197,7 +198,7 @@ export default function ArticlePage() {
             )}
 
             {/* Article content */}
-            <div className="mb-8">
+            <div className="mb-6">
               {article.content ? (
                 <ArticleContent content={article.content} />
               ) : (
@@ -207,7 +208,8 @@ export default function ArticlePage() {
               )}
             </div>
 
-            {/* Source link */}
+            {/* Tags */}
+            <ArticleTags articleId={article.id} className="mb-8" />
             <Card className="mb-8">
               <CardContent className="flex items-center justify-between p-4">
                 <div>

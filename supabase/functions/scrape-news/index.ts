@@ -760,6 +760,7 @@ ${rawContent.slice(0, 12000)}`;
           }
 
           let category = "brasil";
+          let tags: string[] = [];
 
           if (lovableApiKey) {
             const categoryResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -773,11 +774,24 @@ ${rawContent.slice(0, 12000)}`;
                 messages: [
                   {
                     role: "system",
-                    content: `Classifique a notícia em UMA das categorias: ${categories.join(", ")}. Responda APENAS com o nome da categoria, sem explicações.`,
+                    content: `Analise a notícia e retorne em JSON:
+{
+  "category": "uma das categorias: ${categories.join(", ")}",
+  "tags": ["tag1", "tag2", "tag3"]
+}
+
+REGRAS PARA TAGS:
+- Máximo 5 tags por artigo
+- Cada tag deve ter NO MÁXIMO 3 palavras
+- Use termos específicos e relevantes (nomes de pessoas, empresas, eventos, lugares)
+- Evite tags genéricas como "notícia", "atualização", "novo"
+- Prefira substantivos em vez de verbos
+
+Exemplos de boas tags: "Piratas do Caribe", "Johnny Depp", "Disney", "Hollywood", "Sequência Filme"`,
                   },
                   {
                     role: "user",
-                    content: `Título: ${title}\nResumo: ${excerpt}`,
+                    content: `Título: ${title}\nResumo: ${excerpt}\nConteúdo: ${content.slice(0, 2000)}`,
                   },
                 ],
               }),
@@ -785,9 +799,26 @@ ${rawContent.slice(0, 12000)}`;
 
             if (categoryResponse.ok) {
               const categoryData = await categoryResponse.json();
-              const detectedCategory = categoryData.choices?.[0]?.message?.content?.toLowerCase().trim();
-              if (categories.includes(detectedCategory)) {
-                category = detectedCategory;
+              const responseContent = categoryData.choices?.[0]?.message?.content || "";
+              try {
+                const jsonMatch = responseContent.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                  const parsed = JSON.parse(jsonMatch[0]);
+                  if (parsed.category && categories.includes(parsed.category.toLowerCase().trim())) {
+                    category = parsed.category.toLowerCase().trim();
+                  }
+                  if (Array.isArray(parsed.tags)) {
+                    tags = parsed.tags
+                      .filter((t: unknown) => typeof t === "string" && t.length > 1 && t.length <= 30)
+                      .slice(0, 5);
+                  }
+                }
+              } catch (e) {
+                // Try to extract just the category from plain text
+                const detectedCategory = responseContent.toLowerCase().trim();
+                if (categories.includes(detectedCategory)) {
+                  category = detectedCategory;
+                }
               }
             }
           }
@@ -823,7 +854,7 @@ ${rawContent.slice(0, 12000)}`;
             processedCount++;
             console.log(`Updated article: ${title}`);
           } else {
-            const { error: insertError } = await supabase.from("articles").insert({
+            const { data: insertedArticle, error: insertError } = await supabase.from("articles").insert({
               source_id: typedSource.id,
               title,
               slug,
@@ -836,11 +867,26 @@ ${rawContent.slice(0, 12000)}`;
               is_featured: processedCount === 0,
               is_translated: typedSource.is_foreign,
               published_at: new Date().toISOString(),
-            });
+            }).select("id").single();
 
             if (insertError) {
               console.error(`Failed to insert article: ${insertError.message}`);
               continue;
+            }
+
+            // Insert tags for the new article
+            if (insertedArticle && tags.length > 0) {
+              const tagInserts = tags.map(tag => ({
+                article_id: insertedArticle.id,
+                tag: tag.trim(),
+              }));
+              
+              const { error: tagsError } = await supabase.from("article_tags").insert(tagInserts);
+              if (tagsError) {
+                console.error(`Failed to insert tags: ${tagsError.message}`);
+              } else {
+                console.log(`Inserted ${tags.length} tags: ${tags.join(", ")}`);
+              }
             }
 
             processedCount++;

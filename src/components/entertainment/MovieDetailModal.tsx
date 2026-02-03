@@ -61,6 +61,8 @@ export function MovieDetailModal({ item, open, onOpenChange }: MovieDetailModalP
     
     setIsLoading(true);
     try {
+      console.log("Fetching details for:", item.tmdb_id, item.media_type);
+      
       const { data, error } = await supabase.functions.invoke("tmdb-sync", {
         body: { 
           action: "get_details", 
@@ -69,9 +71,12 @@ export function MovieDetailModal({ item, open, onOpenChange }: MovieDetailModalP
         },
       });
 
+      console.log("TMDB response:", data, error);
+
       if (!error && data?.data) {
         setDetails(data.data);
         setTrailers(data.trailers || []);
+        console.log("Watch providers:", data.data.watch_providers);
       }
     } catch (err) {
       console.error("Error fetching details:", err);
