@@ -1,58 +1,31 @@
-import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { Trash2, RefreshCw, Pencil, ExternalLink, Eye, Search } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { Link } from "react-router-dom";
+import { useState, useMemo } from "react";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
+import { Checkbox } from "@/components/ui/checkbox";
 import { SEOHead } from "@/components/seo/SEOHead";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Textarea } from "@/components/ui/textarea";
-import { Separator } from "@/components/ui/separator";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useArticles, type Article } from "@/hooks/useArticles";
-import { CATEGORIES, type CategoryKey } from "@/lib/categories";
 import { supabase } from "@/integrations/supabase/client";
-import { ArticleTagsManager } from "@/components/admin/ArticleTagsManager";
+import { ArticleFilters } from "@/components/admin/ArticleFilters";
+import { ArticleBulkActions } from "@/components/admin/ArticleBulkActions";
+import { ArticleListItem } from "@/components/admin/ArticleListItem";
+import { ArticleEditDialog } from "@/components/admin/ArticleEditDialog";
+import type { CategoryKey } from "@/lib/categories";
 
 export default function ArticlesPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { data: articles, isLoading } = useArticles(undefined, 100);
+  
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [sourceFilter, setSourceFilter] = useState<string>("all");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [editingArticle, setEditingArticle] = useState<Article | null>(null);
   const [rescraping, setRescraping] = useState<string | null>(null);
+  const [bulkRescraping, setBulkRescraping] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   const [editForm, setEditForm] = useState({
     title: "",
@@ -64,11 +37,51 @@ export default function ArticlesPage() {
     is_featured: false,
   });
 
-  const filteredArticles = articles?.filter((article) => {
-    const matchesSearch = article.title.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = categoryFilter === "all" || article.category === categoryFilter;
-    return matchesSearch && matchesCategory;
+  // Fetch sources for filter
+  const { data: sources } = useQuery({
+    queryKey: ["news-sources"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("news_sources")
+        .select("id, name")
+        .eq("is_active", true)
+        .order("name");
+      if (error) throw error;
+      return data || [];
+    },
   });
+
+  const filteredArticles = useMemo(() => {
+    return articles?.filter((article) => {
+      const matchesSearch = article.title.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategory = categoryFilter === "all" || article.category === categoryFilter;
+      const matchesSource = sourceFilter === "all" || article.source_id === sourceFilter;
+      return matchesSearch && matchesCategory && matchesSource;
+    });
+  }, [articles, searchTerm, categoryFilter, sourceFilter]);
+
+  // Get unique source from filtered articles for the source filter
+  const uniqueSources = useMemo(() => {
+    return sources || [];
+  }, [sources]);
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked && filteredArticles) {
+      setSelectedIds(new Set(filteredArticles.map((a) => a.id)));
+    } else {
+      setSelectedIds(new Set());
+    }
+  };
+
+  const handleSelect = (id: string, checked: boolean) => {
+    const newSelected = new Set(selectedIds);
+    if (checked) {
+      newSelected.add(id);
+    } else {
+      newSelected.delete(id);
+    }
+    setSelectedIds(newSelected);
+  };
 
   const handleEdit = (article: Article) => {
     setEditingArticle(article);
@@ -121,6 +134,9 @@ export default function ArticlesPage() {
 
   const handleDelete = async (id: string) => {
     try {
+      // First delete associated tags
+      await supabase.from("article_tags").delete().eq("article_id", id);
+      
       const { error } = await supabase.from("articles").delete().eq("id", id);
 
       if (error) throw error;
@@ -130,6 +146,11 @@ export default function ArticlesPage() {
         description: "O artigo foi excluído com sucesso.",
       });
 
+      setSelectedIds((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(id);
+        return newSet;
+      });
       queryClient.invalidateQueries({ queryKey: ["articles"] });
     } catch (error: any) {
       toast({
@@ -137,6 +158,38 @@ export default function ArticlesPage() {
         description: error.message || "Tente novamente.",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    setBulkDeleting(true);
+
+    try {
+      const ids = Array.from(selectedIds);
+      
+      // Delete tags first
+      await supabase.from("article_tags").delete().in("article_id", ids);
+      
+      const { error } = await supabase.from("articles").delete().in("id", ids);
+
+      if (error) throw error;
+
+      toast({
+        title: "Artigos removidos",
+        description: `${ids.length} artigo(s) excluído(s) com sucesso.`,
+      });
+
+      setSelectedIds(new Set());
+      queryClient.invalidateQueries({ queryKey: ["articles"] });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao remover",
+        description: error.message || "Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setBulkDeleting(false);
     }
   };
 
@@ -167,6 +220,67 @@ export default function ArticlesPage() {
     }
   };
 
+  const handleBulkRescrape = async () => {
+    if (selectedIds.size === 0) return;
+    setBulkRescraping(true);
+
+    try {
+      const selected = articles?.filter((a) => selectedIds.has(a.id)) || [];
+      let success = 0;
+      let failed = 0;
+
+      for (const article of selected) {
+        try {
+          await supabase.functions.invoke("rescrape-article", {
+            body: { articleId: article.id, url: article.original_url },
+          });
+          success++;
+        } catch {
+          failed++;
+        }
+      }
+
+      toast({
+        title: "Atualização concluída",
+        description: `${success} artigo(s) atualizado(s)${failed > 0 ? `, ${failed} falha(s)` : ""}.`,
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["articles"] });
+    } finally {
+      setBulkRescraping(false);
+    }
+  };
+
+  const handleBulkFeature = async (featured: boolean) => {
+    if (selectedIds.size === 0) return;
+
+    try {
+      const ids = Array.from(selectedIds);
+      const { error } = await supabase
+        .from("articles")
+        .update({ is_featured: featured, updated_at: new Date().toISOString() })
+        .in("id", ids);
+
+      if (error) throw error;
+
+      toast({
+        title: featured ? "Artigos destacados" : "Destaque removido",
+        description: `${ids.length} artigo(s) atualizado(s).`,
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["articles"] });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao atualizar",
+        description: error.message || "Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const allSelected = filteredArticles && filteredArticles.length > 0 && 
+    filteredArticles.every((a) => selectedIds.has(a.id));
+
   return (
     <>
       <SEOHead
@@ -183,30 +297,40 @@ export default function ArticlesPage() {
         </header>
 
         {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar artigos..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
+        <ArticleFilters
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          categoryFilter={categoryFilter}
+          onCategoryChange={setCategoryFilter}
+          sourceFilter={sourceFilter}
+          onSourceChange={setSourceFilter}
+          sources={uniqueSources}
+        />
+
+        {/* Bulk Actions */}
+        <ArticleBulkActions
+          selectedCount={selectedIds.size}
+          onClearSelection={() => setSelectedIds(new Set())}
+          onBulkDelete={handleBulkDelete}
+          onBulkRescrape={handleBulkRescrape}
+          onBulkFeature={handleBulkFeature}
+          isDeleting={bulkDeleting}
+          isRescraping={bulkRescraping}
+        />
+
+        {/* Select All */}
+        {filteredArticles && filteredArticles.length > 0 && (
+          <div className="flex items-center gap-2 mb-4 text-sm">
+            <Checkbox
+              checked={allSelected}
+              onCheckedChange={handleSelectAll}
+              id="select-all"
             />
+            <label htmlFor="select-all" className="cursor-pointer text-muted-foreground">
+              Selecionar todos ({filteredArticles.length})
+            </label>
           </div>
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger className="w-full sm:w-48">
-              <SelectValue placeholder="Categoria" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas as categorias</SelectItem>
-              {Object.entries(CATEGORIES).map(([key, { label }]) => (
-                <SelectItem key={key} value={key}>
-                  {label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        )}
 
         {/* Articles list */}
         {isLoading ? (
@@ -216,128 +340,19 @@ export default function ArticlesPage() {
             ))}
           </div>
         ) : filteredArticles && filteredArticles.length > 0 ? (
-          <div className="space-y-3">
-            {filteredArticles.map((article) => {
-              const category = CATEGORIES[article.category as CategoryKey];
-              const timeAgo = article.published_at
-                ? formatDistanceToNow(new Date(article.published_at), { addSuffix: true, locale: ptBR })
-                : "recém publicado";
-
-              return (
-                <Card key={article.id}>
-                  <CardContent className="p-4">
-                    <div className="flex gap-4">
-                      {/* Thumbnail */}
-                      <div className="w-20 h-20 flex-shrink-0 rounded overflow-hidden bg-muted">
-                        {article.image_url ? (
-                          <img
-                            src={article.image_url}
-                            alt={article.title}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-2xl">
-                            📰
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Content */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <Badge variant="outline" className="text-xs">
-                                {category?.label || article.category}
-                              </Badge>
-                              {article.is_featured && (
-                                <Badge variant="default" className="text-xs">
-                                  Destaque
-                                </Badge>
-                              )}
-                            </div>
-                            <h3 className="font-semibold line-clamp-1">{article.title}</h3>
-                            <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
-                              <span>{article.news_sources?.name}</span>
-                              <span>•</span>
-                              <span>{timeAgo}</span>
-                              <span>•</span>
-                              <span className="flex items-center gap-1">
-                                <Eye className="h-3 w-3" />
-                                {article.views_count}
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Actions */}
-                          <div className="flex items-center gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              asChild
-                              title="Ver artigo"
-                            >
-                              <Link to={`/noticia/${article.slug}`}>
-                                <ExternalLink className="h-4 w-4" />
-                              </Link>
-                            </Button>
-
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleRescrape(article)}
-                              disabled={rescraping === article.id}
-                              title="Atualizar via scraping"
-                            >
-                              <RefreshCw
-                                className={`h-4 w-4 ${rescraping === article.id ? "animate-spin" : ""}`}
-                              />
-                            </Button>
-
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleEdit(article)}
-                              title="Editar"
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="text-destructive"
-                                  title="Excluir"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Excluir artigo?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Esta ação não pode ser desfeita. O artigo "{article.title}" será
-                                    permanentemente removido.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleDelete(article.id)}>
-                                    Excluir
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+          <div className="space-y-2">
+            {filteredArticles.map((article) => (
+              <ArticleListItem
+                key={article.id}
+                article={article}
+                isSelected={selectedIds.has(article.id)}
+                onSelect={handleSelect}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                onRescrape={handleRescrape}
+                isRescraping={rescraping === article.id}
+              />
+            ))}
           </div>
         ) : (
           <Card>
@@ -349,123 +364,13 @@ export default function ArticlesPage() {
       </div>
 
       {/* Edit Dialog */}
-      <Dialog open={!!editingArticle} onOpenChange={(open) => !open && setEditingArticle(null)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Editar Artigo</DialogTitle>
-            <DialogDescription>
-              Faça as alterações necessárias no artigo.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-title">Título</Label>
-              <Input
-                id="edit-title"
-                value={editForm.title}
-                onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="edit-excerpt">Resumo</Label>
-              <Textarea
-                id="edit-excerpt"
-                rows={2}
-                value={editForm.excerpt}
-                onChange={(e) => setEditForm({ ...editForm, excerpt: e.target.value })}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="edit-content">Conteúdo</Label>
-              <Textarea
-                id="edit-content"
-                rows={10}
-                value={editForm.content}
-                onChange={(e) => setEditForm({ ...editForm, content: e.target.value })}
-                className="font-mono text-sm"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-category">Categoria</Label>
-                <Select
-                  value={editForm.category}
-                  onValueChange={(value) => setEditForm({ ...editForm, category: value as CategoryKey })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(CATEGORIES).map(([key, { label }]) => (
-                      <SelectItem key={key} value={key}>
-                        {label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="edit-featured">Destaque</Label>
-                <Select
-                  value={editForm.is_featured ? "true" : "false"}
-                  onValueChange={(value) => setEditForm({ ...editForm, is_featured: value === "true" })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="false">Não</SelectItem>
-                    <SelectItem value="true">Sim</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="edit-image">URL da Imagem</Label>
-              <Input
-                id="edit-image"
-                type="url"
-                value={editForm.image_url}
-                onChange={(e) => setEditForm({ ...editForm, image_url: e.target.value })}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="edit-video">URL do Vídeo (embed)</Label>
-              <Input
-                id="edit-video"
-                type="url"
-                placeholder="https://www.youtube.com/embed/..."
-                value={editForm.video_url}
-                onChange={(e) => setEditForm({ ...editForm, video_url: e.target.value })}
-              />
-            </div>
-
-            <Separator className="my-4" />
-
-            {/* Tags Manager */}
-            {editingArticle && (
-              <ArticleTagsManager
-                articleId={editingArticle.id}
-                articleTitle={editingArticle.title}
-              />
-            )}
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingArticle(null)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSaveEdit}>Salvar Alterações</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ArticleEditDialog
+        article={editingArticle}
+        editForm={editForm}
+        onFormChange={setEditForm}
+        onClose={() => setEditingArticle(null)}
+        onSave={handleSaveEdit}
+      />
     </>
   );
 }

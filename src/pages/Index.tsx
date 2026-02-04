@@ -4,6 +4,7 @@ import { CategorySection } from "@/components/news/CategorySection";
 import { TrendingSidebar } from "@/components/news/TrendingSidebar";
 import { TrendingMovies } from "@/components/entertainment/TrendingMovies";
 import { TrendingTrailers } from "@/components/entertainment/TrendingTrailers";
+import { PopularTags } from "@/components/news/PopularTags";
 import type { CategoryKey } from "@/lib/categories";
 
 const MAIN_CATEGORIES: CategoryKey[] = [
@@ -50,6 +51,7 @@ export default function Index() {
           {/* Sidebar */}
           <aside className="lg:col-span-4 xl:col-span-3">
             <div className="sticky top-32 space-y-6">
+              <PopularTags />
               <TrendingTrailers />
               <TrendingSidebar />
             </div>
