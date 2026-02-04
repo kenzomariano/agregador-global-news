@@ -616,10 +616,12 @@ ${rawContent.slice(0, 5000)}`;
               continue;
             }
 
-            const cleanPrompt = typedSource.is_foreign
-              ? `Você é um editor de notícias profissional. Extraia e formate o conteúdo principal do artigo abaixo.
+            // Always translate to PT-BR and clean content
+            const cleanPrompt = `Você é um editor de notícias profissional brasileiro.
 
-REMOVA completamente:
+TAREFA: Extraia APENAS o corpo principal do artigo e ${typedSource.is_foreign ? "traduza para Português do Brasil" : "mantenha em Português"}.
+
+REMOVA COMPLETAMENTE (NÃO INCLUA NO RESULTADO):
 - Anúncios, banners, links de "Remove Ads", promoções
 - Elementos de reCAPTCHA, captchas, popups
 - Controles de player de vídeo e texto de legendas de player
@@ -627,67 +629,38 @@ REMOVA completamente:
 - Rodapés e cabeçalhos do site
 - Links de compartilhamento social e botões de redes sociais
 - Seções de comentários e formulários
-- Conteúdo relacionado/sugerido e "Leia também"
+- Conteúdo relacionado/sugerido, "Leia também", "Related Stories"
 - Texto repetido, duplicado ou spam
 - Links de navegação interna e paginação
 - Avisos de cookies e GDPR
 - Conteúdo de lista de categorias ou índices
-
-DEPOIS traduza para Português do Brasil mantendo tom jornalístico.
+- Cards de outros artigos ou notícias relacionadas
+- Listas de links para outras seções do site
+- Informações sobre outros filmes/séries que não são o foco do artigo
+- Botões como "Read More", "Continue Reading", "Subscribe"
+- Qualquer elemento de UI que não seja parte do texto do artigo
+- Listas de episódios, listas de filmes, ou índices de conteúdo que não fazem parte do artigo
+- Texto promocional como "Sign up for our newsletter"
 
 FORMATE o conteúdo usando HTML semântico:
 - <h2> para subtítulos principais (seções do artigo)
 - <h3> para subtítulos secundários
 - <p> para parágrafos de texto
 - <blockquote> para citações e declarações de fontes
-- <ul>/<li> para listas não ordenadas
-- <ol>/<li> para listas ordenadas/cronológicas
+- <ul>/<li> para listas não ordenadas APENAS se fizerem parte do conteúdo do artigo
+- <ol>/<li> para listas ordenadas/cronológicas APENAS se fizerem parte do conteúdo
 - <strong> para destaques importantes
 - <em> para ênfase
 
-REGRAS:
+REGRAS CRÍTICAS:
 1. NÃO inclua o título principal (já temos separadamente)
 2. Mantenha a hierarquia lógica do conteúdo
 3. Preserve citações importantes com atribuição
-4. Retorne APENAS o HTML formatado, sem explicações
+4. Se o conteúdo estiver em inglês ou outro idioma, TRADUZA TUDO para Português do Brasil
+5. Retorne APENAS o HTML formatado, sem explicações ou comentários
+6. NÃO inclua cards de navegação, menus ou listas de links
 
 Título original: ${title}
-
-Conteúdo bruto:
-${rawContent.slice(0, 12000)}`
-              : `Você é um editor de notícias profissional. Extraia e formate o conteúdo principal do artigo abaixo.
-
-REMOVA completamente:
-- Anúncios, banners, links de "Remove Ads", promoções
-- Elementos de reCAPTCHA, captchas, popups
-- Controles de player de vídeo e texto de legendas de player
-- Menus de navegação, breadcrumbs, sidebar
-- Rodapés e cabeçalhos do site
-- Links de compartilhamento social e botões de redes sociais
-- Seções de comentários e formulários
-- Conteúdo relacionado/sugerido e "Leia também"
-- Texto repetido, duplicado ou spam
-- Links de navegação interna e paginação
-- Avisos de cookies e GDPR
-- Conteúdo de lista de categorias ou índices
-
-FORMATE o conteúdo usando HTML semântico:
-- <h2> para subtítulos principais (seções do artigo)
-- <h3> para subtítulos secundários
-- <p> para parágrafos de texto
-- <blockquote> para citações e declarações de fontes
-- <ul>/<li> para listas não ordenadas
-- <ol>/<li> para listas ordenadas/cronológicas
-- <strong> para destaques importantes
-- <em> para ênfase
-
-REGRAS:
-1. NÃO inclua o título principal (já temos separadamente)
-2. Mantenha a hierarquia lógica do conteúdo
-3. Preserve citações importantes com atribuição
-4. Retorne APENAS o HTML formatado, sem explicações
-
-Título: ${title}
 
 Conteúdo bruto:
 ${rawContent.slice(0, 12000)}`;
@@ -708,7 +681,13 @@ ${rawContent.slice(0, 12000)}`;
               const cleanData = await cleanResponse.json();
               content = cleanData.choices?.[0]?.message?.content || "";
               
-              if (typedSource.is_foreign && content) {
+              // Remove markdown code blocks if AI returned them
+              content = content.replace(/^```html?\s*/i, "").replace(/\s*```$/i, "").trim();
+              
+              // Always translate title and excerpt for foreign sources OR if content seems to be in English
+              const needsTranslation = typedSource.is_foreign || /^[A-Za-z\s\-:,.'!?"()]+$/.test(title);
+              
+              if (needsTranslation && content) {
                 const translateMetaResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
                   method: "POST",
                   headers: {
@@ -720,7 +699,7 @@ ${rawContent.slice(0, 12000)}`;
                     messages: [
                       {
                         role: "system",
-                        content: "Traduza para Português do Brasil. Responda em JSON: {\"title\": \"...\", \"excerpt\": \"...\"}",
+                        content: "Traduza para Português do Brasil. Mantenha nomes próprios, títulos de filmes/séries conhecidos. Responda APENAS em JSON: {\"title\": \"...\", \"excerpt\": \"...\"}",
                       },
                       {
                         role: "user",
