@@ -105,31 +105,55 @@ serve(async (req) => {
 
     let content = rawContent;
 
-    // Use AI to clean content
-    if (lovableApiKey && rawContent) {
-      const cleanPrompt = `Você é um editor de notícias. Extraia APENAS o conteúdo principal do artigo abaixo, removendo:
-- Anúncios, banners e links de "Remove Ads"
-- Elementos de reCAPTCHA e captchas
-- Controles de player de vídeo
-- Menus de navegação e breadcrumbs
-- Rodapés e cabeçalhos do site
-- Links de compartilhamento social
-- Seções de comentários
-- Conteúdo relacionado/sugerido
-- Texto repetido ou duplicado
+    // Check if content needs translation (seems to be in English)
+    const needsTranslation = /^[A-Za-z\s\-:,.'!?"()]+$/.test(title);
 
-IMPORTANTE: 
-1. Formate o conteúdo usando HTML semântico com:
-   - <h2> para subtítulos principais
-   - <h3> para subtítulos secundários
-   - <p> para parágrafos
-   - <blockquote> para citações
-   - <ul>/<li> para listas
-2. Mantenha a estrutura hierárquica do artigo
+    // Use AI to clean content and translate if needed
+    if (lovableApiKey && rawContent) {
+      const cleanPrompt = `Você é um editor de notícias profissional brasileiro.
+
+TAREFA: Extraia APENAS o corpo principal do artigo e ${needsTranslation ? "traduza para Português do Brasil" : "mantenha em Português"}.
+
+REMOVA COMPLETAMENTE (NÃO INCLUA NO RESULTADO):
+- Anúncios, banners, links de "Remove Ads", promoções
+- Elementos de reCAPTCHA, captchas, popups
+- Controles de player de vídeo e texto de legendas de player
+- Menus de navegação, breadcrumbs, sidebar
+- Rodapés e cabeçalhos do site
+- Links de compartilhamento social e botões de redes sociais
+- Seções de comentários e formulários
+- Conteúdo relacionado/sugerido, "Leia também", "Related Stories"
+- Texto repetido, duplicado ou spam
+- Links de navegação interna e paginação
+- Avisos de cookies e GDPR
+- Conteúdo de lista de categorias ou índices
+- Cards de outros artigos ou notícias relacionadas
+- Listas de links para outras seções do site
+- Informações sobre outros filmes/séries que não são o foco do artigo
+- Botões como "Read More", "Continue Reading", "Subscribe"
+- Qualquer elemento de UI que não seja parte do texto do artigo
+- Listas de episódios, listas de filmes, ou índices de conteúdo
+- Texto promocional como "Sign up for our newsletter"
+
+FORMATE o conteúdo usando HTML semântico:
+- <h2> para subtítulos principais
+- <h3> para subtítulos secundários
+- <p> para parágrafos de texto
+- <blockquote> para citações
+- <ul>/<li> para listas APENAS se fizerem parte do conteúdo
+- <strong> para destaques importantes
+- <em> para ênfase
+
+REGRAS CRÍTICAS:
+1. NÃO inclua o título principal
+2. Se o conteúdo estiver em inglês ou outro idioma, TRADUZA TUDO para Português do Brasil
 3. Retorne APENAS o HTML formatado, sem explicações
+4. NÃO inclua cards de navegação ou listas de links
+
+Título original: ${title}
 
 Conteúdo bruto:
-${rawContent.slice(0, 10000)}`;
+${rawContent.slice(0, 12000)}`;
 
       const cleanResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
@@ -146,6 +170,48 @@ ${rawContent.slice(0, 10000)}`;
       if (cleanResponse.ok) {
         const cleanData = await cleanResponse.json();
         content = cleanData.choices?.[0]?.message?.content || rawContent;
+        
+        // Remove markdown code blocks if AI returned them
+        content = content.replace(/^```html?\s*/i, "").replace(/\s*```$/i, "").trim();
+        
+        // Translate title and excerpt if needed
+        if (needsTranslation) {
+          const translateMetaResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${lovableApiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: "google/gemini-3-flash-preview",
+              messages: [
+                {
+                  role: "system",
+                  content: "Traduza para Português do Brasil. Mantenha nomes próprios e títulos de filmes/séries conhecidos. Responda APENAS em JSON: {\"title\": \"...\", \"excerpt\": \"...\"}",
+                },
+                {
+                  role: "user",
+                  content: `Título: ${title}\nResumo: ${excerpt}`,
+                },
+              ],
+            }),
+          });
+
+          if (translateMetaResponse.ok) {
+            const metaData = await translateMetaResponse.json();
+            const metaContent = metaData.choices?.[0]?.message?.content || "";
+            try {
+              const jsonMatch = metaContent.match(/\{[\s\S]*\}/);
+              if (jsonMatch) {
+                const parsed = JSON.parse(jsonMatch[0]);
+                if (parsed.title) title = parsed.title;
+                if (parsed.excerpt) excerpt = parsed.excerpt;
+              }
+            } catch (e) {
+              console.log("Could not parse translated metadata");
+            }
+          }
+        }
       }
     }
 
