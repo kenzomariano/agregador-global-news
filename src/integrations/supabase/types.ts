@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      ad_placements: {
+        Row: {
+          ad_type: string
+          banner_image: string | null
+          banner_link: string | null
+          banner_url: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          position: string
+          slot_id: string
+          updated_at: string
+        }
+        Insert: {
+          ad_type?: string
+          banner_image?: string | null
+          banner_link?: string | null
+          banner_url?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          position: string
+          slot_id: string
+          updated_at?: string
+        }
+        Update: {
+          ad_type?: string
+          banner_image?: string | null
+          banner_link?: string | null
+          banner_url?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          position?: string
+          slot_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       article_tags: {
         Row: {
           article_id: string | null
@@ -233,6 +275,30 @@ export type Database = {
           id?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      site_settings: {
+        Row: {
+          created_at: string
+          id: string
+          key: string
+          updated_at: string
+          value: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          key: string
+          updated_at?: string
+          value?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          key?: string
+          updated_at?: string
+          value?: string | null
         }
         Relationships: []
       }
