@@ -13,8 +13,7 @@ import TrendingPage from "./pages/TrendingPage";
 import ProductsPage from "./pages/ProductsPage";
 import TagPage from "./pages/TagPage";
 import AuthPage from "./pages/AuthPage";
-import SourcesPage from "./pages/admin/SourcesPage";
-import ArticlesPage from "./pages/admin/ArticlesPage";
+import AdminDashboard from "./pages/admin/AdminDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,18 +34,10 @@ const App = () => (
               <Route path="/produtos" element={<ProductsPage />} />
               <Route path="/tag/:tag" element={<TagPage />} />
               <Route
-                path="/admin/fontes"
+                path="/admin/*"
                 element={
                   <ProtectedRoute>
-                    <SourcesPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/artigos"
-                element={
-                  <ProtectedRoute>
-                    <ArticlesPage />
+                    <AdminDashboard />
                   </ProtectedRoute>
                 }
               />

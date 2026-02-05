@@ -1,13 +1,23 @@
 import { Link } from "react-router-dom";
-import { Menu, Search, X, LogOut, User } from "lucide-react";
+import { Menu, Search, X, LogOut, User, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { CATEGORIES } from "@/lib/categories";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
+
+// Define primary and secondary categories
+const PRIMARY_CATEGORIES = ["politica", "economia", "tecnologia", "esportes", "entretenimento"];
+const SECONDARY_CATEGORIES = ["saude", "ciencia", "mundo", "brasil", "cultura"];
 
 export function Header() {
   const [searchOpen, setSearchOpen] = useState(false);
@@ -62,19 +72,15 @@ export function Header() {
           </span>
           <div className="flex items-center gap-4">
             {user && (
-              <>
-                <Link to="/admin/artigos" className="hover:underline flex items-center gap-1">
-                  Artigos
-                </Link>
-                <Link to="/admin/fontes" className="hover:underline flex items-center gap-1">
-                  <User className="h-3 w-3" />
-                  Fontes
-                </Link>
-                <button onClick={handleSignOut} className="hover:underline flex items-center gap-1">
-                  <LogOut className="h-3 w-3" />
-                  Sair
-                </button>
-              </>
+              <Link to="/admin" className="hover:underline flex items-center gap-1">
+                Admin
+              </Link>
+            )}
+            {user && (
+              <button onClick={handleSignOut} className="hover:underline flex items-center gap-1">
+                <LogOut className="h-3 w-3" />
+                Sair
+              </button>
             )}
           </div>
         </div>
@@ -92,29 +98,51 @@ export function Header() {
           </SheetTrigger>
           <SheetContent side="left" className="w-80">
             <nav className="mt-8 flex flex-col gap-4">
-              <Link to="/" className="text-lg font-semibold">
-                Início
-              </Link>
-              {Object.entries(CATEGORIES).map(([key, { label }]) => (
-                <Link
-                  key={key}
-                  to={`/categoria/${key}`}
-                  className="text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  {label}
-                </Link>
-              ))}
+              {/* Primary categories */}
+              {PRIMARY_CATEGORIES.map((key) => {
+                const cat = CATEGORIES[key as keyof typeof CATEGORIES];
+                return cat ? (
+                  <Link
+                    key={key}
+                    to={`/categoria/${key}`}
+                    className="text-foreground hover:text-primary transition-colors font-medium"
+                  >
+                    {cat.label}
+                  </Link>
+                ) : null;
+              })}
+              
+              {/* Separator */}
+              <div className="border-t my-2" />
+              
+              {/* Secondary categories */}
+              <p className="text-xs text-muted-foreground uppercase tracking-wide">Mais Categorias</p>
+              {SECONDARY_CATEGORIES.map((key) => {
+                const cat = CATEGORIES[key as keyof typeof CATEGORIES];
+                return cat ? (
+                  <Link
+                    key={key}
+                    to={`/categoria/${key}`}
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {cat.label}
+                  </Link>
+                ) : null;
+              })}
+              
+              <div className="border-t my-2" />
+              
               <Link
                 to="/mais-lidas"
-                className="text-muted-foreground hover:text-foreground transition-colors"
+                className="text-primary hover:text-primary/80 transition-colors font-medium"
               >
-                Mais Lidas
+                🔥 Mais Lidas
               </Link>
               <Link
                 to="/produtos"
                 className="text-muted-foreground hover:text-foreground transition-colors"
               >
-                Produtos
+                🛒 Produtos
               </Link>
             </nav>
           </SheetContent>
@@ -157,7 +185,7 @@ export function Header() {
         </div>
       </div>
 
-      {/* Category navigation */}
+      {/* Category navigation - Desktop */}
       <nav className="hidden md:block border-t bg-background">
         <div className="container">
           <ul className="flex items-center gap-1 overflow-x-auto py-2">
@@ -169,16 +197,41 @@ export function Header() {
                 Início
               </Link>
             </li>
-            {Object.entries(CATEGORIES).map(([key, { label }]) => (
-              <li key={key}>
-                <Link
-                  to={`/categoria/${key}`}
-                  className="px-3 py-1.5 text-sm font-medium rounded-md hover:bg-accent transition-colors whitespace-nowrap"
-                >
-                  {label}
-                </Link>
-              </li>
-            ))}
+            {/* Primary categories */}
+            {PRIMARY_CATEGORIES.map((key) => {
+              const cat = CATEGORIES[key as keyof typeof CATEGORIES];
+              return cat ? (
+                <li key={key}>
+                  <Link
+                    to={`/categoria/${key}`}
+                    className="px-3 py-1.5 text-sm font-medium rounded-md hover:bg-accent transition-colors whitespace-nowrap"
+                  >
+                    {cat.label}
+                  </Link>
+                </li>
+              ) : null;
+            })}
+            {/* Secondary categories in dropdown */}
+            <li>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="px-3 py-1.5 text-sm font-medium rounded-md hover:bg-accent transition-colors flex items-center gap-1">
+                    Mais
+                    <ChevronDown className="h-3 w-3" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  {SECONDARY_CATEGORIES.map((key) => {
+                    const cat = CATEGORIES[key as keyof typeof CATEGORIES];
+                    return cat ? (
+                      <DropdownMenuItem key={key} asChild>
+                        <Link to={`/categoria/${key}`}>{cat.label}</Link>
+                      </DropdownMenuItem>
+                    ) : null;
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </li>
             <li>
               <Link
                 to="/mais-lidas"
