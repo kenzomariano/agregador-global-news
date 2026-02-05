@@ -59,6 +59,7 @@ export default function SourcesPage() {
     is_foreign: false,
     source_type: "article" as SourceType,
     sitemap_url: "",
+    scrape_limit: 5,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -71,6 +72,7 @@ export default function SourcesPage() {
         is_foreign: formData.is_foreign,
         source_type: formData.source_type,
         sitemap_url: formData.sitemap_url || null,
+        scrape_limit: Math.min(10, Math.max(1, Number(formData.scrape_limit) || 5)),
       });
 
       if (error) throw error;
@@ -80,7 +82,7 @@ export default function SourcesPage() {
         description: "A fonte foi cadastrada com sucesso.",
       });
 
-      setFormData({ name: "", url: "", is_foreign: false, source_type: "article", sitemap_url: "" });
+      setFormData({ name: "", url: "", is_foreign: false, source_type: "article", sitemap_url: "", scrape_limit: 5 });
       setDialogOpen(false);
       queryClient.invalidateQueries({ queryKey: ["news-sources"] });
     } catch (error: any) {
@@ -107,6 +109,31 @@ export default function SourcesPage() {
     } catch (error: any) {
       toast({
         title: "Erro ao remover fonte",
+        description: error.message || "Tente novamente mais tarde.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUpdateScrapeLimit = async (id: string, limit: number) => {
+    try {
+      const normalized = Math.min(10, Math.max(1, Math.floor(limit)));
+      const { error } = await supabase
+        .from("news_sources")
+        .update({ scrape_limit: normalized })
+        .eq("id", id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Limite atualizado",
+        description: `A fonte agora extrai até ${normalized} item(ns) por execução.`,
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["news-sources"] });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao atualizar limite",
         description: error.message || "Tente novamente mais tarde.",
         variant: "destructive",
       });
@@ -267,6 +294,22 @@ export default function SourcesPage() {
                   </p>
                 </div>
 
+                <div className="space-y-2">
+                  <Label htmlFor="scrape_limit">Limite por execução (1–10)</Label>
+                  <Input
+                    id="scrape_limit"
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    max={10}
+                    value={formData.scrape_limit}
+                    onChange={(e) => setFormData({ ...formData, scrape_limit: Number(e.target.value) })}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Padrão: 5. Você pode ajustar por fonte.
+                  </p>
+                </div>
+
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <Label htmlFor="is_foreign">Site Internacional</Label>
@@ -304,86 +347,104 @@ export default function SourcesPage() {
               const extSource = source as ExtendedNewsSource;
               const isProduct = extSource.source_type === "product";
               
-              return (
-                <Card key={source.id}>
-                  <CardContent className="flex items-center justify-between p-4">
-                    <div className="flex items-center gap-4">
-                      <div className={`flex h-12 w-12 items-center justify-center rounded-lg ${isProduct ? "bg-orange-500/10" : "bg-primary/10"}`}>
-                        {isProduct ? (
-                          <Package className="h-6 w-6 text-orange-500" />
-                        ) : (
-                          <Globe className="h-6 w-6 text-primary" />
-                        )}
-                      </div>
-                      <div>
-                        <h3 className="font-semibold">{source.name}</h3>
-                        <p className="text-sm text-muted-foreground">{source.url}</p>
-                        <div className="flex gap-2 mt-1 flex-wrap">
-                          <Badge variant={isProduct ? "secondary" : "default"}>
-                            {isProduct ? "Produtos" : "Artigos"}
-                          </Badge>
-                          {source.is_foreign && (
-                            <Badge variant="outline">Internacional</Badge>
+                return (
+                  <Card key={source.id}>
+                    <CardContent className="flex flex-col sm:flex-row sm:items-center justify-between p-4 gap-4">
+                      <div className="flex items-center gap-4 min-w-0">
+                        <div className={`flex h-12 w-12 items-center justify-center rounded-lg ${isProduct ? "bg-orange-500/10" : "bg-primary/10"}`}>
+                          {isProduct ? (
+                            <Package className="h-6 w-6 text-orange-500" />
+                          ) : (
+                            <Globe className="h-6 w-6 text-primary" />
                           )}
-                          {extSource.sitemap_url && (
-                            <Badge variant="outline" className="gap-1">
-                              <Link className="h-3 w-3" />
-                              Sitemap
+                        </div>
+                        <div className="min-w-0">
+                          <h3 className="font-semibold truncate">{source.name}</h3>
+                          <p className="text-sm text-muted-foreground truncate">{source.url}</p>
+                          <div className="flex gap-2 mt-1 flex-wrap">
+                            <Badge variant={isProduct ? "secondary" : "default"}>
+                              {isProduct ? "Produtos" : "Artigos"}
                             </Badge>
-                          )}
-                          <Badge variant={source.is_active ? "default" : "outline"}>
-                            {source.is_active ? "Ativo" : "Inativo"}
-                          </Badge>
+                            {source.is_foreign && (
+                              <Badge variant="outline">Internacional</Badge>
+                            )}
+                            {extSource.sitemap_url && (
+                              <Badge variant="outline" className="gap-1">
+                                <Link className="h-3 w-3" />
+                                Sitemap
+                              </Badge>
+                            )}
+                            <Badge variant={source.is_active ? "default" : "outline"}>
+                              {source.is_active ? "Ativo" : "Inativo"}
+                            </Badge>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => openSitemapDialog(extSource)}
-                        disabled={scraping === source.id}
-                      >
-                        <Upload className="h-4 w-4 mr-2" />
-                        Sitemap
-                      </Button>
-                      
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleScrape(extSource)}
-                        disabled={scraping === source.id}
-                      >
-                        <RefreshCw className={`h-4 w-4 mr-2 ${scraping === source.id ? "animate-spin" : ""}`} />
-                        {scraping === source.id ? "Extraindo..." : "Extrair"}
-                      </Button>
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                        <div className="flex items-center gap-2">
+                          <Label className="text-xs text-muted-foreground" htmlFor={`limit-${source.id}`}>
+                            Limite
+                          </Label>
+                          <Input
+                            id={`limit-${source.id}`}
+                            type="number"
+                            inputMode="numeric"
+                            min={1}
+                            max={10}
+                            className="w-20"
+                            defaultValue={(source as any).scrape_limit ?? 5}
+                            onBlur={(e) => handleUpdateScrapeLimit(source.id, Number(e.currentTarget.value))}
+                          />
+                        </div>
 
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="icon" className="text-destructive">
-                            <Trash2 className="h-4 w-4" />
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openSitemapDialog(extSource)}
+                            disabled={scraping === source.id}
+                          >
+                            <Upload className="h-4 w-4 mr-2" />
+                            Sitemap
                           </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Remover fonte?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Isso irá remover a fonte "{source.name}" e todo o conteúdo associado. Esta ação não pode ser desfeita.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleDelete(source.id)}>
-                              Remover
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
+
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleScrape(extSource)}
+                            disabled={scraping === source.id}
+                          >
+                            <RefreshCw className={`h-4 w-4 mr-2 ${scraping === source.id ? "animate-spin" : ""}`} />
+                            {scraping === source.id ? "Extraindo..." : "Extrair"}
+                          </Button>
+
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon" className="text-destructive">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Remover fonte?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Isso irá remover a fonte "{source.name}" e todo o conteúdo associado. Esta ação não pode ser desfeita.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDelete(source.id)}>
+                                  Remover
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
             })}
           </div>
         ) : (

@@ -134,10 +134,10 @@ export default function ArticlesPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      // First delete associated tags
-      await supabase.from("article_tags").delete().eq("article_id", id);
-      
-      const { error } = await supabase.from("articles").delete().eq("id", id);
+      // Use database function (security definer) to delete article + related tags reliably
+      const { error } = await supabase.rpc("delete_article_with_tags", {
+        article_uuid: id,
+      });
 
       if (error) throw error;
 
@@ -167,13 +167,16 @@ export default function ArticlesPage() {
 
     try {
       const ids = Array.from(selectedIds);
-      
-      // Delete tags first
-      await supabase.from("article_tags").delete().in("article_id", ids);
-      
-      const { error } = await supabase.from("articles").delete().in("id", ids);
 
-      if (error) throw error;
+      // Delete one-by-one via security definer function to avoid RLS issues
+      const results = await Promise.all(
+        ids.map((articleId) =>
+          supabase.rpc("delete_article_with_tags", { article_uuid: articleId })
+        )
+      );
+
+      const firstError = results.find((r) => r.error)?.error;
+      if (firstError) throw firstError;
 
       toast({
         title: "Artigos removidos",

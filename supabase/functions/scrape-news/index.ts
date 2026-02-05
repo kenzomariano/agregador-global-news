@@ -96,6 +96,7 @@ const PRODUCT_PATTERNS = [
   /\?product_id=/i,
 ];
 
+const DEFAULT_SCRAPE_LIMIT = 5;
 const MAX_ARTICLES_PER_SCRAPE = 10;
 const MAX_PRODUCTS_PER_SCRAPE = 10;
 
@@ -301,9 +302,11 @@ serve(async (req) => {
       );
     }
 
-    const typedSource = source as NewsSource;
+    const typedSource = source as NewsSource & { scrape_limit?: number | null };
     const isProductSource = typedSource.source_type === "product";
-    const maxItems = isProductSource ? MAX_PRODUCTS_PER_SCRAPE : MAX_ARTICLES_PER_SCRAPE;
+    const hardMaxItems = isProductSource ? MAX_PRODUCTS_PER_SCRAPE : MAX_ARTICLES_PER_SCRAPE;
+    const configuredLimit = typedSource.scrape_limit ?? DEFAULT_SCRAPE_LIMIT;
+    const maxItems = Math.min(hardMaxItems, Math.max(1, configuredLimit));
 
     console.log(`Scraping ${typedSource.name} (${typedSource.source_type}) from ${typedSource.url}`);
 
