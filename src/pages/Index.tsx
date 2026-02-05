@@ -5,6 +5,7 @@ import { TrendingSidebar } from "@/components/news/TrendingSidebar";
 import { TrendingMovies } from "@/components/entertainment/TrendingMovies";
 import { TrendingTrailers } from "@/components/entertainment/TrendingTrailers";
 import { PopularTags } from "@/components/news/PopularTags";
+import { HorizontalAd, SidebarAd } from "@/components/ads/AdBanner";
 import type { CategoryKey } from "@/lib/categories";
 
 const MAIN_CATEGORIES: CategoryKey[] = [
@@ -40,11 +41,20 @@ export default function Index() {
           <div className="lg:col-span-8 xl:col-span-9">
             <FeaturedSection />
             
+            {/* Ad Banner after featured */}
+            <HorizontalAd />
+            
             {/* Entertainment section with TMDB */}
             <TrendingMovies />
             
-            {MAIN_CATEGORIES.map((category) => (
-              <CategorySection key={category} category={category} />
+            {MAIN_CATEGORIES.map((category, index) => (
+              <div key={category}>
+                <CategorySection category={category} />
+                {/* Show ad after every 2 categories */}
+                {(index + 1) % 2 === 0 && index < MAIN_CATEGORIES.length - 1 && (
+                  <HorizontalAd />
+                )}
+              </div>
             ))}
           </div>
 
@@ -52,7 +62,10 @@ export default function Index() {
           <aside className="lg:col-span-4 xl:col-span-3">
             <div className="sticky top-32 space-y-6">
               <PopularTags />
+              {/* Sidebar Ad */}
+              <SidebarAd />
               <TrendingTrailers />
+              <SidebarAd />
               <TrendingSidebar />
             </div>
           </aside>
