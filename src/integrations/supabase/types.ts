@@ -116,6 +116,7 @@ export type Database = {
           is_foreign: boolean | null
           logo_url: string | null
           name: string
+          scrape_limit: number
           sitemap_url: string | null
           source_type: Database["public"]["Enums"]["source_type"]
           updated_at: string | null
@@ -128,6 +129,7 @@ export type Database = {
           is_foreign?: boolean | null
           logo_url?: string | null
           name: string
+          scrape_limit?: number
           sitemap_url?: string | null
           source_type?: Database["public"]["Enums"]["source_type"]
           updated_at?: string | null
@@ -140,6 +142,7 @@ export type Database = {
           is_foreign?: boolean | null
           logo_url?: string | null
           name?: string
+          scrape_limit?: number
           sitemap_url?: string | null
           source_type?: Database["public"]["Enums"]["source_type"]
           updated_at?: string | null
@@ -349,6 +352,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      delete_article_with_tags: {
+        Args: { article_uuid: string }
+        Returns: undefined
+      }
       generate_slug: { Args: { title: string }; Returns: string }
       has_role: {
         Args: {

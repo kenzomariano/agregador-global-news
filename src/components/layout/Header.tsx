@@ -44,12 +44,21 @@ export function Header() {
       <div className="border-b bg-primary text-primary-foreground">
         <div className="container flex h-8 items-center justify-between text-sm">
           <span>
-            {new Date().toLocaleDateString("pt-BR", {
-              weekday: "long",
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            })}
+            <span className="hidden sm:inline">
+              {new Date().toLocaleDateString("pt-BR", {
+                weekday: "long",
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })}
+            </span>
+            <span className="sm:hidden">
+              {new Date().toLocaleDateString("pt-BR", {
+                day: "2-digit",
+                month: "2-digit",
+                year: "2-digit",
+              })}
+            </span>
           </span>
           <div className="flex items-center gap-4">
             {user && (
