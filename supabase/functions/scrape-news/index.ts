@@ -687,6 +687,46 @@ ${rawContent.slice(0, 12000)}`;
               // Remove markdown code blocks if AI returned them
               content = content.replace(/^```html?\s*/i, "").replace(/\s*```$/i, "").trim();
               
+              // CRITICAL: Validate that AI returned actual article content, not an error message
+              const invalidContentPatterns = [
+                /não apresenta o corpo principal/i,
+                /conteúdo fornecido não/i,
+                /por favor,? forneça/i,
+                /elementos de interface/i,
+                /não foi possível extrair/i,
+                /conteúdo insuficiente/i,
+                /não há conteúdo/i,
+                /texto consiste exclusivamente/i,
+                /devem ser removidos/i,
+                /extração e tradução/i,
+                /controles de player/i,
+                /widgets de redes sociais/i,
+                /formulários de submissão/i,
+                /recaptcha/i,
+                /^<p>\s*O conteúdo/i,
+                /I cannot fulfill/i,
+                /I can't help/i,
+                /unable to extract/i,
+                /no article content/i,
+              ];
+              
+              const isInvalidContent = invalidContentPatterns.some(pattern => pattern.test(content));
+              
+              if (isInvalidContent) {
+                console.log(`AI returned error message instead of content for: ${title}`);
+                console.log(`Content preview: ${content.slice(0, 200)}`);
+                skippedCount++;
+                continue;
+              }
+              
+              // Also check if content is too short or doesn't contain actual text
+              const textOnlyContent = content.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
+              if (textOnlyContent.length < 200) {
+                console.log(`AI returned insufficient content for: ${title} (${textOnlyContent.length} chars)`);
+                skippedCount++;
+                continue;
+              }
+              
               // Always translate title and excerpt for foreign sources OR if content seems to be in English
               const needsTranslation = typedSource.is_foreign || /^[A-Za-z\s\-:,.'!?"()]+$/.test(title);
               

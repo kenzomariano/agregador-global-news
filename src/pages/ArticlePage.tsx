@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { formatDistanceToNow, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -13,10 +13,11 @@ import { ArticleContent } from "@/components/news/ArticleContent";
 import { ArticleTags } from "@/components/news/ArticleTags";
 import { TrendingSidebar } from "@/components/news/TrendingSidebar";
 import { TMDBMentions } from "@/components/entertainment/TMDBMention";
+import { ImageLightbox } from "@/components/ui/ImageLightbox";
+import { SidebarAd, HorizontalAd, InArticleAd } from "@/components/ads/AdBanner";
 import { useArticleBySlug, useRelatedArticles, useIncrementViews } from "@/hooks/useArticles";
 import { useArticleTMDBMentions } from "@/hooks/useArticleTMDBMentions";
 import { CATEGORIES, type CategoryKey } from "@/lib/categories";
-
 interface ArticleWithVideo {
   id: string;
   source_id: string;
@@ -50,6 +51,11 @@ export default function ArticlePage() {
   );
   const incrementViews = useIncrementViews();
   
+  // Lightbox state
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxSrc, setLightboxSrc] = useState("");
+  const [lightboxAlt, setLightboxAlt] = useState("");
+  
   // Fetch TMDB mentions for entertainment-related articles
   const { data: tmdbMentions } = useArticleTMDBMentions(
     article?.content || null,
@@ -62,6 +68,13 @@ export default function ArticlePage() {
       incrementViews.mutate(article.id);
     }
   }, [article?.id]);
+  
+  // Handle image click for lightbox
+  const handleImageClick = (src: string, alt: string) => {
+    setLightboxSrc(src);
+    setLightboxAlt(alt);
+    setLightboxOpen(true);
+  };
 
   if (isLoading) {
     return (
@@ -181,13 +194,14 @@ export default function ArticlePage() {
               </div>
             )}
 
-            {/* Featured image */}
+            {/* Featured image with lightbox */}
             {article.image_url && !(article as ArticleWithVideo).video_url && (
               <figure className="mb-8">
                 <img
                   src={article.image_url}
                   alt={article.title}
-                  className="w-full rounded-lg shadow-md"
+                  className="w-full rounded-lg shadow-md cursor-pointer hover:opacity-90 transition-opacity"
+                  onClick={() => handleImageClick(article.image_url!, article.title)}
                 />
               </figure>
             )}
@@ -196,6 +210,9 @@ export default function ArticlePage() {
             {tmdbMentions && tmdbMentions.length > 0 && (
               <TMDBMentions mentions={tmdbMentions} />
             )}
+
+            {/* Ad Banner - Top of content */}
+            <HorizontalAd className="mb-6" />
 
             {/* Article content */}
             <div className="mb-6">
@@ -208,15 +225,18 @@ export default function ArticlePage() {
               )}
             </div>
 
+            {/* In-article ad */}
+            <InArticleAd />
+
             {/* Tags */}
             <ArticleTags articleId={article.id} className="mb-8" />
             <Card className="mb-8">
-              <CardContent className="flex items-center justify-between p-4">
+              <CardContent className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4">
                 <div>
                   <p className="font-medium">Fonte original</p>
                   <p className="text-sm text-muted-foreground">{article.news_sources?.name}</p>
                 </div>
-                <Button asChild variant="outline">
+                <Button asChild variant="outline" className="w-full sm:w-auto">
                   <a href={article.original_url} target="_blank" rel="noopener noreferrer">
                     <ExternalLink className="h-4 w-4 mr-2" />
                     Ler na fonte
@@ -243,12 +263,22 @@ export default function ArticlePage() {
 
           {/* Sidebar */}
           <aside className="lg:col-span-4 xl:col-span-3">
-            <div className="sticky top-32">
+            <div className="sticky top-32 space-y-6">
               <TrendingSidebar />
+              {/* Sidebar Ad */}
+              <SidebarAd />
             </div>
           </aside>
         </div>
       </article>
+      
+      {/* Image Lightbox */}
+      <ImageLightbox
+        src={lightboxSrc}
+        alt={lightboxAlt}
+        open={lightboxOpen}
+        onOpenChange={setLightboxOpen}
+      />
     </>
   );
 }
