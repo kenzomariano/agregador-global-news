@@ -11,6 +11,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ArticleCard } from "@/components/news/ArticleCard";
 import { ArticleContent } from "@/components/news/ArticleContent";
 import { ArticleTags } from "@/components/news/ArticleTags";
+import { ShareButtons } from "@/components/news/ShareButtons";
+import { LikeButton } from "@/components/news/LikeButton";
+import { CommentSection } from "@/components/news/CommentSection";
 import { TrendingSidebar } from "@/components/news/TrendingSidebar";
 import { TMDBMentions } from "@/components/entertainment/TMDBMention";
 import { ImageLightbox } from "@/components/ui/ImageLightbox";
@@ -18,27 +21,9 @@ import { SidebarAd, HorizontalAd, InArticleAd } from "@/components/ads/AdBanner"
 import { useArticleBySlug, useRelatedArticles, useIncrementViews } from "@/hooks/useArticles";
 import { useArticleTMDBMentions } from "@/hooks/useArticleTMDBMentions";
 import { CATEGORIES, type CategoryKey } from "@/lib/categories";
+
 interface ArticleWithVideo {
-  id: string;
-  source_id: string;
-  title: string;
-  slug: string;
-  excerpt: string | null;
-  content: string | null;
-  image_url: string | null;
-  video_url: string | null;
-  original_url: string;
-  category: CategoryKey;
-  views_count: number;
-  is_featured: boolean;
-  is_translated: boolean;
-  published_at: string | null;
-  created_at: string;
-  updated_at: string;
-  news_sources?: {
-    name: string;
-    logo_url: string | null;
-  };
+  video_url?: string | null;
 }
 
 export default function ArticlePage() {
@@ -51,12 +36,10 @@ export default function ArticlePage() {
   );
   const incrementViews = useIncrementViews();
   
-  // Lightbox state
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxSrc, setLightboxSrc] = useState("");
   const [lightboxAlt, setLightboxAlt] = useState("");
   
-  // Fetch TMDB mentions for entertainment-related articles
   const { data: tmdbMentions } = useArticleTMDBMentions(
     article?.content || null,
     article?.title || "",
@@ -69,7 +52,6 @@ export default function ArticlePage() {
     }
   }, [article?.id]);
   
-  // Handle image click for lightbox
   const handleImageClick = (src: string, alt: string) => {
     setLightboxSrc(src);
     setLightboxAlt(alt);
@@ -110,9 +92,7 @@ export default function ArticlePage() {
   const timeAgo = article.published_at
     ? formatDistanceToNow(new Date(article.published_at), { addSuffix: true, locale: ptBR })
     : "recém publicado";
-  const publishedDate = article.published_at
-    ? format(new Date(article.published_at), "dd 'de' MMMM 'de' yyyy, HH:mm", { locale: ptBR })
-    : null;
+  const articleUrl = `/noticia/${article.slug}`;
 
   return (
     <>
@@ -156,12 +136,10 @@ export default function ArticlePage() {
                 <p className="text-xl text-muted-foreground mb-4">{article.excerpt}</p>
               )}
 
-              <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                <div className="flex items-center gap-1">
-                  <span className="font-medium text-foreground">
-                    {article.news_sources?.name || "Fonte"}
-                  </span>
-                </div>
+              <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mb-4">
+                <span className="font-medium text-foreground">
+                  {article.news_sources?.name || "Fonte"}
+                </span>
                 <div className="flex items-center gap-1">
                   <Clock className="h-4 w-4" />
                   <time dateTime={article.published_at || undefined}>{timeAgo}</time>
@@ -177,14 +155,20 @@ export default function ArticlePage() {
                   </div>
                 )}
               </div>
+
+              {/* Share & Like */}
+              <div className="flex flex-wrap items-center gap-3 border-y py-3">
+                <LikeButton articleId={article.id} />
+                <ShareButtons url={articleUrl} title={article.title} />
+              </div>
             </header>
 
             {/* Embedded Video */}
-            {(article as ArticleWithVideo).video_url && (
+            {(article as any).video_url && (
               <div className="mb-8">
                 <div className="aspect-video rounded-lg overflow-hidden shadow-md">
                   <iframe
-                    src={(article as ArticleWithVideo).video_url!}
+                    src={(article as any).video_url}
                     className="w-full h-full"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
@@ -195,7 +179,7 @@ export default function ArticlePage() {
             )}
 
             {/* Featured image with lightbox */}
-            {article.image_url && !(article as ArticleWithVideo).video_url && (
+            {article.image_url && !(article as any).video_url && (
               <figure className="mb-8">
                 <img
                   src={article.image_url}
@@ -211,7 +195,6 @@ export default function ArticlePage() {
               <TMDBMentions mentions={tmdbMentions} />
             )}
 
-            {/* Ad Banner - Top of content */}
             <HorizontalAd className="mb-6" />
 
             {/* Article content */}
@@ -225,11 +208,17 @@ export default function ArticlePage() {
               )}
             </div>
 
-            {/* In-article ad */}
             <InArticleAd />
 
             {/* Tags */}
             <ArticleTags articleId={article.id} className="mb-8" />
+
+            {/* Share & Like bottom */}
+            <div className="flex flex-wrap items-center gap-3 border-t pt-4 mb-6">
+              <LikeButton articleId={article.id} />
+              <ShareButtons url={articleUrl} title={article.title} />
+            </div>
+
             <Card className="mb-8">
               <CardContent className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4">
                 <div>
@@ -245,9 +234,12 @@ export default function ArticlePage() {
               </CardContent>
             </Card>
 
+            {/* Comments */}
+            <CommentSection articleId={article.id} />
+
             {/* Related articles */}
             {relatedArticles && relatedArticles.length > 0 && (
-              <section className="border-t pt-8">
+              <section className="border-t pt-8 mt-8">
                 <h2 className="text-xl font-bold font-serif mb-6 flex items-center gap-2">
                   <span className="w-1 h-6 rounded-full bg-primary" />
                   Notícias Relacionadas
@@ -265,14 +257,12 @@ export default function ArticlePage() {
           <aside className="lg:col-span-4 xl:col-span-3">
             <div className="sticky top-32 space-y-6">
               <TrendingSidebar />
-              {/* Sidebar Ad */}
               <SidebarAd />
             </div>
           </aside>
         </div>
       </article>
       
-      {/* Image Lightbox */}
       <ImageLightbox
         src={lightboxSrc}
         alt={lightboxAlt}

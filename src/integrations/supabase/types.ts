@@ -56,6 +56,70 @@ export type Database = {
         }
         Relationships: []
       }
+      article_comments: {
+        Row: {
+          article_id: string
+          content: string
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          article_id: string
+          content: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          article_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "article_comments_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "articles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      article_likes: {
+        Row: {
+          article_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          article_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          article_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "article_likes_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "articles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       article_tags: {
         Row: {
           article_id: string | null
@@ -95,6 +159,7 @@ export type Database = {
           image_url: string | null
           is_featured: boolean | null
           is_translated: boolean | null
+          likes_count: number
           original_url: string
           published_at: string | null
           slug: string
@@ -113,6 +178,7 @@ export type Database = {
           image_url?: string | null
           is_featured?: boolean | null
           is_translated?: boolean | null
+          likes_count?: number
           original_url: string
           published_at?: string | null
           slug: string
@@ -131,6 +197,7 @@ export type Database = {
           image_url?: string | null
           is_featured?: boolean | null
           is_translated?: boolean | null
+          likes_count?: number
           original_url?: string
           published_at?: string | null
           slug?: string
