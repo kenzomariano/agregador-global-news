@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Menu, Search, X, LogOut, User, ChevronDown } from "lucide-react";
+import { Menu, Search, X, LogOut, User, ChevronDown, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -22,7 +22,7 @@ const SECONDARY_CATEGORIES = ["saude", "ciencia", "mundo", "brasil", "cultura"];
 export function Header() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const { user, signOut } = useAuth();
+  const { user, isAdmin, signOut } = useAuth();
   const { toast } = useToast();
 
   const handleSearch = (e: React.FormEvent) => {
@@ -71,16 +71,28 @@ export function Header() {
             </span>
           </span>
           <div className="flex items-center gap-4">
-            {user && (
-              <Link to="/admin" className="hover:underline flex items-center gap-1">
-                Admin
+            {user ? (
+              <>
+                {isAdmin && (
+                  <Link to="/admin" className="hover:underline flex items-center gap-1">
+                    <Settings className="h-3 w-3" />
+                    Admin
+                  </Link>
+                )}
+                <Link to="/conta" className="hover:underline flex items-center gap-1">
+                  <User className="h-3 w-3" />
+                  Minha Conta
+                </Link>
+                <button onClick={handleSignOut} className="hover:underline flex items-center gap-1">
+                  <LogOut className="h-3 w-3" />
+                  Sair
+                </button>
+              </>
+            ) : (
+              <Link to="/login" className="hover:underline flex items-center gap-1">
+                <User className="h-3 w-3" />
+                Entrar / Cadastrar
               </Link>
-            )}
-            {user && (
-              <button onClick={handleSignOut} className="hover:underline flex items-center gap-1">
-                <LogOut className="h-3 w-3" />
-                Sair
-              </button>
             )}
           </div>
         </div>
