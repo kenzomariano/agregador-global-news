@@ -14,6 +14,7 @@ import ProductsPage from "./pages/ProductsPage";
 import TagPage from "./pages/TagPage";
 import AuthPage from "./pages/AuthPage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import AccountPage from "./pages/AccountPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -33,10 +34,11 @@ const App = () => (
               <Route path="/mais-lidas" element={<TrendingPage />} />
               <Route path="/produtos" element={<ProductsPage />} />
               <Route path="/tag/:tag" element={<TagPage />} />
+              <Route path="/conta" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
               <Route
                 path="/admin/*"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute requireAdmin>
                     <AdminDashboard />
                   </ProtectedRoute>
                 }
