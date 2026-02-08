@@ -26,6 +26,7 @@ export function ArticleCard({ article, variant = "default" }: ArticleCardProps) 
               <img
                 src={article.image_url}
                 alt={article.title}
+                loading="lazy"
                 className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
               />
             ) : (
@@ -66,6 +67,7 @@ export function ArticleCard({ article, variant = "default" }: ArticleCardProps) 
                 <img
                   src={article.image_url}
                   alt={article.title}
+                  loading="lazy"
                   className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                 />
               ) : (
@@ -125,6 +127,7 @@ export function ArticleCard({ article, variant = "default" }: ArticleCardProps) 
             <img
               src={article.image_url}
               alt={article.title}
+              loading="lazy"
               className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
             />
           ) : (

@@ -5,6 +5,7 @@ import { TrendingSidebar } from "@/components/news/TrendingSidebar";
 import { TrendingMovies } from "@/components/entertainment/TrendingMovies";
 import { TrendingTrailers } from "@/components/entertainment/TrendingTrailers";
 import { PopularTags } from "@/components/news/PopularTags";
+import { AffiliateProducts } from "@/components/products/AffiliateProducts";
 import { ArticleCard } from "@/components/news/ArticleCard";
 import { HorizontalAd, SidebarAd } from "@/components/ads/AdBanner";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -75,6 +76,11 @@ export default function Index() {
 
             {/* Entertainment section with TMDB */}
             <TrendingMovies />
+
+            {/* Affiliate Products */}
+            <div className="mb-8">
+              <AffiliateProducts category="ofertas" limit={6} title="🔥 Ofertas do Dia" />
+            </div>
 
             {MAIN_CATEGORIES.map((category, index) => (
               <div key={category}>

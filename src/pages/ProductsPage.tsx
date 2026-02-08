@@ -1,14 +1,14 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ExternalLink, ShoppingBag, Search, Filter, ArrowUpDown } from "lucide-react";
+import { ExternalLink, ShoppingBag, Search, ArrowUpDown, Filter } from "lucide-react";
 import { SEOHead } from "@/components/seo/SEOHead";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
 import {
   Select,
   SelectContent,
@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useProducts } from "@/hooks/useProducts";
+import { AffiliateProducts } from "@/components/products/AffiliateProducts";
 
 export default function ProductsPage() {
   const [search, setSearch] = useState("");
@@ -74,6 +75,18 @@ export default function ProductsPage() {
             Confira os melhores produtos selecionados para você
           </p>
         </header>
+
+        {/* Affiliate Highlights */}
+        <div className="mb-8">
+          <AffiliateProducts category="ofertas" limit={6} title="🛒 Ofertas em Destaque" />
+        </div>
+
+        <Separator className="my-8" />
+
+        <h2 className="text-xl font-bold font-serif mb-4 flex items-center gap-2">
+          <span className="w-1 h-6 rounded-full bg-primary" />
+          Todos os Produtos
+        </h2>
 
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-4 mb-8">
