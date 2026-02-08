@@ -10,11 +10,11 @@ export function Footer() {
           <div className="col-span-2 md:col-span-1">
             <Link to="/" className="flex items-center gap-2">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-xl">
-                N
+                D
               </div>
               <div>
-                <h2 className="text-xl font-bold tracking-tight font-serif">NewsHub</h2>
-                <p className="text-xs text-muted-foreground -mt-1">Brasil</p>
+                <h2 className="text-xl font-bold tracking-tight font-serif">DESIGNE</h2>
+                <p className="text-xs text-muted-foreground -mt-1">Notícias</p>
               </div>
             </Link>
             <p className="mt-4 text-sm text-muted-foreground">
@@ -59,8 +59,8 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link to="/admin/fontes" className="hover:text-foreground transition-colors">
-                  Gerenciar Fontes
+                <Link to="/produtos" className="hover:text-foreground transition-colors">
+                  Produtos
                 </Link>
               </li>
             </ul>
@@ -68,7 +68,7 @@ export function Footer() {
         </div>
 
         <div className="mt-8 pt-8 border-t text-center text-sm text-muted-foreground">
-          <p>© {new Date().getFullYear()} NewsHub Brasil. Todos os direitos reservados.</p>
+          <p>© {new Date().getFullYear()} DESIGNE. Todos os direitos reservados.</p>
           <p className="mt-1">
             As notícias exibidas são agregadas de diversas fontes e os direitos autorais pertencem aos respectivos veículos.
           </p>

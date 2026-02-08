@@ -21,7 +21,7 @@ export function SEOHead({
   author,
   keywords = [],
 }: SEOHeadProps) {
-  const fullTitle = `${title} | NewsHub Brasil`;
+  const fullTitle = `${title} | DESIGNE`;
   const currentUrl = url || window.location.href;
 
   useEffect(() => {
@@ -52,14 +52,14 @@ export function SEOHead({
     // Basic meta tags
     updateMeta("description", description);
     updateMeta("keywords", keywords.join(", "));
-    updateMeta("author", author || "NewsHub Brasil");
+    updateMeta("author", author || "DESIGNE");
 
     // Open Graph tags
     updateProperty("og:title", fullTitle);
     updateProperty("og:description", description);
     updateProperty("og:type", type);
     updateProperty("og:url", currentUrl);
-    updateProperty("og:site_name", "NewsHub Brasil");
+    updateProperty("og:site_name", "DESIGNE");
     updateProperty("og:locale", "pt_BR");
     if (image) {
       updateProperty("og:image", image);
@@ -110,11 +110,11 @@ export function SEOHead({
         datePublished: publishedTime,
         author: {
           "@type": "Organization",
-          name: author || "NewsHub Brasil",
+          name: author || "DESIGNE",
         },
         publisher: {
           "@type": "Organization",
-          name: "NewsHub Brasil",
+          name: "DESIGNE",
           logo: {
             "@type": "ImageObject",
             url: `${window.location.origin}/favicon.ico`,
@@ -129,7 +129,7 @@ export function SEOHead({
       jsonLd.textContent = JSON.stringify({
         "@context": "https://schema.org",
         "@type": "WebSite",
-        name: "NewsHub Brasil",
+        name: "DESIGNE",
         description: description,
         url: window.location.origin,
         potentialAction: {

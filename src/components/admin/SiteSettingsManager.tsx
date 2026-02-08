@@ -21,6 +21,8 @@ export function SiteSettingsManager() {
     adsense_publisher_id: "",
     primary_categories: "",
     secondary_categories: "",
+    affiliate_mercadolivre_id: "",
+    affiliate_shopee_id: "",
   });
 
   useEffect(() => {
@@ -37,6 +39,8 @@ export function SiteSettingsManager() {
         adsense_publisher_id: settingsMap.adsense_publisher_id || "",
         primary_categories: settingsMap.primary_categories || "",
         secondary_categories: settingsMap.secondary_categories || "",
+        affiliate_mercadolivre_id: settingsMap.affiliate_mercadolivre_id || "",
+        affiliate_shopee_id: settingsMap.affiliate_shopee_id || "",
       });
     }
   }, [settings]);
@@ -165,6 +169,54 @@ export function SiteSettingsManager() {
                 <li>Copie o ID do publisher (ca-pub-...)</li>
                 <li>Cole no campo acima</li>
                 <li>Configure os slots de anúncio na aba "Anúncios"</li>
+              </ol>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Programas de Afiliados</CardTitle>
+            <CardDescription>
+              Configure seus IDs de afiliado do Mercado Livre e Shopee
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="affiliate_mercadolivre_id">ID Afiliado Mercado Livre</Label>
+              <Input
+                id="affiliate_mercadolivre_id"
+                value={form.affiliate_mercadolivre_id}
+                onChange={(e) => setForm({ ...form, affiliate_mercadolivre_id: e.target.value })}
+                placeholder="Seu ID de afiliado ML"
+              />
+              <p className="text-xs text-muted-foreground">
+                Encontre no painel de afiliados do Mercado Livre
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="affiliate_shopee_id">ID Afiliado Shopee</Label>
+              <Input
+                id="affiliate_shopee_id"
+                value={form.affiliate_shopee_id}
+                onChange={(e) => setForm({ ...form, affiliate_shopee_id: e.target.value })}
+                placeholder="Seu ID de afiliado Shopee"
+              />
+              <p className="text-xs text-muted-foreground">
+                Encontre no painel de afiliados da Shopee
+              </p>
+            </div>
+
+            <Separator />
+
+            <div className="bg-muted/50 rounded-lg p-4">
+              <h4 className="font-medium mb-2">Como funciona:</h4>
+              <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
+                <li>Cadastre-se nos programas de afiliados do ML e Shopee</li>
+                <li>Copie seu ID de afiliado de cada plataforma</li>
+                <li>Cole nos campos acima e salve</li>
+                <li>Os links de produtos serão gerados automaticamente com seu código</li>
               </ol>
             </div>
           </CardContent>
