@@ -6,6 +6,7 @@ import { TrendingMovies } from "@/components/entertainment/TrendingMovies";
 import { TrendingTrailers } from "@/components/entertainment/TrendingTrailers";
 import { PopularTags } from "@/components/news/PopularTags";
 import { AffiliateProducts } from "@/components/products/AffiliateProducts";
+import { FAQSection } from "@/components/news/FAQSection";
 import { ArticleCard } from "@/components/news/ArticleCard";
 import { HorizontalAd, SidebarAd } from "@/components/ads/AdBanner";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -90,6 +91,9 @@ export default function Index() {
                 )}
               </div>
             ))}
+
+            {/* FAQ Section with JSON-LD */}
+            <FAQSection />
           </div>
 
           {/* Sidebar */}

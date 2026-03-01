@@ -14,6 +14,7 @@ import ProductsPage from "./pages/ProductsPage";
 import ProductDetailPage from "./pages/ProductDetailPage";
 import TagPage from "./pages/TagPage";
 import AuthPage from "./pages/AuthPage";
+import SearchPage from "./pages/SearchPage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AccountPage from "./pages/AccountPage";
 import NotFound from "./pages/NotFound";
@@ -36,6 +37,7 @@ const App = () => (
               <Route path="/produtos" element={<ProductsPage />} />
               <Route path="/produto/:slug" element={<ProductDetailPage />} />
               <Route path="/tag/:tag" element={<TagPage />} />
+              <Route path="/buscar" element={<SearchPage />} />
               <Route path="/conta" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
               <Route
                 path="/admin/*"
