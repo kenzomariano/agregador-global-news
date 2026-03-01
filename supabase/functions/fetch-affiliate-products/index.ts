@@ -62,7 +62,7 @@ Exemplos de categorias de produtos relevantes para "${category}":
 - Se for "saude": suplementos, equipamentos fitness
 - Adapte para a categoria fornecida.`;
 
-    const aiResponse = await fetch("https://ai.lovable.dev/chat/completions", {
+    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
