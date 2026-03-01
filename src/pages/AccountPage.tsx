@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { Save, Loader2, User } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
+import { Save, Loader2, User, Settings, Shield } from "lucide-react";
 import { SEOHead } from "@/components/seo/SEOHead";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,7 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 export default function AccountPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, isAdmin } = useAuth();
 
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
@@ -115,6 +115,27 @@ export default function AccountPage() {
             <p className="text-sm text-muted-foreground">Gerencie suas informações pessoais</p>
           </div>
         </div>
+
+        {/* Admin Quick Access */}
+        {isAdmin && (
+          <Card className="border-primary/30 bg-primary/5">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Shield className="h-5 w-5 text-primary" />
+                Administrador
+              </CardTitle>
+              <CardDescription>Você tem permissões de administrador</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button asChild>
+                <Link to="/admin">
+                  <Settings className="h-4 w-4 mr-2" />
+                  Abrir Painel Administrativo
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader>

@@ -1,7 +1,8 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ExternalLink, ShoppingBag, Search, ArrowUpDown, Filter } from "lucide-react";
+import { ShoppingBag, Search, ArrowUpDown, Filter } from "lucide-react";
 import { SEOHead } from "@/components/seo/SEOHead";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -199,72 +200,66 @@ function ProductCard({ product }: { product: Product }) {
     : null;
 
   return (
-    <Card className="overflow-hidden group hover:shadow-lg transition-shadow flex flex-col">
-      <div className="relative aspect-square overflow-hidden bg-muted">
-        {product.image_url ? (
-          <img
-            src={product.image_url}
-            alt={product.name}
-            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <ShoppingBag className="h-16 w-16 text-muted-foreground/50" />
-          </div>
-        )}
-        {product.is_available === false && (
-          <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-            <Badge variant="secondary" className="text-sm">
-              Indisponível
+    <Link to={`/produto/${product.slug}`}>
+      <Card className="overflow-hidden group hover:shadow-lg transition-shadow flex flex-col h-full">
+        <div className="relative aspect-square overflow-hidden bg-muted">
+          {product.image_url ? (
+            <img
+              src={product.image_url}
+              alt={product.name}
+              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+              loading="lazy"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <ShoppingBag className="h-16 w-16 text-muted-foreground/50" />
+            </div>
+          )}
+          {product.is_available === false && (
+            <div className="absolute inset-0 bg-background/60 flex items-center justify-center">
+              <Badge variant="secondary" className="text-sm">
+                Indisponível
+              </Badge>
+            </div>
+          )}
+          {product.category && (
+            <Badge
+              variant="secondary"
+              className="absolute top-2 left-2 text-xs"
+            >
+              {product.category}
             </Badge>
+          )}
+        </div>
+
+        <CardContent className="p-4 flex-1 flex flex-col">
+          <h3 className="font-medium line-clamp-2 group-hover:text-primary transition-colors mb-2">
+            {product.name}
+          </h3>
+          {product.description && (
+            <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+              {product.description}
+            </p>
+          )}
+          <div className="mt-auto">
+            {product.price !== null && (
+              <div className="bg-primary/10 rounded-lg p-3 text-center">
+                <p className="text-2xl font-bold text-primary">
+                  {formatPrice(product.price, product.currency)}
+                </p>
+              </div>
+            )}
           </div>
-        )}
-        {product.category && (
-          <Badge
-            variant="secondary"
-            className="absolute top-2 left-2 text-xs"
-          >
-            {product.category}
-          </Badge>
-        )}
-      </div>
-
-      <CardContent className="p-4 flex-1">
-        <h3 className="font-medium line-clamp-2 group-hover:text-primary transition-colors mb-2">
-          {product.name}
-        </h3>
-        {product.description && (
-          <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
-            {product.description}
-          </p>
-        )}
-        {product.price !== null && (
-          <p className="text-lg font-bold text-primary">
-            {formatPrice(product.price, product.currency)}
-          </p>
-        )}
-        {timeAgo && (
-          <p className="text-xs text-muted-foreground mt-1">{timeAgo}</p>
-        )}
-        {product.news_sources?.name && (
-          <p className="text-xs text-muted-foreground mt-1">
-            via {product.news_sources.name}
-          </p>
-        )}
-      </CardContent>
-
-      <CardFooter className="p-4 pt-0">
-        <Button asChild variant="outline" size="sm" className="w-full">
-          <a
-            href={product.original_url}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <ExternalLink className="h-4 w-4 mr-2" />
-            Ver produto
-          </a>
-        </Button>
-      </CardFooter>
-    </Card>
+          {timeAgo && (
+            <p className="text-xs text-muted-foreground mt-2">{timeAgo}</p>
+          )}
+          {product.news_sources?.name && (
+            <p className="text-xs text-muted-foreground mt-1">
+              via {product.news_sources.name}
+            </p>
+          )}
+        </CardContent>
+      </Card>
+    </Link>
   );
 }
