@@ -122,15 +122,35 @@ export default function AccountPage() {
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center gap-2">
                 <Shield className="h-5 w-5 text-primary" />
-                Administrador
+                Painel do Administrador
               </CardTitle>
-              <CardDescription>Você tem permissões de administrador</CardDescription>
+              <CardDescription>Você tem permissões de administrador. Acesse as ferramentas de gerenciamento do site.</CardDescription>
             </CardHeader>
-            <CardContent>
-              <Button asChild>
+            <CardContent className="flex flex-wrap gap-3">
+              <Button asChild size="lg">
                 <Link to="/admin">
                   <Settings className="h-4 w-4 mr-2" />
-                  Abrir Painel Administrativo
+                  Painel Administrativo
+                </Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link to="/admin">
+                  📝 Gerenciar Artigos
+                </Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link to="/admin">
+                  📡 Gerenciar Fontes
+                </Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link to="/admin">
+                  📢 Gerenciar Anúncios
+                </Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link to="/admin">
+                  ⚙️ Configurações do Site
                 </Link>
               </Button>
             </CardContent>
