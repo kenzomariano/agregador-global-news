@@ -64,15 +64,23 @@ export function SEOHead({
     if (image) {
       updateProperty("og:image", image);
       updateProperty("og:image:alt", title);
+      updateProperty("og:image:width", "1200");
+      updateProperty("og:image:height", "630");
+    } else {
+      // Dynamic OG image fallback using a text-based generator
+      const ogFallback = `https://og.lovable.dev/api/og?title=${encodeURIComponent(title)}&site=DESIGNE`;
+      updateProperty("og:image", ogFallback);
+      updateProperty("og:image:alt", title);
+      updateProperty("og:image:width", "1200");
+      updateProperty("og:image:height", "630");
     }
 
     // Twitter Card tags
     updateMeta("twitter:card", "summary_large_image");
     updateMeta("twitter:title", fullTitle);
     updateMeta("twitter:description", description);
-    if (image) {
-      updateMeta("twitter:image", image);
-    }
+    const twitterImage = image || `https://og.lovable.dev/api/og?title=${encodeURIComponent(title)}&site=DESIGNE`;
+    updateMeta("twitter:image", twitterImage);
 
     // Article specific
     if (type === "article" && publishedTime) {

@@ -4,6 +4,7 @@ import { ptBR } from "date-fns/locale";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CATEGORIES, type CategoryKey } from "@/lib/categories";
+import { estimateReadingTime } from "@/lib/readingTime";
 import type { Article } from "@/hooks/useArticles";
 
 interface ArticleCardProps {
@@ -16,6 +17,7 @@ export function ArticleCard({ article, variant = "default" }: ArticleCardProps) 
   const timeAgo = article.published_at
     ? formatDistanceToNow(new Date(article.published_at), { addSuffix: true, locale: ptBR })
     : "recém publicado";
+  const readingTime = estimateReadingTime(article.content);
 
   if (variant === "featured") {
     return (
@@ -150,6 +152,12 @@ export function ArticleCard({ article, variant = "default" }: ArticleCardProps) 
             <span>{article.news_sources?.name || "Fonte"}</span>
             <span>•</span>
             <time dateTime={article.published_at || undefined}>{timeAgo}</time>
+            {readingTime > 0 && (
+              <>
+                <span>•</span>
+                <span>{readingTime} min</span>
+              </>
+            )}
           </div>
         </CardContent>
       </Card>

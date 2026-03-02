@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import { useProducts } from "@/hooks/useProducts";
 import { AffiliateProducts } from "@/components/products/AffiliateProducts";
+import { StructuredBreadcrumb } from "@/components/seo/StructuredBreadcrumb";
 
 export default function ProductsPage() {
   const [search, setSearch] = useState("");
@@ -67,6 +68,10 @@ export default function ProductsPage() {
       />
 
       <div className="container py-6">
+        <StructuredBreadcrumb items={[
+          { label: "Início", href: "/" },
+          { label: "Produtos" },
+        ]} />
         <header className="mb-8">
           <h1 className="text-3xl font-bold font-serif flex items-center gap-3 mb-2">
             <ShoppingBag className="h-8 w-8 text-primary" />

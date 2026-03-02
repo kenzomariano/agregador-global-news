@@ -2,6 +2,7 @@ import { SEOHead } from "@/components/seo/SEOHead";
 import { ArticleCard } from "@/components/news/ArticleCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTrendingArticles } from "@/hooks/useArticles";
+import { StructuredBreadcrumb } from "@/components/seo/StructuredBreadcrumb";
 import { TrendingUp } from "lucide-react";
 
 export default function TrendingPage() {
@@ -16,6 +17,10 @@ export default function TrendingPage() {
       />
 
       <div className="container py-6">
+        <StructuredBreadcrumb items={[
+          { label: "Início", href: "/" },
+          { label: "Mais Lidas" },
+        ]} />
         <header className="mb-8">
           <h1 className="text-3xl font-bold font-serif flex items-center gap-3">
             <TrendingUp className="h-8 w-8 text-primary" />
