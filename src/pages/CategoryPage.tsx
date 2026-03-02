@@ -4,6 +4,7 @@ import { ArticleCard } from "@/components/news/ArticleCard";
 import { TrendingSidebar } from "@/components/news/TrendingSidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useArticles } from "@/hooks/useArticles";
+import { StructuredBreadcrumb } from "@/components/seo/StructuredBreadcrumb";
 import { CATEGORIES, type CategoryKey } from "@/lib/categories";
 
 export default function CategoryPage() {
@@ -31,6 +32,11 @@ export default function CategoryPage() {
       />
 
       <div className="container py-6">
+        <StructuredBreadcrumb items={[
+          { label: "Início", href: "/" },
+          { label: categoryInfo.label },
+        ]} />
+
         <header className="mb-8">
           <h1 className="text-3xl font-bold font-serif flex items-center gap-3">
             <span className="w-2 h-8 rounded-full bg-primary" />

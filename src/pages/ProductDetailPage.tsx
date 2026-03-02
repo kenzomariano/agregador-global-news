@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { AffiliateProducts } from "@/components/products/AffiliateProducts";
+import { StructuredBreadcrumb } from "@/components/seo/StructuredBreadcrumb";
 import { useProductBySlug, useProducts } from "@/hooks/useProducts";
 
 export default function ProductDetailPage() {
@@ -92,14 +93,11 @@ export default function ProductDetailPage() {
       />
 
       <div className="container py-6 max-w-5xl">
-        {/* Breadcrumb */}
-        <nav className="text-sm text-muted-foreground mb-6 flex items-center gap-2">
-          <Link to="/" className="hover:text-foreground">Início</Link>
-          <span>/</span>
-          <Link to="/produtos" className="hover:text-foreground">Produtos</Link>
-          <span>/</span>
-          <span className="text-foreground truncate max-w-[200px]">{product.name}</span>
-        </nav>
+        <StructuredBreadcrumb items={[
+          { label: "Início", href: "/" },
+          { label: "Produtos", href: "/produtos" },
+          { label: product.name },
+        ]} />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
           {/* Product Image */}

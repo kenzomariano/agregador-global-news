@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArticleCard } from "@/components/news/ArticleCard";
 import { supabase } from "@/integrations/supabase/client";
+import { StructuredBreadcrumb } from "@/components/seo/StructuredBreadcrumb";
 import { CATEGORIES, type CategoryKey } from "@/lib/categories";
 import type { Article } from "@/hooks/useArticles";
 
@@ -72,6 +73,10 @@ export default function SearchPage() {
       />
 
       <div className="container max-w-4xl py-8 space-y-6">
+        <StructuredBreadcrumb items={[
+          { label: "Início", href: "/" },
+          { label: query ? `Buscar: ${query}` : "Buscar" },
+        ]} />
         <h1 className="text-3xl font-bold font-serif">Buscar Notícias</h1>
 
         <form onSubmit={handleSubmit} className="flex gap-2">

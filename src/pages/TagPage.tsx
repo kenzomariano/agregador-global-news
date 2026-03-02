@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArticleCard } from "@/components/news/ArticleCard";
 import { TrendingSidebar } from "@/components/news/TrendingSidebar";
+import { StructuredBreadcrumb } from "@/components/seo/StructuredBreadcrumb";
 import { useArticlesByTag, usePopularTags } from "@/hooks/useArticleTags";
 
 export default function TagPage() {
@@ -25,14 +26,13 @@ export default function TagPage() {
       <div className="container py-6">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           <main className="lg:col-span-8 xl:col-span-9">
+            <StructuredBreadcrumb items={[
+              { label: "Início", href: "/" },
+              { label: `Tag: ${decodedTag}` },
+            ]} />
+
             {/* Header */}
             <div className="mb-6">
-              <Button asChild variant="ghost" size="sm" className="mb-4">
-                <Link to="/">
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Voltar
-                </Link>
-              </Button>
               
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-primary/10 rounded-full">

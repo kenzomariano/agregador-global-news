@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { formatDistanceToNow, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ExternalLink, Clock, Eye, Globe } from "lucide-react";
+import { ExternalLink, Clock, Eye, Globe, BookOpen } from "lucide-react";
 import { SEOHead } from "@/components/seo/SEOHead";
+import { StructuredBreadcrumb } from "@/components/seo/StructuredBreadcrumb";
+import { estimateReadingTime } from "@/lib/readingTime";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -90,6 +92,7 @@ export default function ArticlePage() {
   }
 
   const category = CATEGORIES[article.category as CategoryKey];
+  const readingTime = estimateReadingTime(article.content);
   const timeAgo = article.published_at
     ? formatDistanceToNow(new Date(article.published_at), { addSuffix: true, locale: ptBR })
     : "recém publicado";
@@ -115,13 +118,11 @@ export default function ArticlePage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           <div className="lg:col-span-8 xl:col-span-9">
             {/* Breadcrumb */}
-            <nav className="text-sm text-muted-foreground mb-4">
-              <Link to="/" className="hover:text-foreground">Início</Link>
-              <span className="mx-2">/</span>
-              <Link to={`/categoria/${article.category}`} className="hover:text-foreground">
-                {category?.label || article.category}
-              </Link>
-            </nav>
+            <StructuredBreadcrumb items={[
+              { label: "Início", href: "/" },
+              { label: category?.label || article.category, href: `/categoria/${article.category}` },
+              { label: article.title },
+            ]} />
 
             {/* Article header */}
             <header className="mb-6">
@@ -149,6 +150,12 @@ export default function ArticlePage() {
                   <Eye className="h-4 w-4" />
                   <span>{article.views_count.toLocaleString("pt-BR")} visualizações</span>
                 </div>
+                {readingTime > 0 && (
+                  <div className="flex items-center gap-1">
+                    <BookOpen className="h-4 w-4" />
+                    <span>{readingTime} min de leitura</span>
+                  </div>
+                )}
                 {article.is_translated && (
                   <div className="flex items-center gap-1 text-primary">
                     <Globe className="h-4 w-4" />
