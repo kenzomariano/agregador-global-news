@@ -74,10 +74,12 @@ export function Header() {
             {user ? (
               <>
                 {isAdmin && (
-                  <Link to="/admin" className="hover:underline flex items-center gap-1">
-                    <Settings className="h-3 w-3" />
-                    Admin
-                  </Link>
+                  <>
+                    <Link to="/admin" className="hover:underline flex items-center gap-1">
+                      <Settings className="h-3 w-3" />
+                      Painel Admin
+                    </Link>
+                  </>
                 )}
                 <Link to="/conta" className="hover:underline flex items-center gap-1">
                   <User className="h-3 w-3" />
@@ -156,6 +158,20 @@ export function Header() {
               >
                 🛒 Produtos
               </Link>
+
+              {isAdmin && (
+                <>
+                  <div className="border-t my-2" />
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide">Administração</p>
+                  <Link
+                    to="/admin"
+                    className="text-primary hover:text-primary/80 transition-colors font-medium flex items-center gap-2"
+                  >
+                    <Settings className="h-4 w-4" />
+                    Painel Admin
+                  </Link>
+                </>
+              )}
             </nav>
           </SheetContent>
         </Sheet>
