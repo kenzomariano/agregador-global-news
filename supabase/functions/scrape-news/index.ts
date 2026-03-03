@@ -90,7 +90,7 @@ const PRODUCT_PATTERNS = [
   /\/shop\//i,
   /\/store\//i,
   /\/loja\//i,
-  /\/p\/[a-z0-9-]+/i,
+  /\/p\/[a-z0-9]+-[a-z0-9-]+/i, // Product with slug (e.g. /p/product-name)
   /\/dp\/[A-Z0-9]+/i, // Amazon style
   /\?sku=/i,
   /\?product_id=/i,
@@ -131,6 +131,12 @@ function isLikelyProductUrl(url: string, baseUrl: string): boolean {
   
   const path = url.replace(baseUrl, "").replace(/^\/+/, "");
   if (!path || path === "/" || path.length < 3) return false;
+  
+  // Skip known non-product paths
+  const skipPaths = [/\/glossary\//i, /\/search/i, /\/categorias?\//i, /\/help\//i, /\/login/i, /\/register/i, /\/cart/i, /\/checkout/i];
+  for (const sp of skipPaths) {
+    if (sp.test(url)) return false;
+  }
   
   for (const pattern of NON_ARTICLE_PATTERNS) {
     if (pattern.test(url)) return false;
@@ -361,39 +367,78 @@ serve(async (req) => {
       console.log(`Using ${itemLinks.length} URLs from sitemap`);
     }
 
-    // If no sitemap or not enough URLs, scrape the homepage
+    // If no sitemap or not enough URLs, use Firecrawl map for product sources, scrape for articles
     if (itemLinks.length < maxItems) {
-      const scrapeResponse = await fetch("https://api.firecrawl.dev/v1/scrape", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${firecrawlKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          url: typedSource.url,
-          formats: ["links", "markdown"],
-          onlyMainContent: true,
-        }),
-      });
+      if (isProductSource) {
+        // Use Firecrawl map API for better product URL discovery
+        console.log(`Using Firecrawl map to discover product URLs from ${typedSource.url}`);
+        const mapResponse = await fetch("https://api.firecrawl.dev/v1/map", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${firecrawlKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            url: typedSource.url,
+            search: "produto",
+            limit: 50,
+            includeSubdomains: false,
+          }),
+        });
 
-      const scrapeData = await scrapeResponse.json();
-
-      if (!scrapeResponse.ok) {
-        console.error("Firecrawl error:", scrapeData);
-        return new Response(
-          JSON.stringify({ error: "Failed to scrape website" }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        const mapData = await mapResponse.json();
+        if (mapResponse.ok) {
+          const allLinks = mapData.links || [];
+          console.log(`Map returned ${allLinks.length} total URLs`);
+          const productLinks = allLinks.filter((link: string) => isLikelyProductUrl(link, baseUrl));
+          // Clean tracking params from discovered links
+          const cleanLinks = productLinks.map((l: string) => l.split("#")[0].split("?")[0]);
+          const uniqueLinks = [...new Set(cleanLinks)] as string[];
+          itemLinks = [...new Set([...itemLinks, ...uniqueLinks])].slice(0, maxItems);
+          console.log(`Found ${productLinks.length} product links after filtering`);
+        } else {
+          console.error("Firecrawl map error:", mapData);
+        }
       }
 
-      const links = scrapeData.data?.links || [];
-      
-      if (isProductSource) {
-        const productLinks = links.filter((link: string) => isLikelyProductUrl(link, baseUrl));
-        itemLinks = [...new Set([...itemLinks, ...productLinks])].slice(0, maxItems);
-      } else {
-        const articleLinks = links.filter((link: string) => isLikelyArticleUrl(link, baseUrl));
-        itemLinks = [...new Set([...itemLinks, ...articleLinks])].slice(0, maxItems);
+      // Fallback: also scrape homepage for links
+      if (itemLinks.length < maxItems) {
+        const scrapeResponse = await fetch("https://api.firecrawl.dev/v1/scrape", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${firecrawlKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            url: typedSource.url,
+            formats: ["links"],
+            onlyMainContent: false,
+          }),
+        });
+
+        const scrapeData = await scrapeResponse.json();
+
+        if (!scrapeResponse.ok) {
+          console.error("Firecrawl error:", scrapeData);
+          if (itemLinks.length === 0) {
+            return new Response(
+              JSON.stringify({ error: "Failed to scrape website" }),
+              { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+        } else {
+          const links = scrapeData.data?.links || [];
+          
+          if (isProductSource) {
+            const productLinks = links
+              .map((link: string) => link.split("#")[0].split("?")[0])
+              .filter((link: string) => isLikelyProductUrl(link, baseUrl));
+            itemLinks = [...new Set([...itemLinks, ...productLinks])].slice(0, maxItems);
+          } else {
+            const articleLinks = links.filter((link: string) => isLikelyArticleUrl(link, baseUrl));
+            itemLinks = [...new Set([...itemLinks, ...articleLinks])].slice(0, maxItems);
+          }
+        }
       }
     }
 
@@ -406,16 +451,23 @@ serve(async (req) => {
     for (const itemUrl of itemLinks) {
       try {
         if (isProductSource) {
-          // Process as product
+          // Clean tracking params from URL
+          const cleanProductUrl = itemUrl.split("#")[0].split("?")[0] || itemUrl;
+          
+          // Process as product - check by clean URL
           const { data: existing } = await supabase
             .from("products")
             .select("id")
-            .eq("original_url", itemUrl)
+            .eq("original_url", cleanProductUrl)
             .maybeSingle();
 
           const existingId = existing?.id;
 
-          // Scrape the product page - request html too for image extraction
+          // Clean tracking params from URL for better scraping
+          const cleanUrl = itemUrl.split("#")[0].split("?")[0] || itemUrl;
+          console.log(`Scraping product: ${cleanUrl}`);
+
+          // Scrape the product page - request html + screenshot for image extraction
           const productResponse = await fetch("https://api.firecrawl.dev/v1/scrape", {
             method: "POST",
             headers: {
@@ -423,9 +475,9 @@ serve(async (req) => {
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              url: itemUrl,
+              url: cleanUrl,
               formats: ["markdown", "html"],
-              onlyMainContent: true,
+              onlyMainContent: false,
               waitFor: 3000,
             }),
           });
@@ -437,29 +489,79 @@ serve(async (req) => {
             continue;
           }
 
-          let name = productData.data?.metadata?.title || "";
+          let name = productData.data?.metadata?.title || productData.data?.metadata?.["og:title"] || "";
+          
+          // Fallback: extract name from URL path if metadata title is empty/short
+          if (!name || name.length < 3) {
+            const urlPath = cleanUrl.replace(/.*\.com\.br\//, "").split("/p/")[0];
+            name = urlPath
+              .replace(/-/g, " ")
+              .replace(/\b\w/g, (c: string) => c.toUpperCase())
+              .trim();
+            console.log(`Extracted name from URL: ${name}`);
+          }
           const rawContent = productData.data?.markdown || "";
           const rawHtml = productData.data?.html || "";
           let description = productData.data?.metadata?.description || "";
-          let imageUrl = productData.data?.metadata?.ogImage || productData.data?.metadata?.image || null;
+          const metadata = productData.data?.metadata || {};
+          
+          // Try multiple metadata fields for image
+          let imageUrl = metadata.ogImage 
+            || metadata["og:image"] 
+            || metadata.image 
+            || metadata["twitter:image"]
+            || null;
+
+          console.log(`Product metadata keys: ${Object.keys(metadata).join(", ")}`);
+          if (imageUrl) console.log(`Image from metadata: ${imageUrl.slice(0, 100)}`);
 
           // Try to extract product image from HTML if metadata doesn't have one
           if (!imageUrl && rawHtml) {
-            // Look for product images in common patterns
             const imgPatterns = [
+              /property="og:image"[^>]*content="([^"]+)"/i,
+              /content="([^"]+)"[^>]*property="og:image"/i,
               /data-zoom="([^"]+)"/i,
-              /class="[^"]*product[^"]*"[^>]*src="([^"]+)"/i,
-              /<img[^>]*class="[^"]*gallery[^"]*"[^>]*src="([^"]+)"/i,
+              /data-src="(https?:\/\/[^"]+(?:\.jpg|\.jpeg|\.png|\.webp)[^"]*)"/i,
+              /<img[^>]*src="(https?:\/\/(?:http2\.mlstatic\.com|cf\.shopee)[^"]+)"/i,
               /<img[^>]*src="(https?:\/\/[^"]+(?:\.jpg|\.jpeg|\.png|\.webp)[^"]*)"/i,
             ];
             for (const pattern of imgPatterns) {
               const match = rawHtml.match(pattern);
-              if (match?.[1] && !match[1].includes("logo") && !match[1].includes("icon") && !match[1].includes("avatar")) {
+              if (match?.[1] && !match[1].includes("logo") && !match[1].includes("icon") && !match[1].includes("avatar") && !match[1].includes("sprite") && match[1].length > 20) {
                 imageUrl = match[1];
-                console.log(`Extracted product image from HTML: ${imageUrl.slice(0, 80)}`);
+                console.log(`Extracted product image from HTML: ${imageUrl.slice(0, 100)}`);
                 break;
               }
             }
+          }
+
+          // Try to extract from markdown image syntax ![alt](url)
+          if (!imageUrl && rawContent) {
+            const mdImgMatch = rawContent.match(/!\[.*?\]\((https?:\/\/[^)]+(?:\.jpg|\.jpeg|\.png|\.webp)[^)]*)\)/i);
+            if (mdImgMatch?.[1] && !mdImgMatch[1].includes("logo") && !mdImgMatch[1].includes("icon")) {
+              imageUrl = mdImgMatch[1];
+              console.log(`Extracted product image from markdown: ${imageUrl.slice(0, 100)}`);
+            }
+          }
+
+          // Fallback: try to find any image URL in markdown content
+          if (!imageUrl && rawContent) {
+            const anyImgMatch = rawContent.match(/(https?:\/\/(?:http2\.mlstatic\.com|cf\.shopee\.com\.br)[^\s)"\]]+)/i);
+            if (anyImgMatch?.[1]) {
+              imageUrl = anyImgMatch[1];
+              console.log(`Extracted product image from content URL: ${imageUrl.slice(0, 100)}`);
+            }
+          }
+
+          // Last resort for Mercado Livre: use Firecrawl search to find product image
+          if (!imageUrl && cleanUrl.includes("mercadolivre.com.br")) {
+            // Extract product name from URL for search
+            const searchName = cleanUrl
+              .replace(/.*\.com\.br\//, "")
+              .split("/p/")[0]
+              .replace(/-/g, " ")
+              .slice(0, 50);
+            console.log(`No image found, will rely on AI extraction for: ${searchName}`);
           }
 
           name = name.split(" - ")[0].split(" | ")[0].trim();
@@ -475,8 +577,9 @@ serve(async (req) => {
           let currency = "BRL";
           let category = "";
 
-          if (lovableApiKey && rawContent) {
-            const extractPrompt = `Extraia as informações do produto abaixo e retorne em JSON:
+          if (lovableApiKey && (rawContent || rawHtml)) {
+            const contentForAI = rawContent.slice(0, 4000) + "\n\n---HTML SNIPPET---\n" + rawHtml.slice(0, 2000);
+            const extractPrompt = `Extraia as informações do produto abaixo e retorne APENAS JSON:
 {
   "name": "nome do produto limpo e completo",
   "description": "descrição curta do produto (max 200 chars)",
@@ -484,19 +587,19 @@ serve(async (req) => {
   "currency": "BRL",
   "category": "categoria do produto",
   "is_available": true,
-  "image_url": "URL da imagem principal do produto (se encontrar)"
+  "image_url": "URL completa da imagem principal do produto"
 }
 
 REGRAS:
-- Se não encontrar preço, use null para price.
-- Se for site estrangeiro, use o código da moeda correto (USD, EUR, etc).
-- Para image_url, procure URLs de imagens do produto no conteúdo (JPG, PNG, WEBP). Se não encontrar, use null.
-- NÃO invente dados. Extraia apenas o que está no conteúdo.
+- Procure o nome correto do produto, não use o título da página.
+- Para price: extraia o preço numérico. Se não encontrar, use null.
+- Para image_url: procure URLs que contenham "mlstatic.com", "shopee" ou outras CDNs de imagem. Procure em tags <img>, og:image, data-src, background-image. Se não encontrar, use null.
+- NÃO invente dados.
 
-URL do produto: ${itemUrl}
+URL do produto: ${cleanUrl}
 
 Conteúdo:
-${rawContent.slice(0, 5000)}`;
+${contentForAI}`;
 
             const extractResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
               method: "POST",
@@ -522,11 +625,26 @@ ${rawContent.slice(0, 5000)}`;
                   if (parsed.price !== null && parsed.price !== undefined) price = parsed.price;
                   if (parsed.currency) currency = parsed.currency;
                   if (parsed.category) category = parsed.category;
-                  if (parsed.image_url && !imageUrl) imageUrl = parsed.image_url;
+                  if (parsed.image_url && !imageUrl) {
+                    // Filter out logo/asset/icon URLs
+                    const imgLower = parsed.image_url.toLowerCase();
+                    if (!imgLower.includes("logo") && !imgLower.includes("frontend-assets") && !imgLower.includes("icon") && !imgLower.includes("sprite") && !imgLower.includes("favicon")) {
+                      imageUrl = parsed.image_url;
+                    }
+                  }
                 }
               } catch (e) {
                 console.log("Could not parse product info");
               }
+            }
+          }
+
+          // Final image validation - reject logos/assets
+          if (imageUrl) {
+            const imgLower = imageUrl.toLowerCase();
+            if (imgLower.includes("logo") || imgLower.includes("frontend-assets") || imgLower.includes("icon") || imgLower.includes("sprite") || imgLower.includes("favicon")) {
+              console.log(`Rejected non-product image: ${imageUrl.slice(0, 80)}`);
+              imageUrl = null;
             }
           }
 
@@ -568,7 +686,7 @@ ${rawContent.slice(0, 5000)}`;
               price,
               currency,
               image_url: imageUrl,
-              original_url: itemUrl,
+              original_url: cleanProductUrl,
               category,
             });
 
