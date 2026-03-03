@@ -1,0 +1,1 @@
+DELETE FROM products WHERE original_url LIKE '%glossary%' OR original_url LIKE '%#polycard%' OR original_url LIKE '%search?keyword%' OR original_url LIKE '%lista.mercadolivre%';
