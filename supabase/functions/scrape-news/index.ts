@@ -94,6 +94,8 @@ const PRODUCT_PATTERNS = [
   /\/dp\/[A-Z0-9]+/i, // Amazon style
   /\?sku=/i,
   /\?product_id=/i,
+  /-i\.\d+\.\d+/i, // Shopee product pattern (e.g. -i.676690142.43970146313)
+  /\/p\/MLB\d+/i, // Mercado Livre product pattern (e.g. /p/MLB47115842)
 ];
 
 const DEFAULT_SCRAPE_LIMIT = 5;
@@ -413,7 +415,7 @@ serve(async (req) => {
 
           const existingId = existing?.id;
 
-          // Scrape the product page
+          // Scrape the product page - request html too for image extraction
           const productResponse = await fetch("https://api.firecrawl.dev/v1/scrape", {
             method: "POST",
             headers: {
@@ -422,9 +424,9 @@ serve(async (req) => {
             },
             body: JSON.stringify({
               url: itemUrl,
-              formats: ["markdown"],
+              formats: ["markdown", "html"],
               onlyMainContent: true,
-              waitFor: 2000,
+              waitFor: 3000,
             }),
           });
 
@@ -437,8 +439,28 @@ serve(async (req) => {
 
           let name = productData.data?.metadata?.title || "";
           const rawContent = productData.data?.markdown || "";
+          const rawHtml = productData.data?.html || "";
           let description = productData.data?.metadata?.description || "";
           let imageUrl = productData.data?.metadata?.ogImage || productData.data?.metadata?.image || null;
+
+          // Try to extract product image from HTML if metadata doesn't have one
+          if (!imageUrl && rawHtml) {
+            // Look for product images in common patterns
+            const imgPatterns = [
+              /data-zoom="([^"]+)"/i,
+              /class="[^"]*product[^"]*"[^>]*src="([^"]+)"/i,
+              /<img[^>]*class="[^"]*gallery[^"]*"[^>]*src="([^"]+)"/i,
+              /<img[^>]*src="(https?:\/\/[^"]+(?:\.jpg|\.jpeg|\.png|\.webp)[^"]*)"/i,
+            ];
+            for (const pattern of imgPatterns) {
+              const match = rawHtml.match(pattern);
+              if (match?.[1] && !match[1].includes("logo") && !match[1].includes("icon") && !match[1].includes("avatar")) {
+                imageUrl = match[1];
+                console.log(`Extracted product image from HTML: ${imageUrl.slice(0, 80)}`);
+                break;
+              }
+            }
+          }
 
           name = name.split(" - ")[0].split(" | ")[0].trim();
 
@@ -456,16 +478,22 @@ serve(async (req) => {
           if (lovableApiKey && rawContent) {
             const extractPrompt = `Extraia as informações do produto abaixo e retorne em JSON:
 {
-  "name": "nome do produto limpo",
+  "name": "nome do produto limpo e completo",
   "description": "descrição curta do produto (max 200 chars)",
   "price": 0.00,
   "currency": "BRL",
   "category": "categoria do produto",
-  "is_available": true
+  "is_available": true,
+  "image_url": "URL da imagem principal do produto (se encontrar)"
 }
 
-Se não encontrar preço, use null.
-Se for site estrangeiro, converta a moeda para o código correto (USD, EUR, etc).
+REGRAS:
+- Se não encontrar preço, use null para price.
+- Se for site estrangeiro, use o código da moeda correto (USD, EUR, etc).
+- Para image_url, procure URLs de imagens do produto no conteúdo (JPG, PNG, WEBP). Se não encontrar, use null.
+- NÃO invente dados. Extraia apenas o que está no conteúdo.
+
+URL do produto: ${itemUrl}
 
 Conteúdo:
 ${rawContent.slice(0, 5000)}`;
@@ -494,6 +522,7 @@ ${rawContent.slice(0, 5000)}`;
                   if (parsed.price !== null && parsed.price !== undefined) price = parsed.price;
                   if (parsed.currency) currency = parsed.currency;
                   if (parsed.category) category = parsed.category;
+                  if (parsed.image_url && !imageUrl) imageUrl = parsed.image_url;
                 }
               } catch (e) {
                 console.log("Could not parse product info");
