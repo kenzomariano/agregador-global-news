@@ -367,14 +367,15 @@ serve(async (req) => {
       console.log(`Using ${itemLinks.length} URLs from sitemap`);
     }
 
+    // Store search result metadata for products (title, description, etc.)
+    const searchResultsMap: Record<string, { title?: string; description?: string; markdown?: string }> = {};
+
     // If no sitemap or not enough URLs, discover links
     if (itemLinks.length < maxItems) {
       if (isProductSource) {
         // Use Firecrawl search to find products via Google Shopping
-        // The source name is used as search query context
         const searchQueries = [typedSource.name];
         
-        // Also use the source URL domain to understand what kind of products to search
         console.log(`Using Google Shopping search to discover products for: ${typedSource.name}`);
         
         const allFoundLinks: string[] = [];
@@ -390,6 +391,7 @@ serve(async (req) => {
               body: JSON.stringify({
                 query: `site:mercadolivre.com.br OR site:shopee.com.br ${query}`,
                 limit: 20,
+                scrapeOptions: { formats: ["markdown"] },
               }),
             });
 
@@ -397,16 +399,23 @@ serve(async (req) => {
             if (searchResponse.ok && searchData.data) {
               for (const result of searchData.data) {
                 const resultUrl = result.url || "";
-                // Only accept Mercado Livre product pages (/p/MLB...) and Shopee product pages (-i.X.X)
                 const isMLProduct = /mercadolivre\.com\.br.*\/p\/MLB\d+/i.test(resultUrl) 
                   || /mercadolivre\.com\.br\/[a-z0-9-]+\/p\/MLB\d+/i.test(resultUrl);
                 const isShopeeProduct = /shopee\.com\.br\/.*-i\.\d+\.\d+/i.test(resultUrl);
                 
                 if (isMLProduct || isShopeeProduct) {
-                  // Clean tracking params
                   const cleanUrl = resultUrl.split("#")[0].split("?")[0];
                   allFoundLinks.push(cleanUrl);
+                  // Store search result data for later use
+                  searchResultsMap[cleanUrl] = {
+                    title: result.title || "",
+                    description: result.description || "",
+                    markdown: result.markdown || "",
+                  };
                   console.log(`Found product via search: ${cleanUrl.slice(0, 100)}`);
+                  if (result.description) {
+                    console.log(`  Search snippet: ${result.description.slice(0, 120)}`);
+                  }
                 }
               }
             } else {
@@ -417,7 +426,6 @@ serve(async (req) => {
           }
         }
 
-        // Deduplicate and limit
         const uniqueSearchLinks = [...new Set(allFoundLinks)];
         itemLinks = [...new Set([...itemLinks, ...uniqueSearchLinks])].slice(0, maxItems);
         console.log(`Found ${uniqueSearchLinks.length} product links from Google Shopping search`);
