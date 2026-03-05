@@ -367,42 +367,64 @@ serve(async (req) => {
       console.log(`Using ${itemLinks.length} URLs from sitemap`);
     }
 
-    // If no sitemap or not enough URLs, use Firecrawl map for product sources, scrape for articles
+    // If no sitemap or not enough URLs, discover links
     if (itemLinks.length < maxItems) {
       if (isProductSource) {
-        // Use Firecrawl map API for better product URL discovery
-        console.log(`Using Firecrawl map to discover product URLs from ${typedSource.url}`);
-        const mapResponse = await fetch("https://api.firecrawl.dev/v1/map", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${firecrawlKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            url: typedSource.url,
-            search: "produto",
-            limit: 50,
-            includeSubdomains: false,
-          }),
-        });
+        // Use Firecrawl search to find products via Google Shopping
+        // The source name is used as search query context
+        const searchQueries = [typedSource.name];
+        
+        // Also use the source URL domain to understand what kind of products to search
+        console.log(`Using Google Shopping search to discover products for: ${typedSource.name}`);
+        
+        const allFoundLinks: string[] = [];
+        
+        for (const query of searchQueries) {
+          try {
+            const searchResponse = await fetch("https://api.firecrawl.dev/v1/search", {
+              method: "POST",
+              headers: {
+                "Authorization": `Bearer ${firecrawlKey}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                query: `site:mercadolivre.com.br OR site:shopee.com.br ${query}`,
+                limit: 20,
+              }),
+            });
 
-        const mapData = await mapResponse.json();
-        if (mapResponse.ok) {
-          const allLinks = mapData.links || [];
-          console.log(`Map returned ${allLinks.length} total URLs`);
-          const productLinks = allLinks.filter((link: string) => isLikelyProductUrl(link, baseUrl));
-          // Clean tracking params from discovered links
-          const cleanLinks = productLinks.map((l: string) => l.split("#")[0].split("?")[0]);
-          const uniqueLinks = [...new Set(cleanLinks)] as string[];
-          itemLinks = [...new Set([...itemLinks, ...uniqueLinks])].slice(0, maxItems);
-          console.log(`Found ${productLinks.length} product links after filtering`);
-        } else {
-          console.error("Firecrawl map error:", mapData);
+            const searchData = await searchResponse.json();
+            if (searchResponse.ok && searchData.data) {
+              for (const result of searchData.data) {
+                const resultUrl = result.url || "";
+                // Only accept Mercado Livre product pages (/p/MLB...) and Shopee product pages (-i.X.X)
+                const isMLProduct = /mercadolivre\.com\.br.*\/p\/MLB\d+/i.test(resultUrl) 
+                  || /mercadolivre\.com\.br\/[a-z0-9-]+\/p\/MLB\d+/i.test(resultUrl);
+                const isShopeeProduct = /shopee\.com\.br\/.*-i\.\d+\.\d+/i.test(resultUrl);
+                
+                if (isMLProduct || isShopeeProduct) {
+                  // Clean tracking params
+                  const cleanUrl = resultUrl.split("#")[0].split("?")[0];
+                  allFoundLinks.push(cleanUrl);
+                  console.log(`Found product via search: ${cleanUrl.slice(0, 100)}`);
+                }
+              }
+            } else {
+              console.error("Firecrawl search error:", searchData);
+            }
+          } catch (e) {
+            console.error(`Search failed for query "${query}":`, e);
+          }
         }
+
+        // Deduplicate and limit
+        const uniqueSearchLinks = [...new Set(allFoundLinks)];
+        itemLinks = [...new Set([...itemLinks, ...uniqueSearchLinks])].slice(0, maxItems);
+        console.log(`Found ${uniqueSearchLinks.length} product links from Google Shopping search`);
       }
 
-      // Fallback: also scrape homepage for links
-      if (itemLinks.length < maxItems) {
+      // Fallback for articles: scrape homepage for links
+      if (!isProductSource && itemLinks.length < maxItems) {
         const scrapeResponse = await fetch("https://api.firecrawl.dev/v1/scrape", {
           method: "POST",
           headers: {
@@ -428,16 +450,8 @@ serve(async (req) => {
           }
         } else {
           const links = scrapeData.data?.links || [];
-          
-          if (isProductSource) {
-            const productLinks = links
-              .map((link: string) => link.split("#")[0].split("?")[0])
-              .filter((link: string) => isLikelyProductUrl(link, baseUrl));
-            itemLinks = [...new Set([...itemLinks, ...productLinks])].slice(0, maxItems);
-          } else {
-            const articleLinks = links.filter((link: string) => isLikelyArticleUrl(link, baseUrl));
-            itemLinks = [...new Set([...itemLinks, ...articleLinks])].slice(0, maxItems);
-          }
+          const articleLinks = links.filter((link: string) => isLikelyArticleUrl(link, baseUrl));
+          itemLinks = [...new Set([...itemLinks, ...articleLinks])].slice(0, maxItems);
         }
       }
     }
