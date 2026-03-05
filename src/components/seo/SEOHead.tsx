@@ -100,13 +100,14 @@ export function SEOHead({
     canonical.href = currentUrl;
 
     // JSON-LD structured data
-    const existingJsonLd = document.querySelector('script[type="application/ld+json"]');
-    if (existingJsonLd) {
-      existingJsonLd.remove();
+    const jsonLdId = "seohead-jsonld";
+    let jsonLd = document.getElementById(jsonLdId) as HTMLScriptElement | null;
+    if (!jsonLd) {
+      jsonLd = document.createElement("script");
+      jsonLd.id = jsonLdId;
+      jsonLd.type = "application/ld+json";
+      document.head.appendChild(jsonLd);
     }
-
-    const jsonLd = document.createElement("script");
-    jsonLd.type = "application/ld+json";
     
     if (type === "article") {
       jsonLd.textContent = JSON.stringify({
@@ -150,13 +151,11 @@ export function SEOHead({
         },
       });
     }
-    
-    document.head.appendChild(jsonLd);
 
     return () => {
-      const jsonLdScript = document.querySelector('script[type="application/ld+json"]');
-      if (jsonLdScript) {
-        jsonLdScript.remove();
+      const el = document.getElementById(jsonLdId);
+      if (el && el.parentNode) {
+        el.parentNode.removeChild(el);
       }
     };
   }, [title, description, image, currentUrl, type, publishedTime, author, keywords, fullTitle]);
