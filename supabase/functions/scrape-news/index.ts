@@ -484,109 +484,30 @@ serve(async (req) => {
             .maybeSingle();
 
           const existingId = existing?.id;
+          const cleanUrl = cleanProductUrl;
+          console.log(`Processing product: ${cleanUrl}`);
 
-          // Clean tracking params from URL for better scraping
-          const cleanUrl = itemUrl.split("#")[0].split("?")[0] || itemUrl;
-          console.log(`Scraping product: ${cleanUrl}`);
-
-          // Scrape the product page - request html + screenshot for image extraction
-          const productResponse = await fetch("https://api.firecrawl.dev/v1/scrape", {
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${firecrawlKey}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              url: cleanUrl,
-              formats: ["markdown", "html"],
-              onlyMainContent: false,
-              waitFor: 3000,
-            }),
-          });
-
-          const productData = await productResponse.json();
-
-          if (!productResponse.ok) {
-            console.error(`Failed to scrape product: ${itemUrl}`);
-            continue;
-          }
-
-          let name = productData.data?.metadata?.title || productData.data?.metadata?.["og:title"] || "";
+          // Get search result data if available
+          const searchResult = searchResultsMap[cleanUrl] || {};
+          const searchTitle = searchResult.title || "";
+          const searchDescription = searchResult.description || "";
+          const searchMarkdown = searchResult.markdown || "";
           
-          // Fallback: extract name from URL path if metadata title is empty/short
+          // Combine all text sources for extraction
+          const allText = `${searchTitle}\n${searchDescription}\n${searchMarkdown}`;
+
+          // --- NAME EXTRACTION ---
+          let name = searchTitle.split(" - ")[0].split(" | ")[0].trim();
+          
+          // Fallback: extract from URL
           if (!name || name.length < 3) {
-            const urlPath = cleanUrl.replace(/.*\.com\.br\//, "").split("/p/")[0];
-            name = urlPath
+            const urlPath = cleanUrl.replace(/.*\.com\.br\//, "").split("/p/")[0].split("-i.")[0];
+            name = decodeURIComponent(urlPath)
               .replace(/-/g, " ")
               .replace(/\b\w/g, (c: string) => c.toUpperCase())
               .trim();
             console.log(`Extracted name from URL: ${name}`);
           }
-          const rawContent = productData.data?.markdown || "";
-          const rawHtml = productData.data?.html || "";
-          let description = productData.data?.metadata?.description || "";
-          const metadata = productData.data?.metadata || {};
-          
-          // Try multiple metadata fields for image
-          let imageUrl = metadata.ogImage 
-            || metadata["og:image"] 
-            || metadata.image 
-            || metadata["twitter:image"]
-            || null;
-
-          console.log(`Product metadata keys: ${Object.keys(metadata).join(", ")}`);
-          if (imageUrl) console.log(`Image from metadata: ${imageUrl.slice(0, 100)}`);
-
-          // Try to extract product image from HTML if metadata doesn't have one
-          if (!imageUrl && rawHtml) {
-            const imgPatterns = [
-              /property="og:image"[^>]*content="([^"]+)"/i,
-              /content="([^"]+)"[^>]*property="og:image"/i,
-              /data-zoom="([^"]+)"/i,
-              /data-src="(https?:\/\/[^"]+(?:\.jpg|\.jpeg|\.png|\.webp)[^"]*)"/i,
-              /<img[^>]*src="(https?:\/\/(?:http2\.mlstatic\.com|cf\.shopee)[^"]+)"/i,
-              /<img[^>]*src="(https?:\/\/[^"]+(?:\.jpg|\.jpeg|\.png|\.webp)[^"]*)"/i,
-            ];
-            for (const pattern of imgPatterns) {
-              const match = rawHtml.match(pattern);
-              if (match?.[1] && !match[1].includes("logo") && !match[1].includes("icon") && !match[1].includes("avatar") && !match[1].includes("sprite") && match[1].length > 20) {
-                imageUrl = match[1];
-                console.log(`Extracted product image from HTML: ${imageUrl.slice(0, 100)}`);
-                break;
-              }
-            }
-          }
-
-          // Try to extract from markdown image syntax ![alt](url)
-          if (!imageUrl && rawContent) {
-            const mdImgMatch = rawContent.match(/!\[.*?\]\((https?:\/\/[^)]+(?:\.jpg|\.jpeg|\.png|\.webp)[^)]*)\)/i);
-            if (mdImgMatch?.[1] && !mdImgMatch[1].includes("logo") && !mdImgMatch[1].includes("icon")) {
-              imageUrl = mdImgMatch[1];
-              console.log(`Extracted product image from markdown: ${imageUrl.slice(0, 100)}`);
-            }
-          }
-
-          // Fallback: try to find any image URL in markdown content
-          if (!imageUrl && rawContent) {
-            const anyImgMatch = rawContent.match(/(https?:\/\/(?:http2\.mlstatic\.com|cf\.shopee\.com\.br)[^\s)"\]]+)/i);
-            if (anyImgMatch?.[1]) {
-              imageUrl = anyImgMatch[1];
-              console.log(`Extracted product image from content URL: ${imageUrl.slice(0, 100)}`);
-            }
-          }
-
-          // Last resort for Mercado Livre: use Firecrawl search to find product image
-          if (!imageUrl && cleanUrl.includes("mercadolivre.com.br")) {
-            // Extract product name from URL for search
-            const searchName = cleanUrl
-              .replace(/.*\.com\.br\//, "")
-              .split("/p/")[0]
-              .replace(/-/g, " ")
-              .slice(0, 50);
-            console.log(`No image found, will rely on AI extraction for: ${searchName}`);
-          }
-
-          name = name.split(" - ")[0].split(" | ")[0].trim();
 
           if (!name || name.length < 3) {
             console.log(`Skipping product with invalid name: ${itemUrl}`);
@@ -594,81 +515,126 @@ serve(async (req) => {
             continue;
           }
 
-          // Use AI to extract product info
+          // --- PRICE EXTRACTION ---
           let price: number | null = null;
           let currency = "BRL";
+
+          // Extract price from search snippets and content using BRL patterns
+          const pricePatterns = [
+            /R\$\s*([\d.]+,\d{2})/g,           // R$ 1.299,00 or R$ 49,90
+            /(\d{1,3}(?:\.\d{3})*,\d{2})/g,     // 1.299,00
+          ];
+
+          for (const pattern of pricePatterns) {
+            const matches = [...allText.matchAll(pattern)];
+            if (matches.length > 0) {
+              // Take the first price found (usually the main/sale price)
+              const priceStr = matches[0][1]
+                .replace(/\./g, "")  // Remove thousand separators
+                .replace(",", ".");   // Convert decimal separator
+              const parsed = parseFloat(priceStr);
+              if (parsed > 0 && parsed < 1000000) {
+                price = parsed;
+                console.log(`Extracted price R$ ${parsed} from text`);
+                break;
+              }
+            }
+          }
+
+          // --- IMAGE EXTRACTION ---
+          let imageUrl: string | null = null;
+
+          // For Mercado Livre: construct image URL from MLB code
+          const mlbMatch = cleanUrl.match(/\/p\/(MLB\d+)/i);
+          if (mlbMatch) {
+            // ML product images follow this pattern
+            imageUrl = `https://http2.mlstatic.com/D_NQ_NP_2X_${mlbMatch[1]}-F.webp`;
+            console.log(`Constructed ML image URL: ${imageUrl}`);
+          }
+
+          // For Shopee: try to extract from search markdown
+          if (!imageUrl && cleanUrl.includes("shopee.com.br")) {
+            const shopeeImgMatch = allText.match(/(https?:\/\/(?:down-br|cf)\.shopee[^\s)"'\]]+\.(?:jpg|jpeg|png|webp))/i);
+            if (shopeeImgMatch) {
+              imageUrl = shopeeImgMatch[1];
+              console.log(`Found Shopee image: ${imageUrl.slice(0, 100)}`);
+            }
+          }
+
+          // Fallback: extract any product image from markdown
+          if (!imageUrl) {
+            const imgMatch = allText.match(/!\[.*?\]\((https?:\/\/[^)]+\.(?:jpg|jpeg|png|webp)[^)]*)\)/i);
+            if (imgMatch?.[1] && !imgMatch[1].includes("logo") && !imgMatch[1].includes("icon")) {
+              imageUrl = imgMatch[1];
+            }
+          }
+
+          // --- DESCRIPTION & CATEGORY ---
+          let description = searchDescription || "";
           let category = "";
 
-          if (lovableApiKey && (rawContent || rawHtml)) {
-            const contentForAI = rawContent.slice(0, 4000) + "\n\n---HTML SNIPPET---\n" + rawHtml.slice(0, 2000);
+          // Use AI for better extraction if available
+          if (lovableApiKey && allText.length > 50) {
             const extractPrompt = `Extraia as informações do produto abaixo e retorne APENAS JSON:
 {
   "name": "nome do produto limpo e completo",
   "description": "descrição curta do produto (max 200 chars)",
   "price": 0.00,
-  "currency": "BRL",
-  "category": "categoria do produto",
-  "is_available": true,
-  "image_url": "URL completa da imagem principal do produto"
+  "category": "categoria do produto"
 }
 
 REGRAS:
-- Procure o nome correto do produto, não use o título da página.
-- Para price: extraia o preço numérico. Se não encontrar, use null.
-- Para image_url: procure URLs que contenham "mlstatic.com", "shopee" ou outras CDNs de imagem. Procure em tags <img>, og:image, data-src, background-image. Se não encontrar, use null.
+- Para price: extraia o preço numérico em reais. Procure padrões como "R$ 49,90" ou "1.299,00". Se houver preço "de" e "por", use o menor (preço atual). Se não encontrar, use null.
 - NÃO invente dados.
 
 URL do produto: ${cleanUrl}
 
 Conteúdo:
-${contentForAI}`;
+${allText.slice(0, 4000)}`;
 
-            const extractResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-              method: "POST",
-              headers: {
-                "Authorization": `Bearer ${lovableApiKey}`,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                model: "google/gemini-3-flash-preview",
-                messages: [{ role: "user", content: extractPrompt }],
-              }),
-            });
+            try {
+              const extractResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                  "Authorization": `Bearer ${lovableApiKey}`,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  model: "google/gemini-2.5-flash-lite",
+                  messages: [{ role: "user", content: extractPrompt }],
+                }),
+              });
 
-            if (extractResponse.ok) {
-              const extractData = await extractResponse.json();
-              const extractContent = extractData.choices?.[0]?.message?.content || "";
-              try {
+              if (extractResponse.ok) {
+                const extractData = await extractResponse.json();
+                const extractContent = extractData.choices?.[0]?.message?.content || "";
                 const jsonMatch = extractContent.match(/\{[\s\S]*\}/);
                 if (jsonMatch) {
                   const parsed = JSON.parse(jsonMatch[0]);
-                  if (parsed.name) name = parsed.name;
+                  if (parsed.name && parsed.name.length > 5) name = parsed.name;
                   if (parsed.description) description = parsed.description;
-                  if (parsed.price !== null && parsed.price !== undefined) price = parsed.price;
-                  if (parsed.currency) currency = parsed.currency;
-                  if (parsed.category) category = parsed.category;
-                  if (parsed.image_url && !imageUrl) {
-                    // Filter out logo/asset/icon URLs
-                    const imgLower = parsed.image_url.toLowerCase();
-                    if (!imgLower.includes("logo") && !imgLower.includes("frontend-assets") && !imgLower.includes("icon") && !imgLower.includes("sprite") && !imgLower.includes("favicon")) {
-                      imageUrl = parsed.image_url;
-                    }
+                  if (parsed.price !== null && parsed.price !== undefined && parsed.price > 0 && !price) {
+                    price = parsed.price;
+                    console.log(`AI extracted price: R$ ${price}`);
                   }
+                  if (parsed.category) category = parsed.category;
                 }
-              } catch (e) {
-                console.log("Could not parse product info");
               }
+            } catch (e) {
+              console.log("AI extraction failed, using regex data");
             }
           }
 
-          // Final image validation - reject logos/assets
+          // Final image validation
           if (imageUrl) {
             const imgLower = imageUrl.toLowerCase();
-            if (imgLower.includes("logo") || imgLower.includes("frontend-assets") || imgLower.includes("icon") || imgLower.includes("sprite") || imgLower.includes("favicon")) {
+            if (imgLower.includes("logo") || imgLower.includes("frontend-assets") || imgLower.includes("sprite") || imgLower.includes("favicon")) {
               console.log(`Rejected non-product image: ${imageUrl.slice(0, 80)}`);
               imageUrl = null;
             }
           }
+
+          console.log(`Product result: name="${name}", price=${price}, image=${imageUrl ? "yes" : "no"}, category="${category}"`);
 
           const slug = name
             .toLowerCase()
