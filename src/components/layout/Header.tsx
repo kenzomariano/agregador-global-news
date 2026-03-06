@@ -14,6 +14,7 @@ import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import { useCategoriesWithArticles, useHasProducts } from "@/hooks/useMenuVisibility";
 
 // Define primary and secondary categories
 const PRIMARY_CATEGORIES = ["politica", "economia", "tecnologia", "esportes", "entretenimento"];
@@ -24,6 +25,8 @@ export function Header() {
   const [searchQuery, setSearchQuery] = useState("");
   const { user, isAdmin, signOut } = useAuth();
   const { toast } = useToast();
+  const { data: categoriesWithArticles } = useCategoriesWithArticles();
+  const { data: hasProducts } = useHasProducts();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,6 +50,13 @@ export function Header() {
       });
     }
   };
+
+  const visiblePrimary = PRIMARY_CATEGORIES.filter(
+    (key) => !categoriesWithArticles || categoriesWithArticles.has(key as any)
+  );
+  const visibleSecondary = SECONDARY_CATEGORIES.filter(
+    (key) => !categoriesWithArticles || categoriesWithArticles.has(key as any)
+  );
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
@@ -74,12 +84,10 @@ export function Header() {
             {user ? (
               <>
                 {isAdmin && (
-                  <>
-                    <Link to="/admin" className="hover:underline flex items-center gap-1">
-                      <Settings className="h-3 w-3" />
-                      Painel Admin
-                    </Link>
-                  </>
+                  <Link to="/admin" className="hover:underline flex items-center gap-1">
+                    <Settings className="h-3 w-3" />
+                    Painel Admin
+                  </Link>
                 )}
                 <Link to="/conta" className="hover:underline flex items-center gap-1">
                   <User className="h-3 w-3" />
@@ -112,8 +120,7 @@ export function Header() {
           </SheetTrigger>
           <SheetContent side="left" className="w-80">
             <nav className="mt-8 flex flex-col gap-4">
-              {/* Primary categories */}
-              {PRIMARY_CATEGORIES.map((key) => {
+              {visiblePrimary.map((key) => {
                 const cat = CATEGORIES[key as keyof typeof CATEGORIES];
                 return cat ? (
                   <Link
@@ -126,23 +133,24 @@ export function Header() {
                 ) : null;
               })}
               
-              {/* Separator */}
-              <div className="border-t my-2" />
-              
-              {/* Secondary categories */}
-              <p className="text-xs text-muted-foreground uppercase tracking-wide">Mais Categorias</p>
-              {SECONDARY_CATEGORIES.map((key) => {
-                const cat = CATEGORIES[key as keyof typeof CATEGORIES];
-                return cat ? (
-                  <Link
-                    key={key}
-                    to={`/categoria/${key}`}
-                    className="text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    {cat.label}
-                  </Link>
-                ) : null;
-              })}
+              {visibleSecondary.length > 0 && (
+                <>
+                  <div className="border-t my-2" />
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide">Mais Categorias</p>
+                  {visibleSecondary.map((key) => {
+                    const cat = CATEGORIES[key as keyof typeof CATEGORIES];
+                    return cat ? (
+                      <Link
+                        key={key}
+                        to={`/categoria/${key}`}
+                        className="text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {cat.label}
+                      </Link>
+                    ) : null;
+                  })}
+                </>
+              )}
               
               <div className="border-t my-2" />
               
@@ -152,12 +160,14 @@ export function Header() {
               >
                 🔥 Mais Lidas
               </Link>
-              <Link
-                to="/produtos"
-                className="text-muted-foreground hover:text-foreground transition-colors"
-              >
-                🛒 Produtos
-              </Link>
+              {hasProducts !== false && (
+                <Link
+                  to="/produtos"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  🛒 Produtos
+                </Link>
+              )}
 
               {isAdmin && (
                 <>
@@ -225,8 +235,7 @@ export function Header() {
                 Início
               </Link>
             </li>
-            {/* Primary categories */}
-            {PRIMARY_CATEGORIES.map((key) => {
+            {visiblePrimary.map((key) => {
               const cat = CATEGORIES[key as keyof typeof CATEGORIES];
               return cat ? (
                 <li key={key}>
@@ -239,27 +248,28 @@ export function Header() {
                 </li>
               ) : null;
             })}
-            {/* Secondary categories in dropdown */}
-            <li>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="px-3 py-1.5 text-sm font-medium rounded-md hover:bg-accent transition-colors flex items-center gap-1">
-                    Mais
-                    <ChevronDown className="h-3 w-3" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start">
-                  {SECONDARY_CATEGORIES.map((key) => {
-                    const cat = CATEGORIES[key as keyof typeof CATEGORIES];
-                    return cat ? (
-                      <DropdownMenuItem key={key} asChild>
-                        <Link to={`/categoria/${key}`}>{cat.label}</Link>
-                      </DropdownMenuItem>
-                    ) : null;
-                  })}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </li>
+            {visibleSecondary.length > 0 && (
+              <li>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="px-3 py-1.5 text-sm font-medium rounded-md hover:bg-accent transition-colors flex items-center gap-1">
+                      Mais
+                      <ChevronDown className="h-3 w-3" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    {visibleSecondary.map((key) => {
+                      const cat = CATEGORIES[key as keyof typeof CATEGORIES];
+                      return cat ? (
+                        <DropdownMenuItem key={key} asChild>
+                          <Link to={`/categoria/${key}`}>{cat.label}</Link>
+                        </DropdownMenuItem>
+                      ) : null;
+                    })}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </li>
+            )}
             <li>
               <Link
                 to="/mais-lidas"
@@ -268,14 +278,16 @@ export function Header() {
                 🔥 Mais Lidas
               </Link>
             </li>
-            <li>
-              <Link
-                to="/produtos"
-                className="px-3 py-1.5 text-sm font-medium rounded-md hover:bg-accent transition-colors"
-              >
-                🛒 Produtos
-              </Link>
-            </li>
+            {hasProducts !== false && (
+              <li>
+                <Link
+                  to="/produtos"
+                  className="px-3 py-1.5 text-sm font-medium rounded-md hover:bg-accent transition-colors"
+                >
+                  🛒 Produtos
+                </Link>
+              </li>
+            )}
           </ul>
         </div>
       </nav>
