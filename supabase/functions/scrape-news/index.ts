@@ -102,6 +102,58 @@ const DEFAULT_SCRAPE_LIMIT = 5;
 const MAX_ARTICLES_PER_SCRAPE = 10;
 const MAX_PRODUCTS_PER_SCRAPE = 10;
 
+const GENERIC_IMAGE_PATTERNS = [
+  /logo/i,
+  /icon/i,
+  /sprite/i,
+  /favicon/i,
+  /placeholder/i,
+  /default[-_]?image/i,
+  /no[-_]?image/i,
+  /image[-_]?not[-_]?found/i,
+  /sem[-_]?imagem/i,
+  /frontend-assets/i,
+  /blank/i,
+  /pixel/i,
+  /1x1/i,
+];
+
+function normalizeImageUrl(url: string): string {
+  return url
+    .replace(/\\u0026/g, "&")
+    .replace(/&amp;/g, "&")
+    .replace(/\\\//g, "/")
+    .trim();
+}
+
+function isGoogleShoppingThumbnail(url: string): boolean {
+  return /https?:\/\/encrypted-tbn\d*\.gstatic\.com\/shopping\?q=tbn:/i.test(url);
+}
+
+function isGenericImageUrl(url: string): boolean {
+  const lowerUrl = url.toLowerCase();
+
+  if (/gstatic\.com\/images\?q=tbn:/i.test(lowerUrl)) {
+    return true;
+  }
+
+  return GENERIC_IMAGE_PATTERNS.some((pattern) => pattern.test(lowerUrl));
+}
+
+function isLikelyProductImage(url: string): boolean {
+  const normalized = normalizeImageUrl(url);
+  if (!normalized || !/^https?:\/\//i.test(normalized)) return false;
+  if (isGenericImageUrl(normalized)) return false;
+
+  if (isGoogleShoppingThumbnail(normalized)) return true;
+
+  return (
+    /\.(jpg|jpeg|png|webp)(\?|$)/i.test(normalized) ||
+    /mlstatic\.com\//i.test(normalized) ||
+    /shopee\.(?:com|com\.br)\//i.test(normalized)
+  );
+}
+
 function isLikelyArticleUrl(url: string, baseUrl: string): boolean {
   if (!url.startsWith(baseUrl)) return false;
   
