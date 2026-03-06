@@ -459,30 +459,33 @@ serve(async (req) => {
                   const cleanUrl = resultUrl.split("#")[0].split("?")[0];
                   allFoundLinks.push(cleanUrl);
                   
-                  // Extract image from search result metadata
-                  let searchImage = "";
-                  // Check metadata for ogImage or image
+                  // Extract and prioritize image candidates from search result
                   const metadata = result.metadata || {};
-                  if (metadata.ogImage) {
-                    searchImage = metadata.ogImage;
-                  } else if (metadata.image) {
-                    searchImage = metadata.image;
-                  }
-                  // Check for image in markdown (![alt](url) pattern)
-                  if (!searchImage && result.markdown) {
-                    const mdImgMatch = result.markdown.match(/!\[.*?\]\((https?:\/\/[^)]+)\)/);
-                    if (mdImgMatch?.[1]) {
-                      searchImage = mdImgMatch[1];
-                    }
-                  }
-                  // Check for Google Shopping thumbnail in raw content
-                  if (!searchImage) {
-                    const allContent = JSON.stringify(result);
-                    const gstatic = allContent.match(/(https?:\/\/encrypted-tbn\d*\.gstatic\.com\/[^"'\s\\]+)/);
-                    if (gstatic?.[1]) {
-                      searchImage = gstatic[1].replace(/\\u0026/g, "&");
-                    }
-                  }
+                  const rawResultContent = JSON.stringify(result);
+
+                  const gstaticShoppingMatches =
+                    rawResultContent.match(/https?:\/\/encrypted-tbn\d*\.gstatic\.com\/shopping\?q=tbn:[^"'\s\\)]+/gi) || [];
+
+                  const markdownImageMatches = [
+                    ...(result.markdown || "").matchAll(/!\[.*?\]\((https?:\/\/[^)\s]+)\)/gi),
+                  ].map((m) => m[1]);
+
+                  const normalizedCandidates = [
+                    ...gstaticShoppingMatches,
+                    result.image,
+                    metadata.image,
+                    metadata.ogImage,
+                    ...markdownImageMatches,
+                  ]
+                    .filter((candidate: unknown): candidate is string => typeof candidate === "string" && candidate.length > 0)
+                    .map(normalizeImageUrl);
+
+                  const prioritizedCandidates = [
+                    ...normalizedCandidates.filter((candidate) => isGoogleShoppingThumbnail(candidate)),
+                    ...normalizedCandidates.filter((candidate) => !isGoogleShoppingThumbnail(candidate)),
+                  ];
+
+                  const searchImage = prioritizedCandidates.find((candidate) => isLikelyProductImage(candidate)) || "";
                   
                   // Store search result data for later use
                   searchResultsMap[cleanUrl] = {
