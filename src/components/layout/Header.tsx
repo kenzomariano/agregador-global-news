@@ -52,10 +52,10 @@ export function Header() {
   };
 
   const visiblePrimary = PRIMARY_CATEGORIES.filter(
-    (key) => !categoriesWithArticles || categoriesWithArticles.has(key)
+    (key) => !categoriesWithArticles || categoriesWithArticles.has(key as any)
   );
   const visibleSecondary = SECONDARY_CATEGORIES.filter(
-    (key) => !categoriesWithArticles || categoriesWithArticles.has(key)
+    (key) => !categoriesWithArticles || categoriesWithArticles.has(key as any)
   );
 
   return (
