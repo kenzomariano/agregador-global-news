@@ -711,12 +711,9 @@ ${allText.slice(0, 4000)}`;
           }
 
           // Final image validation
-          if (imageUrl) {
-            const imgLower = imageUrl.toLowerCase();
-            if (imgLower.includes("logo") || imgLower.includes("frontend-assets") || imgLower.includes("sprite") || imgLower.includes("favicon")) {
-              console.log(`Rejected non-product image: ${imageUrl.slice(0, 80)}`);
-              imageUrl = null;
-            }
+          if (imageUrl && !isLikelyProductImage(imageUrl)) {
+            console.log(`Rejected non-product image: ${imageUrl.slice(0, 80)}`);
+            imageUrl = null;
           }
 
           console.log(`Product result: name="${name}", price=${price}, image=${imageUrl ? "yes" : "no"}, category="${category}"`);
