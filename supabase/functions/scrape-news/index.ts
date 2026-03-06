@@ -367,8 +367,8 @@ serve(async (req) => {
       console.log(`Using ${itemLinks.length} URLs from sitemap`);
     }
 
-    // Store search result metadata for products (title, description, etc.)
-    const searchResultsMap: Record<string, { title?: string; description?: string; markdown?: string }> = {};
+    // Store search result metadata for products (title, description, image, etc.)
+    const searchResultsMap: Record<string, { title?: string; description?: string; markdown?: string; image?: string }> = {};
 
     // If no sitemap or not enough URLs, discover links
     if (itemLinks.length < maxItems) {
@@ -406,15 +406,42 @@ serve(async (req) => {
                 if (isMLProduct || isShopeeProduct) {
                   const cleanUrl = resultUrl.split("#")[0].split("?")[0];
                   allFoundLinks.push(cleanUrl);
+                  
+                  // Extract image from search result metadata
+                  let searchImage = "";
+                  // Check metadata for ogImage or image
+                  const metadata = result.metadata || {};
+                  if (metadata.ogImage) {
+                    searchImage = metadata.ogImage;
+                  } else if (metadata.image) {
+                    searchImage = metadata.image;
+                  }
+                  // Check for image in markdown (![alt](url) pattern)
+                  if (!searchImage && result.markdown) {
+                    const mdImgMatch = result.markdown.match(/!\[.*?\]\((https?:\/\/[^)]+)\)/);
+                    if (mdImgMatch?.[1]) {
+                      searchImage = mdImgMatch[1];
+                    }
+                  }
+                  // Check for Google Shopping thumbnail in raw content
+                  if (!searchImage) {
+                    const allContent = JSON.stringify(result);
+                    const gstatic = allContent.match(/(https?:\/\/encrypted-tbn\d*\.gstatic\.com\/[^"'\s\\]+)/);
+                    if (gstatic?.[1]) {
+                      searchImage = gstatic[1].replace(/\\u0026/g, "&");
+                    }
+                  }
+                  
                   // Store search result data for later use
                   searchResultsMap[cleanUrl] = {
                     title: result.title || "",
                     description: result.description || "",
                     markdown: result.markdown || "",
+                    image: searchImage || "",
                   };
                   console.log(`Found product via search: ${cleanUrl.slice(0, 100)}`);
-                  if (result.description) {
-                    console.log(`  Search snippet: ${result.description.slice(0, 120)}`);
+                  if (searchImage) {
+                    console.log(`  Search image: ${searchImage.slice(0, 120)}`);
                   }
                 }
               }
