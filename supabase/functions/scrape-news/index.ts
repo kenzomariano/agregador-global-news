@@ -626,35 +626,31 @@ serve(async (req) => {
           // --- IMAGE EXTRACTION ---
           let imageUrl: string | null = null;
 
-          // Priority 1: Use image from search results (Google Shopping thumbnails)
-          if (searchResult.image) {
-            imageUrl = searchResult.image;
+          // Priority 1: direct image extracted from Google Shopping search result
+          if (searchResult.image && isLikelyProductImage(searchResult.image)) {
+            imageUrl = normalizeImageUrl(searchResult.image);
             console.log(`Using search result image: ${imageUrl.slice(0, 100)}`);
           }
 
-          // Priority 2: For Mercado Livre, construct image URL from MLB code
+          // Priority 2: collect additional image candidates from combined text (including Google Shopping thumbnails)
           if (!imageUrl) {
-            const mlbMatch = cleanUrl.match(/\/p\/(MLB\d+)/i);
-            if (mlbMatch) {
-              imageUrl = `https://http2.mlstatic.com/D_NQ_NP_2X_${mlbMatch[1]}-F.webp`;
-              console.log(`Constructed ML image URL: ${imageUrl}`);
-            }
-          }
+            const gstaticShoppingMatches = allText.match(/https?:\/\/encrypted-tbn\d*\.gstatic\.com\/shopping\?q=tbn:[^\s)"'\\]+/gi) || [];
+            const mlImageMatches = [...allText.matchAll(/(https?:\/\/(?:http2\.)?mlstatic\.com\/[^\s)"'\\]+(?:jpg|jpeg|png|webp)[^\s)"'\\]*)/gi)].map((m) => m[1]);
+            const shopeeImageMatches = [...allText.matchAll(/(https?:\/\/(?:down-br|cf)\.shopee[^\s)"'\\]+\.(?:jpg|jpeg|png|webp)[^\s)"'\\]*)/gi)].map((m) => m[1]);
+            const markdownImageMatches = [...allText.matchAll(/!\[.*?\]\((https?:\/\/[^)\s]+)\)/gi)].map((m) => m[1]);
 
-          // Priority 3: For Shopee, try to extract from search markdown
-          if (!imageUrl && cleanUrl.includes("shopee.com.br")) {
-            const shopeeImgMatch = allText.match(/(https?:\/\/(?:down-br|cf)\.shopee[^\s)"'\]]+\.(?:jpg|jpeg|png|webp))/i);
-            if (shopeeImgMatch) {
-              imageUrl = shopeeImgMatch[1];
-              console.log(`Found Shopee image: ${imageUrl.slice(0, 100)}`);
-            }
-          }
+            const fallbackImage = [
+              ...gstaticShoppingMatches,
+              ...mlImageMatches,
+              ...shopeeImageMatches,
+              ...markdownImageMatches,
+            ]
+              .map(normalizeImageUrl)
+              .find((candidate) => isLikelyProductImage(candidate));
 
-          // Priority 4: Extract any product image from markdown
-          if (!imageUrl) {
-            const imgMatch = allText.match(/!\[.*?\]\((https?:\/\/[^)]+\.(?:jpg|jpeg|png|webp)[^)]*)\)/i);
-            if (imgMatch?.[1] && !imgMatch[1].includes("logo") && !imgMatch[1].includes("icon")) {
-              imageUrl = imgMatch[1];
+            if (fallbackImage) {
+              imageUrl = fallbackImage;
+              console.log(`Using fallback image candidate: ${imageUrl.slice(0, 100)}`);
             }
           }
 
