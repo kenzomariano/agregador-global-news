@@ -571,15 +571,22 @@ serve(async (req) => {
           // --- IMAGE EXTRACTION ---
           let imageUrl: string | null = null;
 
-          // For Mercado Livre: construct image URL from MLB code
-          const mlbMatch = cleanUrl.match(/\/p\/(MLB\d+)/i);
-          if (mlbMatch) {
-            // ML product images follow this pattern
-            imageUrl = `https://http2.mlstatic.com/D_NQ_NP_2X_${mlbMatch[1]}-F.webp`;
-            console.log(`Constructed ML image URL: ${imageUrl}`);
+          // Priority 1: Use image from search results (Google Shopping thumbnails)
+          if (searchResult.image) {
+            imageUrl = searchResult.image;
+            console.log(`Using search result image: ${imageUrl.slice(0, 100)}`);
           }
 
-          // For Shopee: try to extract from search markdown
+          // Priority 2: For Mercado Livre, construct image URL from MLB code
+          if (!imageUrl) {
+            const mlbMatch = cleanUrl.match(/\/p\/(MLB\d+)/i);
+            if (mlbMatch) {
+              imageUrl = `https://http2.mlstatic.com/D_NQ_NP_2X_${mlbMatch[1]}-F.webp`;
+              console.log(`Constructed ML image URL: ${imageUrl}`);
+            }
+          }
+
+          // Priority 3: For Shopee, try to extract from search markdown
           if (!imageUrl && cleanUrl.includes("shopee.com.br")) {
             const shopeeImgMatch = allText.match(/(https?:\/\/(?:down-br|cf)\.shopee[^\s)"'\]]+\.(?:jpg|jpeg|png|webp))/i);
             if (shopeeImgMatch) {
@@ -588,7 +595,7 @@ serve(async (req) => {
             }
           }
 
-          // Fallback: extract any product image from markdown
+          // Priority 4: Extract any product image from markdown
           if (!imageUrl) {
             const imgMatch = allText.match(/!\[.*?\]\((https?:\/\/[^)]+\.(?:jpg|jpeg|png|webp)[^)]*)\)/i);
             if (imgMatch?.[1] && !imgMatch[1].includes("logo") && !imgMatch[1].includes("icon")) {
