@@ -102,6 +102,58 @@ const DEFAULT_SCRAPE_LIMIT = 5;
 const MAX_ARTICLES_PER_SCRAPE = 10;
 const MAX_PRODUCTS_PER_SCRAPE = 10;
 
+const GENERIC_IMAGE_PATTERNS = [
+  /logo/i,
+  /icon/i,
+  /sprite/i,
+  /favicon/i,
+  /placeholder/i,
+  /default[-_]?image/i,
+  /no[-_]?image/i,
+  /image[-_]?not[-_]?found/i,
+  /sem[-_]?imagem/i,
+  /frontend-assets/i,
+  /blank/i,
+  /pixel/i,
+  /1x1/i,
+];
+
+function normalizeImageUrl(url: string): string {
+  return url
+    .replace(/\\u0026/g, "&")
+    .replace(/&amp;/g, "&")
+    .replace(/\\\//g, "/")
+    .trim();
+}
+
+function isGoogleShoppingThumbnail(url: string): boolean {
+  return /https?:\/\/encrypted-tbn\d*\.gstatic\.com\/shopping\?q=tbn:/i.test(url);
+}
+
+function isGenericImageUrl(url: string): boolean {
+  const lowerUrl = url.toLowerCase();
+
+  if (/gstatic\.com\/images\?q=tbn:/i.test(lowerUrl)) {
+    return true;
+  }
+
+  return GENERIC_IMAGE_PATTERNS.some((pattern) => pattern.test(lowerUrl));
+}
+
+function isLikelyProductImage(url: string): boolean {
+  const normalized = normalizeImageUrl(url);
+  if (!normalized || !/^https?:\/\//i.test(normalized)) return false;
+  if (isGenericImageUrl(normalized)) return false;
+
+  if (isGoogleShoppingThumbnail(normalized)) return true;
+
+  return (
+    /\.(jpg|jpeg|png|webp)(\?|$)/i.test(normalized) ||
+    /mlstatic\.com\//i.test(normalized) ||
+    /shopee\.(?:com|com\.br)\//i.test(normalized)
+  );
+}
+
 function isLikelyArticleUrl(url: string, baseUrl: string): boolean {
   if (!url.startsWith(baseUrl)) return false;
   
@@ -407,30 +459,33 @@ serve(async (req) => {
                   const cleanUrl = resultUrl.split("#")[0].split("?")[0];
                   allFoundLinks.push(cleanUrl);
                   
-                  // Extract image from search result metadata
-                  let searchImage = "";
-                  // Check metadata for ogImage or image
+                  // Extract and prioritize image candidates from search result
                   const metadata = result.metadata || {};
-                  if (metadata.ogImage) {
-                    searchImage = metadata.ogImage;
-                  } else if (metadata.image) {
-                    searchImage = metadata.image;
-                  }
-                  // Check for image in markdown (![alt](url) pattern)
-                  if (!searchImage && result.markdown) {
-                    const mdImgMatch = result.markdown.match(/!\[.*?\]\((https?:\/\/[^)]+)\)/);
-                    if (mdImgMatch?.[1]) {
-                      searchImage = mdImgMatch[1];
-                    }
-                  }
-                  // Check for Google Shopping thumbnail in raw content
-                  if (!searchImage) {
-                    const allContent = JSON.stringify(result);
-                    const gstatic = allContent.match(/(https?:\/\/encrypted-tbn\d*\.gstatic\.com\/[^"'\s\\]+)/);
-                    if (gstatic?.[1]) {
-                      searchImage = gstatic[1].replace(/\\u0026/g, "&");
-                    }
-                  }
+                  const rawResultContent = JSON.stringify(result);
+
+                  const gstaticShoppingMatches =
+                    rawResultContent.match(/https?:\/\/encrypted-tbn\d*\.gstatic\.com\/shopping\?q=tbn:[^"'\s\\)]+/gi) || [];
+
+                  const markdownImageMatches = [
+                    ...(result.markdown || "").matchAll(/!\[.*?\]\((https?:\/\/[^)\s]+)\)/gi),
+                  ].map((m) => m[1]);
+
+                  const normalizedCandidates = [
+                    ...gstaticShoppingMatches,
+                    result.image,
+                    metadata.image,
+                    metadata.ogImage,
+                    ...markdownImageMatches,
+                  ]
+                    .filter((candidate: unknown): candidate is string => typeof candidate === "string" && candidate.length > 0)
+                    .map(normalizeImageUrl);
+
+                  const prioritizedCandidates = [
+                    ...normalizedCandidates.filter((candidate) => isGoogleShoppingThumbnail(candidate)),
+                    ...normalizedCandidates.filter((candidate) => !isGoogleShoppingThumbnail(candidate)),
+                  ];
+
+                  const searchImage = prioritizedCandidates.find((candidate) => isLikelyProductImage(candidate)) || "";
                   
                   // Store search result data for later use
                   searchResultsMap[cleanUrl] = {
@@ -571,35 +626,31 @@ serve(async (req) => {
           // --- IMAGE EXTRACTION ---
           let imageUrl: string | null = null;
 
-          // Priority 1: Use image from search results (Google Shopping thumbnails)
-          if (searchResult.image) {
-            imageUrl = searchResult.image;
+          // Priority 1: direct image extracted from Google Shopping search result
+          if (searchResult.image && isLikelyProductImage(searchResult.image)) {
+            imageUrl = normalizeImageUrl(searchResult.image);
             console.log(`Using search result image: ${imageUrl.slice(0, 100)}`);
           }
 
-          // Priority 2: For Mercado Livre, construct image URL from MLB code
+          // Priority 2: collect additional image candidates from combined text (including Google Shopping thumbnails)
           if (!imageUrl) {
-            const mlbMatch = cleanUrl.match(/\/p\/(MLB\d+)/i);
-            if (mlbMatch) {
-              imageUrl = `https://http2.mlstatic.com/D_NQ_NP_2X_${mlbMatch[1]}-F.webp`;
-              console.log(`Constructed ML image URL: ${imageUrl}`);
-            }
-          }
+            const gstaticShoppingMatches = allText.match(/https?:\/\/encrypted-tbn\d*\.gstatic\.com\/shopping\?q=tbn:[^\s)"'\\]+/gi) || [];
+            const mlImageMatches = [...allText.matchAll(/(https?:\/\/(?:http2\.)?mlstatic\.com\/[^\s)"'\\]+(?:jpg|jpeg|png|webp)[^\s)"'\\]*)/gi)].map((m) => m[1]);
+            const shopeeImageMatches = [...allText.matchAll(/(https?:\/\/(?:down-br|cf)\.shopee[^\s)"'\\]+\.(?:jpg|jpeg|png|webp)[^\s)"'\\]*)/gi)].map((m) => m[1]);
+            const markdownImageMatches = [...allText.matchAll(/!\[.*?\]\((https?:\/\/[^)\s]+)\)/gi)].map((m) => m[1]);
 
-          // Priority 3: For Shopee, try to extract from search markdown
-          if (!imageUrl && cleanUrl.includes("shopee.com.br")) {
-            const shopeeImgMatch = allText.match(/(https?:\/\/(?:down-br|cf)\.shopee[^\s)"'\]]+\.(?:jpg|jpeg|png|webp))/i);
-            if (shopeeImgMatch) {
-              imageUrl = shopeeImgMatch[1];
-              console.log(`Found Shopee image: ${imageUrl.slice(0, 100)}`);
-            }
-          }
+            const fallbackImage = [
+              ...gstaticShoppingMatches,
+              ...mlImageMatches,
+              ...shopeeImageMatches,
+              ...markdownImageMatches,
+            ]
+              .map(normalizeImageUrl)
+              .find((candidate) => isLikelyProductImage(candidate));
 
-          // Priority 4: Extract any product image from markdown
-          if (!imageUrl) {
-            const imgMatch = allText.match(/!\[.*?\]\((https?:\/\/[^)]+\.(?:jpg|jpeg|png|webp)[^)]*)\)/i);
-            if (imgMatch?.[1] && !imgMatch[1].includes("logo") && !imgMatch[1].includes("icon")) {
-              imageUrl = imgMatch[1];
+            if (fallbackImage) {
+              imageUrl = fallbackImage;
+              console.log(`Using fallback image candidate: ${imageUrl.slice(0, 100)}`);
             }
           }
 
@@ -660,12 +711,9 @@ ${allText.slice(0, 4000)}`;
           }
 
           // Final image validation
-          if (imageUrl) {
-            const imgLower = imageUrl.toLowerCase();
-            if (imgLower.includes("logo") || imgLower.includes("frontend-assets") || imgLower.includes("sprite") || imgLower.includes("favicon")) {
-              console.log(`Rejected non-product image: ${imageUrl.slice(0, 80)}`);
-              imageUrl = null;
-            }
+          if (imageUrl && !isLikelyProductImage(imageUrl)) {
+            console.log(`Rejected non-product image: ${imageUrl.slice(0, 80)}`);
+            imageUrl = null;
           }
 
           console.log(`Product result: name="${name}", price=${price}, image=${imageUrl ? "yes" : "no"}, category="${category}"`);
