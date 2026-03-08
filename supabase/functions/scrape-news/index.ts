@@ -761,75 +761,7 @@ serve(async (req) => {
             }
           }
 
-          // Priority 4: Scrape individual product page for og:image and/or price
-          if (!imageUrl || !price) {
-            try {
-              console.log(`Scraping product page for image: ${cleanUrl}`);
-              const productPageResponse = await fetch("https://api.firecrawl.dev/v1/scrape", {
-                method: "POST",
-                headers: {
-                  "Authorization": `Bearer ${firecrawlKey}`,
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  url: cleanUrl,
-                  formats: ["markdown", "html"],
-                  onlyMainContent: false,
-                  waitFor: 3000,
-                }),
-              });
-
-              if (productPageResponse.ok) {
-                const pageData = await productPageResponse.json();
-                const pageMeta = pageData.data?.metadata || {};
-                const pageMarkdown = pageData.data?.markdown || "";
-                const pageHtml = pageData.data?.html || "";
-
-                // Try og:image first
-                const ogImage = pageMeta.ogImage || pageMeta.image || "";
-                imageUrl = pickBestProductImage([ogImage, imageUrl || ""]);
-                if (imageUrl) {
-                  console.log(`Got og:image from product page: ${imageUrl.slice(0, 100)}`);
-                }
-
-                // Try extracting from page markdown/html
-                if (!imageUrl) {
-                  const pageImageMatches = [
-                    ...(pageMarkdown.matchAll(/!\[.*?\]\((https?:\/\/[^)\s]+)\)/gi) || []),
-                    ...(pageHtml.matchAll(/(https?:\/\/encrypted-tbn\d*\.gstatic\.com\/shopping\?q=tbn:[^"'\s\\)]+)/gi) || []),
-                  ].map((m: RegExpMatchArray) => m[1]);
-                  const pageMlImages = [...pageMarkdown.matchAll(/(https?:\/\/(?:http2\.)?mlstatic\.com\/[^\s)"'\\]+)/gi)].map((m: RegExpMatchArray) => m[1]);
-                  const pageShopeeImages = [...pageMarkdown.matchAll(/(https?:\/\/[^\s)"'\\]*susercontent\.com[^\s)"'\\]*)/gi)].map((m: RegExpMatchArray) => m[1]);
-
-                  const pageImage = pickBestProductImage([...pageMlImages, ...pageShopeeImages, ...pageImageMatches]);
-
-                  if (pageImage) {
-                    imageUrl = pageImage;
-                    console.log(`Got image from product page markdown: ${imageUrl.slice(0, 100)}`);
-                  }
-                }
-
-                // Also extract price from the product page if we don't have one
-                if (!price) {
-                  const pageText = `${pageMeta.title || ""}\n${pageMeta.description || ""}\n${pageMarkdown}`;
-                  for (const pattern of pricePatterns) {
-                    const matches = [...pageText.matchAll(pattern)];
-                    if (matches.length > 0) {
-                      const priceStr = matches[0][1].replace(/\./g, "").replace(",", ".");
-                      const parsed = parseFloat(priceStr);
-                      if (parsed > 0 && parsed < 1000000) {
-                        price = parsed;
-                        console.log(`Extracted price R$ ${parsed} from product page`);
-                        break;
-                      }
-                    }
-                  }
-                }
-              }
-            } catch (e) {
-              console.log(`Failed to scrape product page for image: ${e}`);
-            }
-          }
+          // No individual page scraping - all data comes from Search API results
 
           // --- DESCRIPTION & CATEGORY ---
           let description = searchDescription || "";
