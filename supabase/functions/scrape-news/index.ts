@@ -537,11 +537,13 @@ serve(async (req) => {
                 const resultUrl = result.url || "";
                 const cleanUrl = extractCanonicalProductUrl(resultUrl);
 
-                const isMLProduct = /mercadolivre\.com\.br.*MLB\d+/i.test(cleanUrl);
-                const isShopeeProduct = /shopee\.com\.br\/.*-i\.\d+\.\d+/i.test(cleanUrl);
-                const isCatalogPage = /catalogo|catalogue|categoria|category/i.test(cleanUrl);
+                const isMLProduct = /mercadolivre\.com\.br/i.test(cleanUrl) && !/\/categorias|\/ofertas$/i.test(cleanUrl);
+                const isShopeeProduct = /shopee\.com\.br\//i.test(cleanUrl) && !/\/search\?|\/m\/|\/shop\//i.test(cleanUrl);
+                const isAmazonProduct = /amazon\.com\.br\/.*\/dp\//i.test(cleanUrl);
+                const isCatalogPage = /catalogo|catalogue|\/categoria\/|\/category\//i.test(cleanUrl);
+                const isProductPage = (isMLProduct || isShopeeProduct || isAmazonProduct) && !isCatalogPage;
 
-                if ((isMLProduct || isShopeeProduct) && !isCatalogPage) {
+                if (isProductPage) {
                   allFoundLinks.push(cleanUrl);
 
                   const metadata = result.metadata || {};
