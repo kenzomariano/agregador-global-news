@@ -119,6 +119,7 @@ const GENERIC_IMAGE_PATTERNS = [
   /vlibras/i,
   /access_popup/i,
   /\/assets\/[a-f0-9]{16,}\./i, // Generic hashed asset files
+  /41Dhma07YkL/i, // Amazon generic placeholder
 ];
 
 function normalizeImageUrl(url: string): string {
