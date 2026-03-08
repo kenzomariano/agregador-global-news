@@ -693,8 +693,10 @@ serve(async (req) => {
             console.log(`Extracted name from URL: ${name}`);
           }
 
-          if (!name || name.length < 3) {
-            console.log(`Skipping product with invalid name: ${itemUrl}`);
+          // Reject generic store names
+          const GENERIC_NAMES = ["shopee brasil", "mercado livre", "shopee", "mercadolivre", "please enable javascript"];
+          if (!name || name.length < 3 || GENERIC_NAMES.some(g => name.toLowerCase().includes(g))) {
+            console.log(`Skipping product with invalid/generic name: "${name}" from ${itemUrl}`);
             skippedCount++;
             continue;
           }
