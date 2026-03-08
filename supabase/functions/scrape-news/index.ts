@@ -540,8 +540,14 @@ serve(async (req) => {
                 const isMLProduct = /mercadolivre\.com\.br/i.test(cleanUrl) && !/\/categorias|\/ofertas$/i.test(cleanUrl);
                 const isShopeeProduct = /shopee\.com\.br\//i.test(cleanUrl) && !/\/search\?|\/m\/|\/shop\//i.test(cleanUrl);
                 const isAmazonProduct = /amazon\.com\.br\/.*\/dp\//i.test(cleanUrl);
+                const isMagazineProduct = /magazineluiza\.com\.br\/.*\/p\//i.test(cleanUrl);
+                const isKabumProduct = /kabum\.com\.br\/produto\//i.test(cleanUrl);
                 const isCatalogPage = /catalogo|catalogue|\/categoria\/|\/category\//i.test(cleanUrl);
-                const isProductPage = (isMLProduct || isShopeeProduct || isAmazonProduct) && !isCatalogPage;
+                const isProductPage = (isMLProduct || isShopeeProduct || isAmazonProduct || isMagazineProduct || isKabumProduct) && !isCatalogPage;
+
+                if (!isProductPage) {
+                  console.log(`Skipped non-product URL: ${cleanUrl.slice(0, 100)}`);
+                }
 
                 if (isProductPage) {
                   allFoundLinks.push(cleanUrl);
