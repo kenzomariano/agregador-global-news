@@ -915,7 +915,7 @@ serve(async (req) => {
   "name": "nome do produto limpo e completo",
   "description": "descrição curta do produto (max 200 chars)",
   "price": 0.00,
-  "category": "categoria do produto"
+  "category": "categoria curta do produto (max 2-3 palavras, ex: Smartphones, Tênis, Aspiradores)"
 }
 
 REGRAS:
@@ -958,6 +958,21 @@ ${allText.slice(0, 4000)}`;
             } catch (e) {
               console.log("AI extraction failed, using regex data");
             }
+          }
+
+          // --- CATEGORY CLEANUP ---
+          // If category contains breadcrumb separators (>), take the most specific (last) segment
+          if (category && category.includes(">")) {
+            const segments = category.split(">").map((s: string) => s.trim()).filter(Boolean);
+            // Pick the shortest segment that's >= 3 chars, or last segment
+            const shortSegment = segments.filter((s: string) => s.length >= 3 && s.length <= 30)
+              .sort((a: string, b: string) => a.length - b.length)[0];
+            category = shortSegment || segments[segments.length - 1] || category;
+            console.log(`Cleaned category to: "${category}"`);
+          }
+          // Truncate overly long categories
+          if (category && category.length > 30) {
+            category = category.slice(0, 30).replace(/\s+\S*$/, "");
           }
 
           // Final image validation
