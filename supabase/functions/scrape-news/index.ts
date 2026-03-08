@@ -459,7 +459,10 @@ serve(async (req) => {
                   || /mercadolivre\.com\.br\/[a-z0-9-]+\/p\/MLB\d+/i.test(resultUrl);
                 const isShopeeProduct = /shopee\.com\.br\/.*-i\.\d+\.\d+/i.test(resultUrl);
                 
-                if (isMLProduct || isShopeeProduct) {
+                // Filter out catalog/category pages (e.g. "catalogo-digital-*")
+                const isCatalogPage = /catalogo|catalogue|categoria|category/i.test(resultUrl);
+                
+                if ((isMLProduct || isShopeeProduct) && !isCatalogPage) {
                   const cleanUrl = resultUrl.split("#")[0].split("?")[0];
                   allFoundLinks.push(cleanUrl);
                   
