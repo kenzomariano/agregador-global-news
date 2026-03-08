@@ -160,6 +160,11 @@ function isGenericImageUrl(url: string): boolean {
     return true;
   }
 
+  // Reject constructed MLB image URLs that are invalid
+  if (/mlstatic\.com\/D_NQ_NP_2X_MLB\d+-F\./i.test(lowerUrl)) {
+    return true;
+  }
+
   return GENERIC_IMAGE_PATTERNS.some((pattern) => pattern.test(lowerUrl));
 }
 
