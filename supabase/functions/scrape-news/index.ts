@@ -116,6 +116,9 @@ const GENERIC_IMAGE_PATTERNS = [
   /blank/i,
   /pixel/i,
   /1x1/i,
+  /vlibras/i,
+  /access_popup/i,
+  /\/assets\/[a-f0-9]{16,}\./i, // Generic hashed asset files
 ];
 
 function normalizeImageUrl(url: string): string {
