@@ -473,41 +473,57 @@ serve(async (req) => {
 
     if (itemLinks.length < maxItems) {
       if (isProductSource) {
-        // Build specific product search queries based on source category
+        // Build specific product search queries
         const PRODUCT_QUERY_MAP: Record<string, string[]> = {
           "Eletrônicos": [
-            "smartphone Samsung Galaxy oferta mercadolivre",
-            "notebook Dell oferta shopee",
-            "fone bluetooth JBL promoção",
-            "smart TV 4K oferta",
-            "tablet Apple iPad preço",
+            "site:mercadolivre.com.br smartphone Samsung Galaxy",
+            "site:mercadolivre.com.br notebook Dell",
+            "site:mercadolivre.com.br fone bluetooth JBL",
+            "site:mercadolivre.com.br smart TV 4K",
+            "site:amazon.com.br smartphone oferta",
+            "site:magazineluiza.com.br notebook",
+            "site:kabum.com.br placa de video",
           ],
           "Vestuário": [
-            "tênis Nike oferta mercadolivre",
-            "camiseta Adidas promoção shopee",
-            "jaqueta masculina oferta",
-            "vestido feminino promoção",
-            "mochila escolar oferta",
+            "site:mercadolivre.com.br tênis Nike",
+            "site:mercadolivre.com.br camiseta Adidas",
+            "site:amazon.com.br mochila",
+            "site:mercadolivre.com.br jaqueta masculina",
           ],
           "Casa e Jardim": [
-            "aspirador robô oferta mercadolivre",
-            "panela elétrica promoção shopee",
-            "churrasqueira elétrica oferta",
-            "jogo de cama oferta",
-            "cafeteira Nespresso promoção",
+            "site:mercadolivre.com.br aspirador robô",
+            "site:mercadolivre.com.br cafeteira",
+            "site:amazon.com.br panela elétrica",
+            "site:mercadolivre.com.br churrasqueira",
           ],
         };
 
         const categoryName = typedSource.name;
-        const specificQueries = PRODUCT_QUERY_MAP[categoryName] || [`${categoryName} oferta promoção mercadolivre shopee`];
+        const specificQueries = PRODUCT_QUERY_MAP[categoryName] || [
+          `site:mercadolivre.com.br ${categoryName}`,
+          `site:amazon.com.br ${categoryName}`,
+        ];
         
-        // Pick random subset to vary results
+        // Pick random subset to vary results each run
         const shuffled = specificQueries.sort(() => Math.random() - 0.5);
-        const searchQueries = shuffled.slice(0, Math.min(3, shuffled.length));
+        const searchQueries = shuffled.slice(0, Math.min(4, shuffled.length));
 
-        console.log(`Using Firecrawl Search API for products: ${searchQueries.join(", ")}`);
+        console.log(`Using Firecrawl Search API for products: ${searchQueries.join(" | ")}`);
 
         const allFoundLinks: string[] = [];
+        
+        // Known e-commerce domains
+        const ECOMMERCE_DOMAINS = [
+          "mercadolivre.com.br",
+          "shopee.com.br",
+          "amazon.com.br",
+          "magazineluiza.com.br",
+          "kabum.com.br",
+          "americanas.com.br",
+          "casasbahia.com.br",
+          "pontofrio.com.br",
+          "extra.com.br",
+        ];
 
         for (const query of searchQueries) {
           if (allFoundLinks.length >= maxItems * 3) break;
@@ -523,9 +539,6 @@ serve(async (req) => {
                 limit: 10,
                 lang: "pt-br",
                 country: "br",
-                scrapeOptions: {
-                  formats: ["markdown"],
-                },
               }),
             });
 
@@ -536,81 +549,47 @@ serve(async (req) => {
               for (const result of searchData.data) {
                 const resultUrl = result.url || "";
                 const cleanUrl = extractCanonicalProductUrl(resultUrl);
-
-                const isMLProduct = /mercadolivre\.com\.br/i.test(cleanUrl) && !/\/categorias|\/ofertas$/i.test(cleanUrl);
-                const isShopeeProduct = /shopee\.com\.br\//i.test(cleanUrl) && !/\/search\?|\/m\/|\/shop\//i.test(cleanUrl);
-                const isAmazonProduct = /amazon\.com\.br\/.*\/dp\//i.test(cleanUrl);
-                const isMagazineProduct = /magazineluiza\.com\.br\/.*\/p\//i.test(cleanUrl);
-                const isKabumProduct = /kabum\.com\.br\/produto\//i.test(cleanUrl);
-                const isCatalogPage = /catalogo|catalogue|\/categoria\/|\/category\//i.test(cleanUrl);
-                const isProductPage = (isMLProduct || isShopeeProduct || isAmazonProduct || isMagazineProduct || isKabumProduct) && !isCatalogPage;
-
-                if (!isProductPage) {
-                  console.log(`Skipped non-product URL: ${cleanUrl.slice(0, 100)}`);
-                }
-
-                if (isProductPage) {
+                
+                // Check if it's from a known e-commerce domain
+                const isEcommerce = ECOMMERCE_DOMAINS.some(d => cleanUrl.includes(d));
+                const isCatalogPage = /\/categorias|\/ofertas$|\/categoria\/|\/category\/|\/search\?|\/s\?/i.test(cleanUrl);
+                
+                if (isEcommerce && !isCatalogPage) {
                   allFoundLinks.push(cleanUrl);
-
+                  
                   const metadata = result.metadata || {};
                   const markdown = result.markdown || "";
-                  const html = result.html || "";
-                  const rawContent = `${JSON.stringify(metadata)}\n${markdown}\n${html}`;
-
-                  // Extract all image candidates from the scraped content
+                  const description = result.description || metadata.description || metadata.ogDescription || "";
+                  
+                  // Extract image from search result metadata
                   const imageCandidates: string[] = [];
-
-                  // From metadata (og:image, etc.)
                   if (metadata.ogImage) imageCandidates.push(metadata.ogImage);
                   if (metadata.image) imageCandidates.push(metadata.image);
                   if (result.image) imageCandidates.push(result.image);
-
-                  // Google Shopping thumbnails from content
-                  const gstaticMatches = rawContent.match(/https?:\/\/encrypted-tbn\d*\.gstatic\.com\/shopping\?q=tbn:[^"'\s\\)]+/gi) || [];
-                  imageCandidates.push(...gstaticMatches);
-
-                  // ML static images from content
-                  const mlMatches = [...rawContent.matchAll(/(https?:\/\/(?:http2\.)?mlstatic\.com\/D_[^\s"'\\)]+\.(?:jpg|jpeg|png|webp))/gi)].map(m => m[1]);
-                  imageCandidates.push(...mlMatches);
-
-                  // Shopee images from content
-                  const shopeeMatches = [...rawContent.matchAll(/(https?:\/\/[^\s"'\\)]*(?:down-br\.img\.susercontent\.com|cf\.shopee)[^\s"'\\)]*\.(?:jpg|jpeg|png|webp)[^\s"'\\)]*)/gi)].map(m => m[1]);
-                  imageCandidates.push(...shopeeMatches);
-
-                  // Markdown image syntax
-                  const mdImageMatches = [...markdown.matchAll(/!\[.*?\]\((https?:\/\/[^)\s]+)\)/gi)].map(m => m[1]);
-                  imageCandidates.push(...mdImageMatches);
-
-                  // HTML img src
-                  const htmlImgMatches = [...html.matchAll(/src=["'](https?:\/\/[^"']+\.(?:jpg|jpeg|png|webp)[^"']*)/gi)].map(m => m[1]);
-                  imageCandidates.push(...htmlImgMatches);
-
+                  
                   const bestImage = pickBestProductImage(
                     imageCandidates.filter((c): c is string => typeof c === "string" && c.length > 0)
                   );
-
+                  
                   searchResultsMap[cleanUrl] = {
                     title: result.title || metadata.title || metadata.ogTitle || "",
-                    description: result.description || metadata.description || metadata.ogDescription || "",
-                    markdown: markdown,
-                    image: bestImage || searchResultsMap[cleanUrl]?.image || "",
+                    description,
+                    markdown: markdown || description,
+                    image: bestImage || "",
                   };
                   
-                  console.log(`Product: ${cleanUrl.slice(0, 80)} | image: ${bestImage ? "YES" : "NO"}`);
+                  console.log(`Product found: ${cleanUrl.slice(0, 80)} | img: ${bestImage ? "YES" : "NO"} | title: ${(result.title || "").slice(0, 60)}`);
+                } else {
+                  console.log(`Skipped: ${cleanUrl.slice(0, 80)} (ecommerce=${isEcommerce}, catalog=${isCatalogPage})`);
                 }
               }
             } else {
-              console.error("Firecrawl search error:", searchData);
+              console.error("Firecrawl search error:", JSON.stringify(searchData).slice(0, 200));
             }
           } catch (e) {
             console.error(`Search failed for "${query}":`, e);
           }
         }
-
-        const uniqueSearchLinks = [...new Set(allFoundLinks)];
-        itemLinks = [...new Set([...itemLinks, ...uniqueSearchLinks])].slice(0, maxItems);
-        console.log(`Found ${uniqueSearchLinks.length} product links from search`);
-      }
 
       // Fallback for articles: scrape homepage for links
       if (!isProductSource && itemLinks.length < maxItems) {
