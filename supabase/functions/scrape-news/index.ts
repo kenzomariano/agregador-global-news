@@ -663,8 +663,8 @@ serve(async (req) => {
             }
           }
 
-          // Priority 4: Scrape individual product page for og:image
-          if (!imageUrl) {
+          // Priority 4: Scrape individual product page for og:image and/or price
+          if (!imageUrl || !price) {
             try {
               console.log(`Scraping product page for image: ${cleanUrl}`);
               const productPageResponse = await fetch("https://api.firecrawl.dev/v1/scrape", {
