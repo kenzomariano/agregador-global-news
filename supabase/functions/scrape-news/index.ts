@@ -785,6 +785,7 @@ serve(async (req) => {
                 const pageData = await productPageResponse.json();
                 const pageMeta = pageData.data?.metadata || {};
                 const pageMarkdown = pageData.data?.markdown || "";
+                const pageHtml = pageData.data?.html || "";
 
                 // Try og:image first
                 const ogImage = pageMeta.ogImage || pageMeta.image || "";
