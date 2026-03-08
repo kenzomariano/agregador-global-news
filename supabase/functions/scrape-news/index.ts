@@ -473,38 +473,36 @@ serve(async (req) => {
 
     if (itemLinks.length < maxItems) {
       if (isProductSource) {
-        // Build specific product search queries
+        // Build specific product search queries targeting PRODUCT PAGES (not listings)
         const PRODUCT_QUERY_MAP: Record<string, string[]> = {
           "Eletrônicos": [
-            "site:mercadolivre.com.br smartphone Samsung Galaxy",
-            "site:mercadolivre.com.br notebook Dell",
-            "site:mercadolivre.com.br fone bluetooth JBL",
-            "site:mercadolivre.com.br smart TV 4K",
-            "site:amazon.com.br smartphone oferta",
-            "site:magazineluiza.com.br notebook",
-            "site:kabum.com.br placa de video",
+            "samsung galaxy site:amazon.com.br/dp",
+            "notebook dell site:amazon.com.br/dp",
+            "fone jbl bluetooth site:amazon.com.br/dp",
+            "smart tv 4k site:amazon.com.br/dp",
+            "smartphone samsung galaxy MLB site:mercadolivre.com.br",
+            "notebook lenovo MLB site:mercadolivre.com.br",
+            "placa de video site:kabum.com.br/produto",
           ],
           "Vestuário": [
-            "site:mercadolivre.com.br tênis Nike",
-            "site:mercadolivre.com.br camiseta Adidas",
-            "site:amazon.com.br mochila",
-            "site:mercadolivre.com.br jaqueta masculina",
+            "tênis nike site:amazon.com.br/dp",
+            "mochila escolar site:amazon.com.br/dp",
+            "camiseta adidas site:amazon.com.br/dp",
+            "jaqueta masculina MLB site:mercadolivre.com.br",
           ],
           "Casa e Jardim": [
-            "site:mercadolivre.com.br aspirador robô",
-            "site:mercadolivre.com.br cafeteira",
-            "site:amazon.com.br panela elétrica",
-            "site:mercadolivre.com.br churrasqueira",
+            "aspirador robô site:amazon.com.br/dp",
+            "cafeteira nespresso site:amazon.com.br/dp",
+            "panela elétrica site:amazon.com.br/dp",
+            "churrasqueira elétrica MLB site:mercadolivre.com.br",
           ],
         };
 
         const categoryName = typedSource.name;
         const specificQueries = PRODUCT_QUERY_MAP[categoryName] || [
-          `site:mercadolivre.com.br ${categoryName}`,
-          `site:amazon.com.br ${categoryName}`,
+          `${categoryName} site:amazon.com.br/dp`,
         ];
         
-        // Pick random subset to vary results each run
         const shuffled = specificQueries.sort(() => Math.random() - 0.5);
         const searchQueries = shuffled.slice(0, Math.min(4, shuffled.length));
 
