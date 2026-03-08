@@ -764,29 +764,30 @@ serve(async (req) => {
             }
           }
 
-          // Priority 3: For ML products, try fetching the product API for real image
+          // Priority 3: For ML products, try the products catalog API
           if (!imageUrl) {
             const mlbMatch = cleanUrl.match(/\/p\/(MLB\d+)/i);
             if (mlbMatch) {
               try {
-                const mlApiUrl = `https://api.mercadolibre.com/items/${mlbMatch[1]}`;
-                console.log(`Fetching ML API for image: ${mlApiUrl}`);
-                const mlApiResp = await fetch(mlApiUrl);
-                if (mlApiResp.ok) {
-                  const mlApiData = await mlApiResp.json();
-                  const mlApiImage = mlApiData.pictures?.[0]?.secure_url || mlApiData.thumbnail?.replace("http://", "https://");
-                  if (mlApiImage && isLikelyProductImage(mlApiImage)) {
-                    imageUrl = mlApiImage;
-                    console.log(`Got ML API image: ${imageUrl.slice(0, 100)}`);
+                // Try products catalog API (public, no auth needed)
+                const mlCatalogUrl = `https://api.mercadolibre.com/products/${mlbMatch[1]}`;
+                console.log(`Fetching ML catalog API: ${mlCatalogUrl}`);
+                const mlCatalogResp = await fetch(mlCatalogUrl);
+                if (mlCatalogResp.ok) {
+                  const mlCatalogData = await mlCatalogResp.json();
+                  const mlPictures = mlCatalogData.pictures || [];
+                  if (mlPictures.length > 0) {
+                    const mlPicUrl = mlPictures[0].url?.replace("http://", "https://");
+                    if (mlPicUrl && isLikelyProductImage(mlPicUrl)) {
+                      imageUrl = mlPicUrl;
+                      console.log(`Got ML catalog image: ${imageUrl.slice(0, 100)}`);
+                    }
                   }
-                  // Also grab price from API if missing
-                  if (!price && mlApiData.price) {
-                    price = mlApiData.price;
-                    console.log(`Got ML API price: R$ ${price}`);
-                  }
+                } else {
+                  console.log(`ML catalog API returned ${mlCatalogResp.status}`);
                 }
               } catch (e) {
-                console.log(`ML API fetch failed: ${e}`);
+                console.log(`ML catalog API failed: ${e}`);
               }
             }
           }
