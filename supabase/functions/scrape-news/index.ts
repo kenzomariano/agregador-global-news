@@ -591,6 +591,11 @@ serve(async (req) => {
           }
         }
 
+        const uniqueSearchLinks = [...new Set(allFoundLinks)];
+        itemLinks = [...new Set([...itemLinks, ...uniqueSearchLinks])].slice(0, maxItems);
+        console.log(`Found ${uniqueSearchLinks.length} product links from search`);
+      }
+
       // Fallback for articles: scrape homepage for links
       if (!isProductSource && itemLinks.length < maxItems) {
         const scrapeResponse = await fetch("https://api.firecrawl.dev/v1/scrape", {
