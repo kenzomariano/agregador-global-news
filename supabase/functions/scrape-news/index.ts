@@ -204,6 +204,19 @@ function isGenericImageUrl(url: string): boolean {
     return true;
   }
 
+  // Reject Amazon non-product images (storefront, editorial, gateway)
+  if (/m\.media-amazon\.com\/images\/(G|S|W)\//i.test(lowerUrl)) {
+    return true; // G=gateway/banners, S=store assets, W=widgets
+  }
+
+  // Reject very wide aspect ratio images (likely banners) based on URL dimensions
+  const dimMatch = lowerUrl.match(/(\d{3,4})x(\d{2,4})/);
+  if (dimMatch) {
+    const w = parseInt(dimMatch[1]);
+    const h = parseInt(dimMatch[2]);
+    if (w > 0 && h > 0 && w / h > 3) return true; // e.g. 1500x300 banner
+  }
+
   return GENERIC_IMAGE_PATTERNS.some((pattern) => pattern.test(lowerUrl));
 }
 
