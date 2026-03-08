@@ -555,8 +555,9 @@ serve(async (req) => {
                 
                 // Check if it's from a known e-commerce domain
                 const isEcommerce = ECOMMERCE_DOMAINS.some(d => cleanUrl.includes(d));
-                const isCatalogPage = /\/categorias|\/ofertas$|\/categoria\/|\/category\/|\/search\?|\/s\/|\/busca\/|\/blog|\/c\/|\/informatica\/s\//i.test(cleanUrl);
-                const isListingPage = /\/s\?|\/busca\?|\/search\//i.test(cleanUrl);
+                const isCatalogPage = /\/categorias|\/ofertas$|\/categoria\/|\/category\/|\/search\?|\/s\/|\/busca\/|\/blog|\/c\/|\/informatica\/s\/|\/sec\//i.test(cleanUrl);
+                const isListingPage = /\/s\?|\/busca\?|\/search\/|lista\.mercadolivre/i.test(cleanUrl);
+                const isHomePage = /^https?:\/\/[^/]+\/?$/i.test(cleanUrl);
                 
                 if (isEcommerce && !isCatalogPage && !isListingPage) {
                   allFoundLinks.push(cleanUrl);
