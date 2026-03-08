@@ -652,8 +652,8 @@ serve(async (req) => {
     for (const itemUrl of itemLinks) {
       try {
         if (isProductSource) {
-          // Clean tracking params from URL
-          const cleanProductUrl = itemUrl.split("#")[0].split("?")[0] || itemUrl;
+          // Clean tracking params and redirects from URL
+          const cleanProductUrl = extractCanonicalProductUrl(itemUrl) || itemUrl;
           
           // Process as product - check by clean URL
           const { data: existing } = await supabase
