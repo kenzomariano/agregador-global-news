@@ -120,6 +120,26 @@ const GENERIC_IMAGE_PATTERNS = [
   /access_popup/i,
   /\/assets\/[a-f0-9]{16,}\./i, // Generic hashed asset files
   /41Dhma07YkL/i, // Amazon generic placeholder
+  /prime[-_]?logo/i, // Amazon Prime logo/banner
+  /prime[-_]?banner/i,
+  /banner/i, // Generic banners
+  /promo[-_]?banner/i,
+  /hero[-_]?image/i,
+  /carousel/i, // Carousel/slider banners
+  /slider/i,
+  /badge/i,
+  /stamp/i,
+  /overlay/i,
+  /watermark/i,
+  /ad[-_]?image/i,
+  /advertisement/i,
+  /campaign/i,
+  /landing[-_]?page/i,
+  /gateway[-_]?image/i,
+  /prime-storefront/i, // Amazon Prime storefront assets
+  /TopBanner/i,
+  /bottom[-_]?sheet/i,
+  /GW\/\d+x\d+/i, // Amazon gateway images (e.g., GW/1500x600)
 ];
 
 function normalizeImageUrl(url: string): string {
@@ -184,6 +204,19 @@ function isGenericImageUrl(url: string): boolean {
     return true;
   }
 
+  // Reject Amazon non-product images (storefront, editorial, gateway)
+  if (/m\.media-amazon\.com\/images\/(G|S|W)\//i.test(lowerUrl)) {
+    return true; // G=gateway/banners, S=store assets, W=widgets
+  }
+
+  // Reject very wide aspect ratio images (likely banners) based on URL dimensions
+  const dimMatch = lowerUrl.match(/(\d{3,4})x(\d{2,4})/);
+  if (dimMatch) {
+    const w = parseInt(dimMatch[1]);
+    const h = parseInt(dimMatch[2]);
+    if (w > 0 && h > 0 && w / h > 3) return true; // e.g. 1500x300 banner
+  }
+
   return GENERIC_IMAGE_PATTERNS.some((pattern) => pattern.test(lowerUrl));
 }
 
@@ -207,15 +240,23 @@ function pickBestProductImage(candidates: string[]): string | null {
 
   if (validCandidates.length === 0) return null;
 
-  const googleThumb = validCandidates.find((candidate) => isGoogleShoppingThumbnail(candidate));
-  if (googleThumb) return googleThumb;
+  // Score each candidate: higher = better
+  function scoreImage(url: string): number {
+    let score = 0;
+    if (isGoogleShoppingThumbnail(url)) score += 100;
+    if (/m\.media-amazon\.com\/images\/I\//i.test(url)) score += 90; // Amazon product images folder
+    if (/mlstatic\.com\//i.test(url)) score += 80;
+    if (/susercontent\.com\//i.test(url)) score += 70;
+    // Prefer larger images (SL500, SL1500 etc.)
+    const slMatch = url.match(/_SL(\d+)/);
+    if (slMatch) score += Math.min(parseInt(slMatch[1]) / 10, 50);
+    // Penalize very small images
+    if (/_S[XY]\d{1,2}_/i.test(url)) score -= 30;
+    if (/_AC_US\d{1,2}_/i.test(url)) score -= 30;
+    return score;
+  }
 
-  const marketImage = validCandidates.find((candidate) => /mlstatic\.com\//i.test(candidate));
-  if (marketImage) return marketImage;
-
-  const shopeeImage = validCandidates.find((candidate) => /susercontent\.com\//i.test(candidate));
-  if (shopeeImage) return shopeeImage;
-
+  validCandidates.sort((a, b) => scoreImage(b) - scoreImage(a));
   return validCandidates[0];
 }
 
@@ -703,10 +744,12 @@ serve(async (req) => {
             console.log(`Extracted name from URL: ${name}`);
           }
 
-          // Reject generic store names
+          // Reject generic store names and non-physical products (eBooks, books, digital)
           const GENERIC_NAMES = ["shopee brasil", "mercado livre", "shopee", "mercadolivre", "please enable javascript"];
-          if (!name || name.length < 3 || GENERIC_NAMES.some(g => name.toLowerCase().includes(g))) {
-            console.log(`Skipping product with invalid/generic name: "${name}" from ${itemUrl}`);
+          const EBOOK_PATTERNS = [/\bebook\b/i, /\be-book\b/i, /\bkindle edition\b/i, /\bpaperback\b/i, /\bhardcover\b/i, /\bmade easy\b/i, /\bguide to\b/i, /\bhow to\b/i, /\bstep.by.step\b/i, /\blivro\b/i, /\beBooks em/i];
+          const isEbook = EBOOK_PATTERNS.some(p => p.test(name) || p.test(searchDescription) || p.test(searchTitle));
+          if (!name || name.length < 3 || GENERIC_NAMES.some(g => name.toLowerCase().includes(g)) || isEbook) {
+            console.log(`Skipping product: "${name}" (generic=${GENERIC_NAMES.some(g => name.toLowerCase().includes(g))}, ebook=${isEbook}) from ${itemUrl}`);
             skippedCount++;
             continue;
           }
