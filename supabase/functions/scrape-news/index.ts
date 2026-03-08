@@ -126,6 +126,25 @@ function normalizeImageUrl(url: string): string {
     .trim();
 }
 
+function extractCanonicalProductUrl(url: string): string {
+  const normalized = normalizeImageUrl(url);
+
+  try {
+    const parsed = new URL(normalized);
+
+    if (/google\./i.test(parsed.hostname)) {
+      const redirectedUrl = parsed.searchParams.get("url") || parsed.searchParams.get("q");
+      if (redirectedUrl && /^https?:\/\//i.test(redirectedUrl)) {
+        return normalizeImageUrl(redirectedUrl).split("#")[0].split("?")[0];
+      }
+    }
+  } catch {
+    // ignore invalid URL and keep fallback below
+  }
+
+  return normalized.split("#")[0].split("?")[0];
+}
+
 function isGoogleShoppingThumbnail(url: string): boolean {
   return /https?:\/\/encrypted-tbn\d*\.gstatic\.com\/shopping\?q=tbn:/i.test(url);
 }
@@ -134,6 +153,10 @@ function isGenericImageUrl(url: string): boolean {
   const lowerUrl = url.toLowerCase();
 
   if (/gstatic\.com\/images\?q=tbn:/i.test(lowerUrl)) {
+    return true;
+  }
+
+  if (/deo\.shopeemobile\.com\/shopee\/shopee-pcmall-live-[^/]+\/assets\//i.test(lowerUrl)) {
     return true;
   }
 
@@ -150,8 +173,26 @@ function isLikelyProductImage(url: string): boolean {
   return (
     /\.(jpg|jpeg|png|webp)(\?|$)/i.test(normalized) ||
     /mlstatic\.com\//i.test(normalized) ||
+    /susercontent\.com\//i.test(normalized) ||
     /shopee\.(?:com|com\.br)\//i.test(normalized)
   );
+}
+
+function pickBestProductImage(candidates: string[]): string | null {
+  const validCandidates = [...new Set(candidates.map(normalizeImageUrl).filter((candidate) => isLikelyProductImage(candidate)))];
+
+  if (validCandidates.length === 0) return null;
+
+  const googleThumb = validCandidates.find((candidate) => isGoogleShoppingThumbnail(candidate));
+  if (googleThumb) return googleThumb;
+
+  const marketImage = validCandidates.find((candidate) => /mlstatic\.com\//i.test(candidate));
+  if (marketImage) return marketImage;
+
+  const shopeeImage = validCandidates.find((candidate) => /susercontent\.com\//i.test(candidate));
+  if (shopeeImage) return shopeeImage;
+
+  return validCandidates[0];
 }
 
 function isLikelyArticleUrl(url: string, baseUrl: string): boolean {
