@@ -777,7 +777,7 @@ serve(async (req) => {
           // Priority 2.5: For Amazon products, ALWAYS scrape the actual page for the hero image
           // (search metadata rarely includes proper product images)
           if (/amazon\.com\.br/i.test(cleanUrl)) {
-            const amazonDpMatch = cleanUrl.match(/amazon\.com\.br\/.*(?:\/dp\/|\/dp$)([A-Z0-9]+)/i) || cleanUrl.match(/amazon\.com\.br\/dp\/([A-Z0-9]+)/i);
+            const amazonDpMatch = cleanUrl.match(/\/dp\/([A-Z0-9]{10})/i);
             if (amazonDpMatch) {
               try {
                 console.log(`Scraping Amazon product page for better image: ${cleanUrl.slice(0, 80)}`);
