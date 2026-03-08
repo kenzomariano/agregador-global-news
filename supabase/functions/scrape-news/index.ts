@@ -775,7 +775,7 @@ serve(async (req) => {
                 },
                 body: JSON.stringify({
                   url: cleanUrl,
-                  formats: ["markdown"],
+                  formats: ["markdown", "html"],
                   onlyMainContent: false,
                   waitFor: 1000,
                 }),
