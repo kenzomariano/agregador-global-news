@@ -473,17 +473,37 @@ serve(async (req) => {
 
     if (itemLinks.length < maxItems) {
       if (isProductSource) {
-        const searchQueries = (() => {
-          const queries = [typedSource.name];
-          try {
-            const parsedSourceUrl = new URL(typedSource.url);
-            const qParam = parsedSourceUrl.searchParams.get("q");
-            if (qParam) {
-              queries.push(decodeURIComponent(qParam.replace(/\+/g, " ")));
-            }
-          } catch { /* ignore */ }
-          return [...new Set(queries.map((q) => q.trim()).filter((q) => q.length > 2 && q.toLowerCase() !== "google shopping"))];
-        })();
+        // Build specific product search queries based on source category
+        const PRODUCT_QUERY_MAP: Record<string, string[]> = {
+          "Eletrônicos": [
+            "smartphone Samsung Galaxy oferta mercadolivre",
+            "notebook Dell oferta shopee",
+            "fone bluetooth JBL promoção",
+            "smart TV 4K oferta",
+            "tablet Apple iPad preço",
+          ],
+          "Vestuário": [
+            "tênis Nike oferta mercadolivre",
+            "camiseta Adidas promoção shopee",
+            "jaqueta masculina oferta",
+            "vestido feminino promoção",
+            "mochila escolar oferta",
+          ],
+          "Casa e Jardim": [
+            "aspirador robô oferta mercadolivre",
+            "panela elétrica promoção shopee",
+            "churrasqueira elétrica oferta",
+            "jogo de cama oferta",
+            "cafeteira Nespresso promoção",
+          ],
+        };
+
+        const categoryName = typedSource.name;
+        const specificQueries = PRODUCT_QUERY_MAP[categoryName] || [`${categoryName} oferta promoção mercadolivre shopee`];
+        
+        // Pick random subset to vary results
+        const shuffled = specificQueries.sort(() => Math.random() - 0.5);
+        const searchQueries = shuffled.slice(0, Math.min(3, shuffled.length));
 
         console.log(`Using Firecrawl Search API for products: ${searchQueries.join(", ")}`);
 
@@ -492,7 +512,6 @@ serve(async (req) => {
         for (const query of searchQueries) {
           if (allFoundLinks.length >= maxItems * 3) break;
           try {
-            // Use Search API with scrapeOptions to get full page data including images
             const searchResponse = await fetch("https://api.firecrawl.dev/v1/search", {
               method: "POST",
               headers: {
@@ -500,14 +519,12 @@ serve(async (req) => {
                 "Content-Type": "application/json",
               },
               body: JSON.stringify({
-                query: `site:mercadolivre.com.br OR site:shopee.com.br ${query} preço oferta`,
-                limit: Math.min(20, maxItems * 4),
+                query,
+                limit: 10,
                 lang: "pt-br",
                 country: "br",
                 scrapeOptions: {
-                  formats: ["markdown", "html"],
-                  onlyMainContent: false,
-                  waitFor: 2000,
+                  formats: ["markdown"],
                 },
               }),
             });
