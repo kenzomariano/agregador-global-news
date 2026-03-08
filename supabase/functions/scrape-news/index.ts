@@ -683,7 +683,7 @@ serve(async (req) => {
                   url: cleanUrl,
                   formats: ["markdown"],
                   onlyMainContent: false,
-                  waitFor: 3000,
+                  waitFor: 1000,
                 }),
               });
 
