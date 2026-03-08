@@ -893,6 +893,12 @@ ${allText.slice(0, 4000)}`;
             imageUrl = null;
           }
 
+          if (!imageUrl) {
+            console.log(`Skipping product without valid product image: ${cleanUrl}`);
+            skippedCount++;
+            continue;
+          }
+
           console.log(`Product result: name="${name}", price=${price}, image=${imageUrl ? "yes" : "no"}, category="${category}"`);
 
           const slug = name
