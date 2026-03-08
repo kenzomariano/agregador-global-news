@@ -553,13 +553,26 @@ serve(async (req) => {
                 const resultUrl = result.url || "";
                 const cleanUrl = extractCanonicalProductUrl(resultUrl);
                 
-                // Check if it's from a known e-commerce domain
+                // Check if URL is actually a PRODUCT page (not listing/category/search)
                 const isEcommerce = ECOMMERCE_DOMAINS.some(d => cleanUrl.includes(d));
-                const isCatalogPage = /\/categorias|\/ofertas$|\/categoria\/|\/category\/|\/search\?|\/s\/|\/busca\/|\/blog|\/c\/|\/informatica\/s\/|\/sec\//i.test(cleanUrl);
-                const isListingPage = /\/s\?|\/busca\?|\/search\/|lista\.mercadolivre/i.test(cleanUrl);
-                const isHomePage = /^https?:\/\/[^/]+\/?$/i.test(cleanUrl);
                 
-                if (isEcommerce && !isCatalogPage && !isListingPage && !isHomePage) {
+                // Positive product URL patterns - must match at least one
+                const PRODUCT_URL_PATTERNS = [
+                  /amazon\.com\.br\/.*\/dp\//i,              // Amazon product
+                  /amazon\.com\.br\/dp\//i,                  // Amazon short product
+                  /mercadolivre\.com\.br\/.*-_JM/i,          // ML product (old format)
+                  /mercadolivre\.com\.br\/.*\/p\/MLB/i,      // ML product (new format)
+                  /mercadolivre\.com\.br\/MLB-/i,            // ML product direct
+                  /shopee\.com\.br\/.*-i\.\d+\.\d+/i,       // Shopee product
+                  /magazineluiza\.com\.br\/.*\/p\//i,        // Magalu product
+                  /kabum\.com\.br\/produto\//i,              // Kabum product
+                  /americanas\.com\.br\/produto\//i,         // Americanas product
+                  /casasbahia\.com\.br\/produto\//i,         // Casas Bahia product
+                ];
+                
+                const isProductUrl = isEcommerce && PRODUCT_URL_PATTERNS.some(p => p.test(cleanUrl));
+                
+                if (isProductUrl) {
                   allFoundLinks.push(cleanUrl);
                   
                   const metadata = result.metadata || {};
