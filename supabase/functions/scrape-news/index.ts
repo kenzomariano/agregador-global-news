@@ -798,8 +798,8 @@ serve(async (req) => {
                 if (!imageUrl) {
                   const pageImageMatches = [
                     ...(pageMarkdown.matchAll(/!\[.*?\]\((https?:\/\/[^)\s]+)\)/gi) || []),
-                    ...(pageHtml.matchAll(/https?:\/\/encrypted-tbn\d*\.gstatic\.com\/shopping\?q=tbn:[^"'\s\\)]+/gi) || []),
-                  ].map((m: RegExpMatchArray | string) => typeof m === "string" ? m : m[1]);
+                    ...(pageHtml.matchAll(/(https?:\/\/encrypted-tbn\d*\.gstatic\.com\/shopping\?q=tbn:[^"'\s\\)]+)/gi) || []),
+                  ].map((m: RegExpMatchArray) => m[1]);
                   const pageMlImages = [...pageMarkdown.matchAll(/(https?:\/\/(?:http2\.)?mlstatic\.com\/[^\s)"'\\]+)/gi)].map((m: RegExpMatchArray) => m[1]);
                   const pageShopeeImages = [...pageMarkdown.matchAll(/(https?:\/\/[^\s)"'\\]*susercontent\.com[^\s)"'\\]*)/gi)].map((m: RegExpMatchArray) => m[1]);
 
