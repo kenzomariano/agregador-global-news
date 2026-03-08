@@ -746,6 +746,7 @@ serve(async (req) => {
           if (searchResult.image) {
             imageUrl = pickBestProductImage([searchResult.image]);
             if (imageUrl) {
+              imageUrl = upscaleAmazonImage(imageUrl);
               console.log(`Using search result image: ${imageUrl.slice(0, 100)}`);
             }
           }
@@ -759,20 +760,61 @@ serve(async (req) => {
               ...allText.matchAll(/(https?:\/\/[^\s)"'\\]*susercontent\.com[^\s)"'\\]*)/gi),
             ].map((m) => m[1]);
             const markdownImageMatches = [...allText.matchAll(/!\[.*?\]\((https?:\/\/[^)\s]+)\)/gi)].map((m) => m[1]);
+            // Also extract Amazon high-res images from markdown
+            const amazonImageMatches = [...allText.matchAll(/(https?:\/\/m\.media-amazon\.com\/images\/I\/[^\s)"'\\]+\.(?:jpg|jpeg|png|webp)[^\s)"'\\]*)/gi)].map((m) => m[1]);
 
             const fallbackImage = pickBestProductImage([
               ...gstaticShoppingMatches,
+              ...amazonImageMatches,
               ...mlImageMatches,
               ...shopeeImageMatches,
               ...markdownImageMatches,
             ]);
 
             if (fallbackImage) {
-              imageUrl = fallbackImage;
+              imageUrl = upscaleAmazonImage(fallbackImage);
               console.log(`Using fallback image candidate: ${imageUrl.slice(0, 100)}`);
             }
           }
 
+          // Priority 2.5: For Amazon products, scrape the actual page for the hero image
+          if (!imageUrl || (imageUrl && /US\d{2,3}_|SX\d{2,3}_|SS\d{2,3}_/i.test(imageUrl))) {
+            const amazonDpMatch = cleanUrl.match(/amazon\.com\.br\/.*(?:\/dp\/|\/dp$)([A-Z0-9]+)/i) || cleanUrl.match(/amazon\.com\.br\/dp\/([A-Z0-9]+)/i);
+            if (amazonDpMatch) {
+              try {
+                console.log(`Scraping Amazon product page for better image: ${cleanUrl.slice(0, 80)}`);
+                const amzScrapeResp = await fetch("https://api.firecrawl.dev/v1/scrape", {
+                  method: "POST",
+                  headers: {
+                    "Authorization": `Bearer ${firecrawlKey}`,
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    url: cleanUrl,
+                    formats: ["markdown"],
+                    onlyMainContent: true,
+                  }),
+                });
+                if (amzScrapeResp.ok) {
+                  const amzData = await amzScrapeResp.json();
+                  const amzMarkdown = amzData.data?.markdown || "";
+                  const amzMeta = amzData.data?.metadata || {};
+                  const amzImgCandidates: string[] = [];
+                  if (amzMeta.ogImage) amzImgCandidates.push(amzMeta.ogImage);
+                  // Extract large Amazon images from page content
+                  const amzPageImages = [...amzMarkdown.matchAll(/(https?:\/\/m\.media-amazon\.com\/images\/I\/[A-Za-z0-9._%-]+\.(?:jpg|jpeg|png|webp))/gi)].map((m: RegExpMatchArray) => m[1]);
+                  amzImgCandidates.push(...amzPageImages);
+                  const bestAmzImg = pickBestProductImage(amzImgCandidates);
+                  if (bestAmzImg) {
+                    imageUrl = upscaleAmazonImage(bestAmzImg);
+                    console.log(`Got Amazon page image: ${imageUrl.slice(0, 100)}`);
+                  }
+                }
+              } catch (e) {
+                console.log(`Amazon page scrape failed: ${e}`);
+              }
+            }
+          }
           // Priority 3: For ML products, try the products catalog API
           if (!imageUrl) {
             const mlbMatch = cleanUrl.match(/\/p\/(MLB\d+)/i);
