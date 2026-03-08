@@ -120,6 +120,26 @@ const GENERIC_IMAGE_PATTERNS = [
   /access_popup/i,
   /\/assets\/[a-f0-9]{16,}\./i, // Generic hashed asset files
   /41Dhma07YkL/i, // Amazon generic placeholder
+  /prime[-_]?logo/i, // Amazon Prime logo/banner
+  /prime[-_]?banner/i,
+  /banner/i, // Generic banners
+  /promo[-_]?banner/i,
+  /hero[-_]?image/i,
+  /carousel/i, // Carousel/slider banners
+  /slider/i,
+  /badge/i,
+  /stamp/i,
+  /overlay/i,
+  /watermark/i,
+  /ad[-_]?image/i,
+  /advertisement/i,
+  /campaign/i,
+  /landing[-_]?page/i,
+  /gateway[-_]?image/i,
+  /prime-storefront/i, // Amazon Prime storefront assets
+  /TopBanner/i,
+  /bottom[-_]?sheet/i,
+  /GW\/\d+x\d+/i, // Amazon gateway images (e.g., GW/1500x600)
 ];
 
 function normalizeImageUrl(url: string): string {
