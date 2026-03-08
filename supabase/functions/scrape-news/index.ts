@@ -806,7 +806,7 @@ serve(async (req) => {
                   url: cleanUrl,
                   formats: ["markdown", "html"],
                   onlyMainContent: false,
-                  waitFor: 1000,
+                  waitFor: 3000,
                 }),
               });
 
