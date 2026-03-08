@@ -788,22 +788,21 @@ serve(async (req) => {
 
                 // Try og:image first
                 const ogImage = pageMeta.ogImage || pageMeta.image || "";
-                if (ogImage && isLikelyProductImage(ogImage)) {
-                  imageUrl = normalizeImageUrl(ogImage);
+                imageUrl = pickBestProductImage([ogImage, imageUrl || ""]);
+                if (imageUrl) {
                   console.log(`Got og:image from product page: ${imageUrl.slice(0, 100)}`);
                 }
 
-                // Try extracting from page markdown
+                // Try extracting from page markdown/html
                 if (!imageUrl) {
                   const pageImageMatches = [
                     ...(pageMarkdown.matchAll(/!\[.*?\]\((https?:\/\/[^)\s]+)\)/gi) || []),
                   ].map((m: RegExpMatchArray) => m[1]);
                   const pageMlImages = [...pageMarkdown.matchAll(/(https?:\/\/(?:http2\.)?mlstatic\.com\/[^\s)"'\\]+)/gi)].map((m: RegExpMatchArray) => m[1]);
-                  
-                  const pageImage = [...pageMlImages, ...pageImageMatches]
-                    .map(normalizeImageUrl)
-                    .find((c) => isLikelyProductImage(c));
-                  
+                  const pageShopeeImages = [...pageMarkdown.matchAll(/(https?:\/\/[^\s)"'\\]*susercontent\.com[^\s)"'\\]*)/gi)].map((m: RegExpMatchArray) => m[1]);
+
+                  const pageImage = pickBestProductImage([...pageMlImages, ...pageShopeeImages, ...pageImageMatches]);
+
                   if (pageImage) {
                     imageUrl = pageImage;
                     console.log(`Got image from product page markdown: ${imageUrl.slice(0, 100)}`);
