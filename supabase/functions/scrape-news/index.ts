@@ -559,7 +559,7 @@ serve(async (req) => {
                 const isListingPage = /\/s\?|\/busca\?|\/search\/|lista\.mercadolivre/i.test(cleanUrl);
                 const isHomePage = /^https?:\/\/[^/]+\/?$/i.test(cleanUrl);
                 
-                if (isEcommerce && !isCatalogPage && !isListingPage) {
+                if (isEcommerce && !isCatalogPage && !isListingPage && !isHomePage) {
                   allFoundLinks.push(cleanUrl);
                   
                   const metadata = result.metadata || {};
