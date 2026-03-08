@@ -463,18 +463,80 @@ serve(async (req) => {
     // Store search result metadata for products (title, description, image, etc.)
     const searchResultsMap: Record<string, { title?: string; description?: string; markdown?: string; image?: string }> = {};
 
-    // If no sitemap or not enough URLs, discover links
     if (itemLinks.length < maxItems) {
       if (isProductSource) {
-        // Use Firecrawl search to find products via Google Shopping
-        const searchQueries = [typedSource.name];
-        
-        console.log(`Using Google Shopping search to discover products for: ${typedSource.name}`);
-        
+        const searchQueries = (() => {
+          const queries = [typedSource.name];
+
+          try {
+            const parsedSourceUrl = new URL(typedSource.url);
+            const qParam = parsedSourceUrl.searchParams.get("q");
+            if (qParam) {
+              queries.push(decodeURIComponent(qParam.replace(/\+/g, " ")));
+            }
+          } catch {
+            // ignore invalid URL format
+          }
+
+          return [...new Set(queries.map((query) => query.trim()).filter((query) => query.length > 2 && query.toLowerCase() !== "google shopping"))];
+        })();
+
+        console.log(`Using Google Shopping search to discover products for: ${searchQueries.join(", ")}`);
+
         const allFoundLinks: string[] = [];
-        
+        const isGoogleShoppingSource = /google\./i.test(typedSource.url) && /(shopping|udm=28|shoprs=)/i.test(typedSource.url);
+
+        // First attempt: scrape source page directly (usually contains encrypted-tbn thumbnails)
+        if (isGoogleShoppingSource) {
+          try {
+            const sourcePageResponse = await fetch("https://api.firecrawl.dev/v1/scrape", {
+              method: "POST",
+              headers: {
+                "Authorization": `Bearer ${firecrawlKey}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                url: typedSource.url,
+                formats: ["links", "markdown", "html"],
+                onlyMainContent: false,
+                waitFor: 2000,
+              }),
+            });
+
+            if (sourcePageResponse.ok) {
+              const sourcePageData = await sourcePageResponse.json();
+              const sourceLinks = (sourcePageData.data?.links || [])
+                .map((link: string) => extractCanonicalProductUrl(link))
+                .filter((link: string) => /mercadolivre\.com\.br|shopee\.com\.br/i.test(link))
+                .filter((link: string) => !/catalogo|catalogue|categoria|category/i.test(link));
+
+              const sourceBlob = `${sourcePageData.data?.markdown || ""}\n${sourcePageData.data?.html || ""}\n${JSON.stringify(sourcePageData.data || {})}`;
+              const shoppingThumbs = [
+                ...(sourceBlob.match(/https?:\/\/encrypted-tbn\d*\.gstatic\.com\/shopping\?q=tbn:[^"'\s\\)]+/gi) || []),
+              ].map(normalizeImageUrl);
+
+              const uniqueSourceLinks = [...new Set(sourceLinks)];
+              uniqueSourceLinks.forEach((link: string, index: number) => {
+                const image = pickBestProductImage([shoppingThumbs[index] || ""]);
+                searchResultsMap[link] = {
+                  title: searchResultsMap[link]?.title || "",
+                  description: searchResultsMap[link]?.description || "",
+                  markdown: searchResultsMap[link]?.markdown || "",
+                  image: image || searchResultsMap[link]?.image || "",
+                };
+              });
+
+              allFoundLinks.push(...uniqueSourceLinks);
+              console.log(`Found ${uniqueSourceLinks.length} product links from source page scrape`);
+            }
+          } catch (e) {
+            console.error("Failed source page product discovery:", e);
+          }
+        }
+
+        // Second attempt: Firecrawl search constrained to marketplaces
         for (const query of searchQueries) {
-          if (allFoundLinks.length >= maxItems) break;
+          if (allFoundLinks.length >= maxItems * 3) break;
           try {
             const searchResponse = await fetch("https://api.firecrawl.dev/v1/search", {
               method: "POST",
@@ -483,9 +545,9 @@ serve(async (req) => {
                 "Content-Type": "application/json",
               },
               body: JSON.stringify({
-                query: `site:mercadolivre.com.br OR site:shopee.com.br ${query}`,
-                limit: 20,
-                scrapeOptions: { formats: ["markdown"] },
+                query: `site:mercadolivre.com.br OR site:shopee.com.br ${query} preço`,
+                limit: 25,
+                scrapeOptions: { formats: ["markdown", "html"] },
               }),
             });
 
@@ -493,20 +555,19 @@ serve(async (req) => {
             if (searchResponse.ok && searchData.data) {
               for (const result of searchData.data) {
                 const resultUrl = result.url || "";
-                const isMLProduct = /mercadolivre\.com\.br.*\/p\/MLB\d+/i.test(resultUrl) 
-                  || /mercadolivre\.com\.br\/[a-z0-9-]+\/p\/MLB\d+/i.test(resultUrl);
-                const isShopeeProduct = /shopee\.com\.br\/.*-i\.\d+\.\d+/i.test(resultUrl);
-                
-                // Filter out catalog/category pages (e.g. "catalogo-digital-*")
-                const isCatalogPage = /catalogo|catalogue|categoria|category/i.test(resultUrl);
-                
+                const cleanUrl = extractCanonicalProductUrl(resultUrl);
+
+                const isMLProduct = /mercadolivre\.com\.br.*\/p\/MLB\d+/i.test(cleanUrl)
+                  || /mercadolivre\.com\.br\/[a-z0-9-]+\/p\/MLB\d+/i.test(cleanUrl);
+                const isShopeeProduct = /shopee\.com\.br\/.*-i\.\d+\.\d+/i.test(cleanUrl);
+
+                const isCatalogPage = /catalogo|catalogue|categoria|category/i.test(cleanUrl);
+
                 if ((isMLProduct || isShopeeProduct) && !isCatalogPage) {
-                  const cleanUrl = resultUrl.split("#")[0].split("?")[0];
                   allFoundLinks.push(cleanUrl);
-                  
-                  // Extract and prioritize image candidates from search result
+
                   const metadata = result.metadata || {};
-                  const rawResultContent = JSON.stringify(result);
+                  const rawResultContent = `${JSON.stringify(result)}\n${result.markdown || ""}\n${result.html || ""}`;
 
                   const gstaticShoppingMatches =
                     rawResultContent.match(/https?:\/\/encrypted-tbn\d*\.gstatic\.com\/shopping\?q=tbn:[^"'\s\\)]+/gi) || [];
@@ -515,29 +576,20 @@ serve(async (req) => {
                     ...(result.markdown || "").matchAll(/!\[.*?\]\((https?:\/\/[^)\s]+)\)/gi),
                   ].map((m) => m[1]);
 
-                  const normalizedCandidates = [
+                  const searchImage = pickBestProductImage([
                     ...gstaticShoppingMatches,
                     result.image,
                     metadata.image,
                     metadata.ogImage,
                     ...markdownImageMatches,
-                  ]
-                    .filter((candidate: unknown): candidate is string => typeof candidate === "string" && candidate.length > 0)
-                    .map(normalizeImageUrl);
+                    searchResultsMap[cleanUrl]?.image || "",
+                  ].filter((candidate: unknown): candidate is string => typeof candidate === "string" && candidate.length > 0));
 
-                  const prioritizedCandidates = [
-                    ...normalizedCandidates.filter((candidate) => isGoogleShoppingThumbnail(candidate)),
-                    ...normalizedCandidates.filter((candidate) => !isGoogleShoppingThumbnail(candidate)),
-                  ];
-
-                  const searchImage = prioritizedCandidates.find((candidate) => isLikelyProductImage(candidate)) || "";
-                  
-                  // Store search result data for later use
                   searchResultsMap[cleanUrl] = {
-                    title: result.title || "",
-                    description: result.description || "",
-                    markdown: result.markdown || "",
-                    image: searchImage || "",
+                    title: result.title || searchResultsMap[cleanUrl]?.title || "",
+                    description: result.description || searchResultsMap[cleanUrl]?.description || "",
+                    markdown: result.markdown || searchResultsMap[cleanUrl]?.markdown || "",
+                    image: searchImage || searchResultsMap[cleanUrl]?.image || "",
                   };
                   console.log(`Found product via search: ${cleanUrl.slice(0, 100)}`);
                   if (searchImage) {
