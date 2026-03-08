@@ -1,0 +1,1 @@
+DELETE FROM products WHERE image_url LIKE '%D_NQ_NP_2X_MLB%';
