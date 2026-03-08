@@ -1,0 +1,1 @@
+DELETE FROM products WHERE name ILIKE '%Shopee Brasil%' OR image_url LIKE '%vlibras%' OR image_url LIKE '%access_popup%';

@@ -116,6 +116,9 @@ const GENERIC_IMAGE_PATTERNS = [
   /blank/i,
   /pixel/i,
   /1x1/i,
+  /vlibras/i,
+  /access_popup/i,
+  /\/assets\/[a-f0-9]{16,}\./i, // Generic hashed asset files
 ];
 
 function normalizeImageUrl(url: string): string {
@@ -157,6 +160,11 @@ function isGenericImageUrl(url: string): boolean {
   }
 
   if (/deo\.shopeemobile\.com\/shopee\/shopee-pcmall-live-[^/]+\/assets\//i.test(lowerUrl)) {
+    return true;
+  }
+
+  // Reject constructed MLB image URLs that are invalid
+  if (/mlstatic\.com\/D_NQ_NP_2X_MLB\d+-F\./i.test(lowerUrl)) {
     return true;
   }
 
@@ -688,8 +696,10 @@ serve(async (req) => {
             console.log(`Extracted name from URL: ${name}`);
           }
 
-          if (!name || name.length < 3) {
-            console.log(`Skipping product with invalid name: ${itemUrl}`);
+          // Reject generic store names
+          const GENERIC_NAMES = ["shopee brasil", "mercado livre", "shopee", "mercadolivre", "please enable javascript"];
+          if (!name || name.length < 3 || GENERIC_NAMES.some(g => name.toLowerCase().includes(g))) {
+            console.log(`Skipping product with invalid/generic name: "${name}" from ${itemUrl}`);
             skippedCount++;
             continue;
           }
@@ -754,12 +764,31 @@ serve(async (req) => {
             }
           }
 
-          // Priority 3: Build image URL from MLB ID for Mercado Livre products
+          // Priority 3: For ML products, try the products catalog API
           if (!imageUrl) {
             const mlbMatch = cleanUrl.match(/\/p\/(MLB\d+)/i);
             if (mlbMatch) {
-              imageUrl = `https://http2.mlstatic.com/D_NQ_NP_2X_${mlbMatch[1]}-F.webp`;
-              console.log(`Built MLB image URL: ${imageUrl}`);
+              try {
+                // Try products catalog API (public, no auth needed)
+                const mlCatalogUrl = `https://api.mercadolibre.com/products/${mlbMatch[1]}`;
+                console.log(`Fetching ML catalog API: ${mlCatalogUrl}`);
+                const mlCatalogResp = await fetch(mlCatalogUrl);
+                if (mlCatalogResp.ok) {
+                  const mlCatalogData = await mlCatalogResp.json();
+                  const mlPictures = mlCatalogData.pictures || [];
+                  if (mlPictures.length > 0) {
+                    const mlPicUrl = mlPictures[0].url?.replace("http://", "https://");
+                    if (mlPicUrl && isLikelyProductImage(mlPicUrl)) {
+                      imageUrl = mlPicUrl;
+                      console.log(`Got ML catalog image: ${imageUrl.slice(0, 100)}`);
+                    }
+                  }
+                } else {
+                  console.log(`ML catalog API returned ${mlCatalogResp.status}`);
+                }
+              } catch (e) {
+                console.log(`ML catalog API failed: ${e}`);
+              }
             }
           }
 
@@ -777,7 +806,7 @@ serve(async (req) => {
                   url: cleanUrl,
                   formats: ["markdown", "html"],
                   onlyMainContent: false,
-                  waitFor: 1000,
+                  waitFor: 3000,
                 }),
               });
 
