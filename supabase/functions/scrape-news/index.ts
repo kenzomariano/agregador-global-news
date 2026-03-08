@@ -915,7 +915,7 @@ serve(async (req) => {
   "name": "nome do produto limpo e completo",
   "description": "descrição curta do produto (max 200 chars)",
   "price": 0.00,
-  "category": "categoria do produto"
+  "category": "categoria curta do produto (max 2-3 palavras, ex: Smartphones, Tênis, Aspiradores)"
 }
 
 REGRAS:
