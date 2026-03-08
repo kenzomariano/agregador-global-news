@@ -240,15 +240,23 @@ function pickBestProductImage(candidates: string[]): string | null {
 
   if (validCandidates.length === 0) return null;
 
-  const googleThumb = validCandidates.find((candidate) => isGoogleShoppingThumbnail(candidate));
-  if (googleThumb) return googleThumb;
+  // Score each candidate: higher = better
+  function scoreImage(url: string): number {
+    let score = 0;
+    if (isGoogleShoppingThumbnail(url)) score += 100;
+    if (/m\.media-amazon\.com\/images\/I\//i.test(url)) score += 90; // Amazon product images folder
+    if (/mlstatic\.com\//i.test(url)) score += 80;
+    if (/susercontent\.com\//i.test(url)) score += 70;
+    // Prefer larger images (SL500, SL1500 etc.)
+    const slMatch = url.match(/_SL(\d+)/);
+    if (slMatch) score += Math.min(parseInt(slMatch[1]) / 10, 50);
+    // Penalize very small images
+    if (/_S[XY]\d{1,2}_/i.test(url)) score -= 30;
+    if (/_AC_US\d{1,2}_/i.test(url)) score -= 30;
+    return score;
+  }
 
-  const marketImage = validCandidates.find((candidate) => /mlstatic\.com\//i.test(candidate));
-  if (marketImage) return marketImage;
-
-  const shopeeImage = validCandidates.find((candidate) => /susercontent\.com\//i.test(candidate));
-  if (shopeeImage) return shopeeImage;
-
+  validCandidates.sort((a, b) => scoreImage(b) - scoreImage(a));
   return validCandidates[0];
 }
 
