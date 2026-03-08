@@ -774,8 +774,9 @@ serve(async (req) => {
             }
           }
 
-          // Priority 2.5: For Amazon products, scrape the actual page for the hero image
-          if (!imageUrl || (imageUrl && /US\d{2,3}_|SX\d{2,3}_|SS\d{2,3}_/i.test(imageUrl))) {
+          // Priority 2.5: For Amazon products, ALWAYS scrape the actual page for the hero image
+          // (search metadata rarely includes proper product images)
+          if (/amazon\.com\.br/i.test(cleanUrl)) {
             const amazonDpMatch = cleanUrl.match(/amazon\.com\.br\/.*(?:\/dp\/|\/dp$)([A-Z0-9]+)/i) || cleanUrl.match(/amazon\.com\.br\/dp\/([A-Z0-9]+)/i);
             if (amazonDpMatch) {
               try {
