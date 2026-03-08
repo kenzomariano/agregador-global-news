@@ -1,0 +1,1 @@
+DELETE FROM products WHERE image_url IS NULL OR price IS NULL;
