@@ -426,9 +426,7 @@ serve(async (req) => {
     if (itemLinks.length < maxItems) {
       if (isProductSource) {
         // Use Firecrawl search to find products via Google Shopping
-        const searchQueries = [
-          `${typedSource.name} comprar oferta preço`,
-        ];
+        const searchQueries = [typedSource.name];
         
         console.log(`Using Google Shopping search to discover products for: ${typedSource.name}`);
         
