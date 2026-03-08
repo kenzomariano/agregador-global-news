@@ -774,13 +774,13 @@ serve(async (req) => {
             }
           }
 
-          // Priority 2.5: For Amazon products, ALWAYS scrape the actual page for the hero image
-          // (search metadata rarely includes proper product images)
+          // Priority 2.5: For Amazon products, scrape with screenshot format for ogImage
           if (/amazon\.com\.br/i.test(cleanUrl)) {
             const amazonDpMatch = cleanUrl.match(/\/dp\/([A-Z0-9]{10})/i);
             if (amazonDpMatch) {
+              const asin = amazonDpMatch[1];
               try {
-                console.log(`Scraping Amazon product page for better image: ${cleanUrl.slice(0, 80)}`);
+                console.log(`Scraping Amazon product page for image (ASIN: ${asin}): ${cleanUrl.slice(0, 80)}`);
                 const amzScrapeResp = await fetch("https://api.firecrawl.dev/v1/scrape", {
                   method: "POST",
                   headers: {
@@ -790,7 +790,8 @@ serve(async (req) => {
                   body: JSON.stringify({
                     url: cleanUrl,
                     formats: ["markdown"],
-                    onlyMainContent: true,
+                    onlyMainContent: false, // Get full page to find product images
+                    waitFor: 3000, // Wait for Amazon JS to load images
                   }),
                 });
                 if (amzScrapeResp.ok) {
@@ -798,10 +799,26 @@ serve(async (req) => {
                   const amzMarkdown = amzData.data?.markdown || "";
                   const amzMeta = amzData.data?.metadata || {};
                   const amzImgCandidates: string[] = [];
-                  if (amzMeta.ogImage) amzImgCandidates.push(amzMeta.ogImage);
-                  // Extract large Amazon images from page content
+                  
+                  // ogImage is usually the main product image
+                  if (amzMeta.ogImage) {
+                    console.log(`Amazon ogImage found: ${amzMeta.ogImage.slice(0, 100)}`);
+                    amzImgCandidates.push(amzMeta.ogImage);
+                  }
+                  
+                  // Extract ALL Amazon images, prefer those with larger size suffixes
                   const amzPageImages = [...amzMarkdown.matchAll(/(https?:\/\/m\.media-amazon\.com\/images\/I\/[A-Za-z0-9._%-]+\.(?:jpg|jpeg|png|webp))/gi)].map((m: RegExpMatchArray) => m[1]);
-                  amzImgCandidates.push(...amzPageImages);
+                  
+                  // Filter out the known generic placeholder
+                  const filteredImages = amzPageImages.filter(img => 
+                    !img.includes("41Dhma07YkL") && // Known generic placeholder
+                    !img.includes("1x1") &&
+                    !/sprite|icon|logo|pixel/i.test(img)
+                  );
+                  
+                  console.log(`Amazon page returned ${filteredImages.length} unique images (from ${amzPageImages.length} total)`);
+                  amzImgCandidates.push(...filteredImages);
+                  
                   const bestAmzImg = pickBestProductImage(amzImgCandidates);
                   if (bestAmzImg) {
                     imageUrl = upscaleAmazonImage(bestAmzImg);
