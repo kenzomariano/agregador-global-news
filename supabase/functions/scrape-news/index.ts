@@ -473,38 +473,36 @@ serve(async (req) => {
 
     if (itemLinks.length < maxItems) {
       if (isProductSource) {
-        // Build specific product search queries
+        // Build specific product search queries targeting PRODUCT PAGES (not listings)
         const PRODUCT_QUERY_MAP: Record<string, string[]> = {
           "Eletrônicos": [
-            "site:mercadolivre.com.br smartphone Samsung Galaxy",
-            "site:mercadolivre.com.br notebook Dell",
-            "site:mercadolivre.com.br fone bluetooth JBL",
-            "site:mercadolivre.com.br smart TV 4K",
-            "site:amazon.com.br smartphone oferta",
-            "site:magazineluiza.com.br notebook",
-            "site:kabum.com.br placa de video",
+            "samsung galaxy site:amazon.com.br/dp",
+            "notebook dell site:amazon.com.br/dp",
+            "fone jbl bluetooth site:amazon.com.br/dp",
+            "smart tv 4k site:amazon.com.br/dp",
+            "smartphone samsung galaxy MLB site:mercadolivre.com.br",
+            "notebook lenovo MLB site:mercadolivre.com.br",
+            "placa de video site:kabum.com.br/produto",
           ],
           "Vestuário": [
-            "site:mercadolivre.com.br tênis Nike",
-            "site:mercadolivre.com.br camiseta Adidas",
-            "site:amazon.com.br mochila",
-            "site:mercadolivre.com.br jaqueta masculina",
+            "tênis nike site:amazon.com.br/dp",
+            "mochila escolar site:amazon.com.br/dp",
+            "camiseta adidas site:amazon.com.br/dp",
+            "jaqueta masculina MLB site:mercadolivre.com.br",
           ],
           "Casa e Jardim": [
-            "site:mercadolivre.com.br aspirador robô",
-            "site:mercadolivre.com.br cafeteira",
-            "site:amazon.com.br panela elétrica",
-            "site:mercadolivre.com.br churrasqueira",
+            "aspirador robô site:amazon.com.br/dp",
+            "cafeteira nespresso site:amazon.com.br/dp",
+            "panela elétrica site:amazon.com.br/dp",
+            "churrasqueira elétrica MLB site:mercadolivre.com.br",
           ],
         };
 
         const categoryName = typedSource.name;
         const specificQueries = PRODUCT_QUERY_MAP[categoryName] || [
-          `site:mercadolivre.com.br ${categoryName}`,
-          `site:amazon.com.br ${categoryName}`,
+          `${categoryName} site:amazon.com.br/dp`,
         ];
         
-        // Pick random subset to vary results each run
         const shuffled = specificQueries.sort(() => Math.random() - 0.5);
         const searchQueries = shuffled.slice(0, Math.min(4, shuffled.length));
 
@@ -553,13 +551,26 @@ serve(async (req) => {
                 const resultUrl = result.url || "";
                 const cleanUrl = extractCanonicalProductUrl(resultUrl);
                 
-                // Check if it's from a known e-commerce domain
+                // Check if URL is actually a PRODUCT page (not listing/category/search)
                 const isEcommerce = ECOMMERCE_DOMAINS.some(d => cleanUrl.includes(d));
-                const isCatalogPage = /\/categorias|\/ofertas$|\/categoria\/|\/category\/|\/search\?|\/s\/|\/busca\/|\/blog|\/c\/|\/informatica\/s\/|\/sec\//i.test(cleanUrl);
-                const isListingPage = /\/s\?|\/busca\?|\/search\/|lista\.mercadolivre/i.test(cleanUrl);
-                const isHomePage = /^https?:\/\/[^/]+\/?$/i.test(cleanUrl);
                 
-                if (isEcommerce && !isCatalogPage && !isListingPage && !isHomePage) {
+                // Positive product URL patterns - must match at least one
+                const PRODUCT_URL_PATTERNS = [
+                  /amazon\.com\.br\/.*\/dp\//i,              // Amazon product
+                  /amazon\.com\.br\/dp\//i,                  // Amazon short product
+                  /mercadolivre\.com\.br\/.*-_JM/i,          // ML product (old format)
+                  /mercadolivre\.com\.br\/.*\/p\/MLB/i,      // ML product (new format)
+                  /mercadolivre\.com\.br\/MLB-/i,            // ML product direct
+                  /shopee\.com\.br\/.*-i\.\d+\.\d+/i,       // Shopee product
+                  /magazineluiza\.com\.br\/.*\/p\//i,        // Magalu product
+                  /kabum\.com\.br\/produto\//i,              // Kabum product
+                  /americanas\.com\.br\/produto\//i,         // Americanas product
+                  /casasbahia\.com\.br\/produto\//i,         // Casas Bahia product
+                ];
+                
+                const isProductUrl = isEcommerce && PRODUCT_URL_PATTERNS.some(p => p.test(cleanUrl));
+                
+                if (isProductUrl) {
                   allFoundLinks.push(cleanUrl);
                   
                   const metadata = result.metadata || {};
