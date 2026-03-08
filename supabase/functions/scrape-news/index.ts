@@ -744,10 +744,12 @@ serve(async (req) => {
             console.log(`Extracted name from URL: ${name}`);
           }
 
-          // Reject generic store names
+          // Reject generic store names and non-physical products (eBooks, books, digital)
           const GENERIC_NAMES = ["shopee brasil", "mercado livre", "shopee", "mercadolivre", "please enable javascript"];
-          if (!name || name.length < 3 || GENERIC_NAMES.some(g => name.toLowerCase().includes(g))) {
-            console.log(`Skipping product with invalid/generic name: "${name}" from ${itemUrl}`);
+          const EBOOK_PATTERNS = [/\bebook\b/i, /\be-book\b/i, /\bkindle edition\b/i, /\bpaperback\b/i, /\bhardcover\b/i, /\bmade easy\b/i, /\bguide to\b/i, /\bhow to\b/i, /\bstep.by.step\b/i, /\blivro\b/i, /\beBooks em/i];
+          const isEbook = EBOOK_PATTERNS.some(p => p.test(name) || p.test(searchDescription) || p.test(searchTitle));
+          if (!name || name.length < 3 || GENERIC_NAMES.some(g => name.toLowerCase().includes(g)) || isEbook) {
+            console.log(`Skipping product: "${name}" (generic=${GENERIC_NAMES.some(g => name.toLowerCase().includes(g))}, ebook=${isEbook}) from ${itemUrl}`);
             skippedCount++;
             continue;
           }
