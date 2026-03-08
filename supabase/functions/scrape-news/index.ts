@@ -723,27 +723,30 @@ serve(async (req) => {
           // --- IMAGE EXTRACTION ---
           let imageUrl: string | null = null;
 
-          // Priority 1: direct image extracted from Google Shopping search result
-          if (searchResult.image && isLikelyProductImage(searchResult.image)) {
-            imageUrl = normalizeImageUrl(searchResult.image);
-            console.log(`Using search result image: ${imageUrl.slice(0, 100)}`);
+          // Priority 1: direct image extracted from Google Shopping/search metadata
+          if (searchResult.image) {
+            imageUrl = pickBestProductImage([searchResult.image]);
+            if (imageUrl) {
+              console.log(`Using search result image: ${imageUrl.slice(0, 100)}`);
+            }
           }
 
           // Priority 2: collect additional image candidates from combined text
           if (!imageUrl) {
             const gstaticShoppingMatches = allText.match(/https?:\/\/encrypted-tbn\d*\.gstatic\.com\/shopping\?q=tbn:[^\s)"'\\]+/gi) || [];
             const mlImageMatches = [...allText.matchAll(/(https?:\/\/(?:http2\.)?mlstatic\.com\/[^\s)"'\\]+(?:jpg|jpeg|png|webp)[^\s)"'\\]*)/gi)].map((m) => m[1]);
-            const shopeeImageMatches = [...allText.matchAll(/(https?:\/\/(?:down-br|cf)\.shopee[^\s)"'\\]+\.(?:jpg|jpeg|png|webp)[^\s)"'\\]*)/gi)].map((m) => m[1]);
+            const shopeeImageMatches = [
+              ...allText.matchAll(/(https?:\/\/(?:down-br|cf)\.shopee[^\s)"'\\]+\.(?:jpg|jpeg|png|webp)[^\s)"'\\]*)/gi),
+              ...allText.matchAll(/(https?:\/\/[^\s)"'\\]*susercontent\.com[^\s)"'\\]*)/gi),
+            ].map((m) => m[1]);
             const markdownImageMatches = [...allText.matchAll(/!\[.*?\]\((https?:\/\/[^)\s]+)\)/gi)].map((m) => m[1]);
 
-            const fallbackImage = [
+            const fallbackImage = pickBestProductImage([
               ...gstaticShoppingMatches,
               ...mlImageMatches,
               ...shopeeImageMatches,
               ...markdownImageMatches,
-            ]
-              .map(normalizeImageUrl)
-              .find((candidate) => isLikelyProductImage(candidate));
+            ]);
 
             if (fallbackImage) {
               imageUrl = fallbackImage;
