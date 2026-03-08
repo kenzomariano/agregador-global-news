@@ -488,28 +488,25 @@ serve(async (req) => {
 
     if (itemLinks.length < maxItems) {
       if (isProductSource) {
-        // Build specific product search queries targeting PRODUCT PAGES (not listings)
+        // Build specific product search queries - prioritize Amazon (has images in metadata)
         const PRODUCT_QUERY_MAP: Record<string, string[]> = {
           "Eletrônicos": [
-            "samsung galaxy site:amazon.com.br/dp",
-            "notebook dell site:amazon.com.br/dp",
+            "smartphone samsung galaxy site:amazon.com.br/dp",
+            "notebook lenovo ideapad site:amazon.com.br/dp",
             "fone jbl bluetooth site:amazon.com.br/dp",
-            "smart tv 4k site:amazon.com.br/dp",
-            "smartphone samsung galaxy MLB site:mercadolivre.com.br",
-            "notebook lenovo MLB site:mercadolivre.com.br",
-            "placa de video site:kabum.com.br/produto",
+            "smart tv 4k samsung site:amazon.com.br/dp",
           ],
           "Vestuário": [
-            "tênis nike site:amazon.com.br/dp",
+            "tênis nike masculino site:amazon.com.br/dp",
             "mochila escolar site:amazon.com.br/dp",
             "camiseta adidas site:amazon.com.br/dp",
-            "jaqueta masculina MLB site:mercadolivre.com.br",
+            "tênis adidas feminino site:amazon.com.br/dp",
           ],
           "Casa e Jardim": [
             "aspirador robô site:amazon.com.br/dp",
             "cafeteira nespresso site:amazon.com.br/dp",
             "panela elétrica site:amazon.com.br/dp",
-            "churrasqueira elétrica MLB site:mercadolivre.com.br",
+            "fritadeira airfryer site:amazon.com.br/dp",
           ],
         };
 
@@ -518,8 +515,8 @@ serve(async (req) => {
           `${categoryName} site:amazon.com.br/dp`,
         ];
         
-        const shuffled = specificQueries.sort(() => Math.random() - 0.5);
-        const searchQueries = shuffled.slice(0, Math.min(4, shuffled.length));
+        // Use all queries in order (don't shuffle) to ensure consistency
+        const searchQueries = specificQueries.slice(0, Math.min(4, specificQueries.length));
 
         console.log(`Using Firecrawl Search API for products: ${searchQueries.join(" | ")}`);
 
