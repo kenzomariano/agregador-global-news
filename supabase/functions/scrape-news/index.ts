@@ -129,6 +129,21 @@ function normalizeImageUrl(url: string): string {
     .trim();
 }
 
+// Upscale Amazon image URLs from tiny thumbnails to large product images
+function upscaleAmazonImage(url: string): string {
+  if (!url || !/m\.media-amazon\.com/i.test(url)) return url;
+  // Replace any Amazon image size suffix with large version (500px)
+  // Common patterns: _AC_US40_, _SX38_, _AC_UL320_, _SS100_, etc.
+  return url
+    .replace(/_AC_US\d+_/g, "_AC_SL500_")
+    .replace(/_SX\d+_/g, "_SL500_")
+    .replace(/_SY\d+_/g, "_SL500_")
+    .replace(/_SS\d+_/g, "_SL500_")
+    .replace(/_AC_UL\d+_/g, "_AC_SL500_")
+    .replace(/_AC_SR\d+,\d+_/g, "_AC_SL500_")
+    .replace(/_AC_SX\d+_/g, "_AC_SL500_");
+}
+
 function extractCanonicalProductUrl(url: string): string {
   const normalized = normalizeImageUrl(url);
 
