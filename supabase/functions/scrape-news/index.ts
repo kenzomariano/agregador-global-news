@@ -539,6 +539,9 @@ serve(async (req) => {
                 limit: 10,
                 lang: "pt-br",
                 country: "br",
+                scrapeOptions: {
+                  formats: ["markdown"],
+                },
               }),
             });
 
