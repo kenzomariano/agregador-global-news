@@ -754,12 +754,30 @@ serve(async (req) => {
             }
           }
 
-          // Priority 3: Build image URL from MLB ID for Mercado Livre products
+          // Priority 3: For ML products, try fetching the product API for real image
           if (!imageUrl) {
             const mlbMatch = cleanUrl.match(/\/p\/(MLB\d+)/i);
             if (mlbMatch) {
-              imageUrl = `https://http2.mlstatic.com/D_NQ_NP_2X_${mlbMatch[1]}-F.webp`;
-              console.log(`Built MLB image URL: ${imageUrl}`);
+              try {
+                const mlApiUrl = `https://api.mercadolibre.com/items/${mlbMatch[1]}`;
+                console.log(`Fetching ML API for image: ${mlApiUrl}`);
+                const mlApiResp = await fetch(mlApiUrl);
+                if (mlApiResp.ok) {
+                  const mlApiData = await mlApiResp.json();
+                  const mlApiImage = mlApiData.pictures?.[0]?.secure_url || mlApiData.thumbnail?.replace("http://", "https://");
+                  if (mlApiImage && isLikelyProductImage(mlApiImage)) {
+                    imageUrl = mlApiImage;
+                    console.log(`Got ML API image: ${imageUrl.slice(0, 100)}`);
+                  }
+                  // Also grab price from API if missing
+                  if (!price && mlApiData.price) {
+                    price = mlApiData.price;
+                    console.log(`Got ML API price: R$ ${price}`);
+                  }
+                }
+              } catch (e) {
+                console.log(`ML API fetch failed: ${e}`);
+              }
             }
           }
 
