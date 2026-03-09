@@ -126,13 +126,41 @@ export default function SearchPage() {
           results.length > 0 ? (
             <div>
               <p className="text-sm text-muted-foreground mb-4">
-                {results.length} resultado{results.length !== 1 ? "s" : ""} para "<strong>{query}</strong>"
+                {totalCount} resultado{totalCount !== 1 ? "s" : ""} para "<strong>{query}</strong>"
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {results.map((article) => (
                   <ArticleCard key={article.id} article={article} />
                 ))}
               </div>
+              {/* Pagination */}
+              {(() => {
+                const totalPages = Math.ceil(totalCount / SEARCH_PER_PAGE);
+                if (totalPages <= 1) return null;
+                const params: Record<string, string> = { q: query };
+                if (categoryFilter) params.categoria = categoryFilter;
+                return (
+                  <nav className="flex items-center justify-center gap-2 mt-8" aria-label="Paginação">
+                    {page > 1 && (
+                      <Button variant="outline" size="sm" asChild>
+                        <Link to={`/buscar?${new URLSearchParams({ ...params, ...(page > 2 ? { page: String(page - 1) } : {}) })}`}>
+                          <ChevronLeft className="h-4 w-4 mr-1" /> Anterior
+                        </Link>
+                      </Button>
+                    )}
+                    <span className="text-sm text-muted-foreground px-3">
+                      Página {page} de {totalPages}
+                    </span>
+                    {page < totalPages && (
+                      <Button variant="outline" size="sm" asChild>
+                        <Link to={`/buscar?${new URLSearchParams({ ...params, page: String(page + 1) })}`}>
+                          Próxima <ChevronRight className="h-4 w-4 ml-1" />
+                        </Link>
+                      </Button>
+                    )}
+                  </nav>
+                );
+              })()}
             </div>
           ) : (
             <div className="text-center py-12 text-muted-foreground">
