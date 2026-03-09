@@ -10,6 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { SavedArticlesSection } from "@/components/account/SavedArticlesSection";
 
 export default function AccountPage() {
   const navigate = useNavigate();
