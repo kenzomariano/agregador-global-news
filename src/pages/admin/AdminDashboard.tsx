@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Newspaper, Rss, Settings, Megaphone, LayoutDashboard, BookOpen } from "lucide-react";
+import { Newspaper, Rss, Settings, Megaphone, LayoutDashboard, BookOpen, Package } from "lucide-react";
 import { SourcesManager } from "@/components/admin/SourcesManager";
 import { ArticlesManager } from "@/components/admin/ArticlesManager";
 import { AdsManager } from "@/components/admin/AdsManager";
