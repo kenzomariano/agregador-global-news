@@ -39,7 +39,9 @@ export function ArticleListItem({
   onEdit,
   onDelete,
   onRescrape,
+  onGenerateFaq,
   isRescraping,
+  isGeneratingFaq,
 }: ArticleListItemProps) {
   const category = CATEGORIES[article.category as CategoryKey];
   const timeAgo = article.published_at
