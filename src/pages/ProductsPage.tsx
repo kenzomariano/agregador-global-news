@@ -221,8 +221,14 @@ function ProductCard({ product }: { product: Product }) {
               loading="lazy"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <ShoppingBag className="h-16 w-16 text-muted-foreground/50" />
+            <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-muted to-muted/50 relative overflow-hidden">
+              <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'repeating-linear-gradient(45deg, currentColor 0, currentColor 1px, transparent 0, transparent 50%)', backgroundSize: '24px 24px' }} />
+              <div className="relative flex flex-col items-center gap-3">
+                <div className="rounded-full bg-primary/10 p-4">
+                  <ShoppingBag className="h-8 w-8 text-primary/40" />
+                </div>
+                <span className="text-xs font-medium text-muted-foreground/50 uppercase tracking-wider">Sem imagem</span>
+              </div>
             </div>
           )}
           {product.is_available === false && (
