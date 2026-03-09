@@ -530,34 +530,34 @@ serve(async (req) => {
 
     if (itemLinks.length < maxItems) {
       if (isProductSource) {
-        // Build specific product search queries - prioritize Amazon (has images in metadata)
+        // Build product search queries targeting Mercado Livre & Shopee via Google Shopping
         const PRODUCT_QUERY_MAP: Record<string, string[]> = {
           "Eletrônicos": [
-            "smartphone samsung galaxy site:amazon.com.br/dp",
-            "notebook lenovo ideapad site:amazon.com.br/dp",
-            "fone jbl bluetooth site:amazon.com.br/dp",
-            "smart tv 4k samsung site:amazon.com.br/dp",
+            "smartphone samsung galaxy mercado livre",
+            "notebook lenovo shopee brasil",
+            "fone bluetooth jbl mercado livre",
+            "smart tv 4k samsung shopee",
           ],
           "Vestuário": [
-            "tênis nike masculino site:amazon.com.br/dp",
-            "mochila escolar site:amazon.com.br/dp",
-            "camiseta adidas site:amazon.com.br/dp",
-            "tênis adidas feminino site:amazon.com.br/dp",
+            "tênis nike masculino mercado livre",
+            "mochila escolar shopee brasil",
+            "camiseta adidas mercado livre",
+            "tênis adidas feminino shopee",
           ],
           "Casa e Jardim": [
-            "aspirador robô site:amazon.com.br/dp",
-            "cafeteira nespresso site:amazon.com.br/dp",
-            "panela elétrica site:amazon.com.br/dp",
-            "fritadeira airfryer site:amazon.com.br/dp",
+            "aspirador robô mercado livre",
+            "cafeteira nespresso shopee brasil",
+            "fritadeira airfryer mercado livre",
+            "panela elétrica shopee",
           ],
         };
 
         const categoryName = typedSource.name;
         const specificQueries = PRODUCT_QUERY_MAP[categoryName] || [
-          `${categoryName} site:amazon.com.br/dp`,
+          `${categoryName} mercado livre`,
+          `${categoryName} shopee brasil`,
         ];
         
-        // Use all queries in order (don't shuffle) to ensure consistency
         const searchQueries = specificQueries.slice(0, Math.min(4, specificQueries.length));
 
         console.log(`Using Firecrawl Search API for products: ${searchQueries.join(" | ")}`);
@@ -610,12 +610,15 @@ serve(async (req) => {
                 
                 // Positive product URL patterns - must match at least one
                 const PRODUCT_URL_PATTERNS = [
-                  /amazon\.com\.br\/.*\/dp\//i,              // Amazon product
-                  /amazon\.com\.br\/dp\//i,                  // Amazon short product
                   /mercadolivre\.com\.br\/.*-_JM/i,          // ML product (old format)
                   /mercadolivre\.com\.br\/.*\/p\/MLB/i,      // ML product (new format)
                   /mercadolivre\.com\.br\/MLB-/i,            // ML product direct
+                  /produto\.mercadolivre\.com\.br\//i,       // ML product subdomain
+                  /mercadolivre\.com\.br\/.*MLB\d+/i,        // ML product ID in URL
                   /shopee\.com\.br\/.*-i\.\d+\.\d+/i,       // Shopee product
+                  /shopee\.com\.br\/product\//i,             // Shopee product alt
+                  /amazon\.com\.br\/.*\/dp\//i,              // Amazon product
+                  /amazon\.com\.br\/dp\//i,                  // Amazon short product
                   /magazineluiza\.com\.br\/.*\/p\//i,        // Magalu product
                   /kabum\.com\.br\/produto\//i,              // Kabum product
                   /americanas\.com\.br\/produto\//i,         // Americanas product
@@ -818,14 +821,13 @@ serve(async (req) => {
             }
           }
 
-          // Priority 2.5: For Amazon products, scrape with screenshot format for ogImage
-          if (/amazon\.com\.br/i.test(cleanUrl)) {
-            const amazonDpMatch = cleanUrl.match(/\/dp\/([A-Z0-9]{10})/i);
-            if (amazonDpMatch) {
-              const asin = amazonDpMatch[1];
+          // Priority 2.5: Scrape product page directly for better image/data extraction
+          if (!imageUrl || !price) {
+            const shouldScrape = /mercadolivre\.com\.br|shopee\.com\.br|amazon\.com\.br/i.test(cleanUrl);
+            if (shouldScrape) {
               try {
-                console.log(`Scraping Amazon product page for image (ASIN: ${asin}): ${cleanUrl.slice(0, 80)}`);
-                const amzScrapeResp = await fetch("https://api.firecrawl.dev/v1/scrape", {
+                console.log(`Scraping product page for image/data: ${cleanUrl.slice(0, 80)}`);
+                const pageScrapeResp = await fetch("https://api.firecrawl.dev/v1/scrape", {
                   method: "POST",
                   headers: {
                     "Authorization": `Bearer ${firecrawlKey}`,
@@ -834,43 +836,49 @@ serve(async (req) => {
                   body: JSON.stringify({
                     url: cleanUrl,
                     formats: ["markdown"],
-                    onlyMainContent: false, // Get full page to find product images
-                    waitFor: 3000, // Wait for Amazon JS to load images
+                    onlyMainContent: false,
+                    waitFor: 3000,
                   }),
                 });
-                if (amzScrapeResp.ok) {
-                  const amzData = await amzScrapeResp.json();
-                  const amzMarkdown = amzData.data?.markdown || "";
-                  const amzMeta = amzData.data?.metadata || {};
-                  const amzImgCandidates: string[] = [];
+                if (pageScrapeResp.ok) {
+                  const pageData = await pageScrapeResp.json();
+                  const pageMarkdown = pageData.data?.markdown || "";
+                  const pageMeta = pageData.data?.metadata || {};
+                  const pageImgCandidates: string[] = [];
                   
-                  // ogImage is usually the main product image
-                  if (amzMeta.ogImage) {
-                    console.log(`Amazon ogImage found: ${amzMeta.ogImage.slice(0, 100)}`);
-                    amzImgCandidates.push(amzMeta.ogImage);
+                  // ogImage from metadata
+                  if (pageMeta.ogImage) pageImgCandidates.push(pageMeta.ogImage);
+                  
+                  // Extract images from page markdown
+                  const pageImages = [...pageMarkdown.matchAll(/(https?:\/\/[^\s)"'\\]+\.(?:jpg|jpeg|png|webp)[^\s)"'\\]*)/gi)].map((m: RegExpMatchArray) => m[1]);
+                  pageImgCandidates.push(...pageImages);
+                  
+                  // Also extract markdown images
+                  const mdImages = [...pageMarkdown.matchAll(/!\[.*?\]\((https?:\/\/[^)\s]+)\)/gi)].map((m: RegExpMatchArray) => m[1]);
+                  pageImgCandidates.push(...mdImages);
+
+                  if (!imageUrl) {
+                    const bestPageImg = pickBestProductImage(pageImgCandidates);
+                    if (bestPageImg) {
+                      imageUrl = /amazon\.com\.br/i.test(cleanUrl) ? upscaleAmazonImage(bestPageImg) : bestPageImg;
+                      console.log(`Got page scrape image: ${imageUrl.slice(0, 100)}`);
+                    }
                   }
                   
-                  // Extract ALL Amazon images, prefer those with larger size suffixes
-                  const amzPageImages = [...amzMarkdown.matchAll(/(https?:\/\/m\.media-amazon\.com\/images\/I\/[A-Za-z0-9._%-]+\.(?:jpg|jpeg|png|webp))/gi)].map((m: RegExpMatchArray) => m[1]);
-                  
-                  // Filter out the known generic placeholder
-                  const filteredImages = amzPageImages.filter(img => 
-                    !img.includes("41Dhma07YkL") && // Known generic placeholder
-                    !img.includes("1x1") &&
-                    !/sprite|icon|logo|pixel/i.test(img)
-                  );
-                  
-                  console.log(`Amazon page returned ${filteredImages.length} unique images (from ${amzPageImages.length} total)`);
-                  amzImgCandidates.push(...filteredImages);
-                  
-                  const bestAmzImg = pickBestProductImage(amzImgCandidates);
-                  if (bestAmzImg) {
-                    imageUrl = upscaleAmazonImage(bestAmzImg);
-                    console.log(`Got Amazon page image: ${imageUrl.slice(0, 100)}`);
+                  // Extract price from page if not found yet
+                  if (!price && pageMarkdown) {
+                    const pagePriceMatch = pageMarkdown.match(/R\$\s*([\d.]+,\d{2})/);
+                    if (pagePriceMatch) {
+                      const parsed = parseFloat(pagePriceMatch[1].replace(/\./g, "").replace(",", "."));
+                      if (parsed > 0 && parsed < 1000000) {
+                        price = parsed;
+                        console.log(`Extracted price from page: R$ ${price}`);
+                      }
+                    }
                   }
                 }
               } catch (e) {
-                console.log(`Amazon page scrape failed: ${e}`);
+                console.log(`Product page scrape failed: ${e}`);
               }
             }
           }
