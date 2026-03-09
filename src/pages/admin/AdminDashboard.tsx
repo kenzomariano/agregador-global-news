@@ -35,7 +35,7 @@ export default function AdminDashboard() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5 h-auto gap-2 bg-transparent p-0">
+        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6 h-auto gap-2 bg-transparent p-0">
           <TabsTrigger 
             value="overview" 
             className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex gap-2 py-3"
@@ -49,6 +49,13 @@ export default function AdminDashboard() {
           >
             <Newspaper className="h-4 w-4" />
             <span className="hidden sm:inline">Artigos</span>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="guides" 
+            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex gap-2 py-3"
+          >
+            <BookOpen className="h-4 w-4" />
+            <span className="hidden sm:inline">Guias</span>
           </TabsTrigger>
           <TabsTrigger 
             value="sources" 
