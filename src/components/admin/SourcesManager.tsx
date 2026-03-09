@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2, RefreshCw, Globe, FileText, Package, Upload, Link } from "lucide-react";
+import { ScrapeQueuePanel } from "./ScrapeQueuePanel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
