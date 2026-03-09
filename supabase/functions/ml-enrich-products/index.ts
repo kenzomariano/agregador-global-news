@@ -162,7 +162,23 @@ Deno.serve(async (req) => {
         }
 
         // Get description if missing (separate API call)
-        // Skip for now to save API calls
+        if (!product.description) {
+          try {
+            const descResponse = await fetch(`https://api.mercadolibre.com/items/${mlbId}/description`, {
+              headers: { Authorization: `Bearer ${mlToken}` },
+            });
+            
+            if (descResponse.ok) {
+              const descData = await descResponse.json();
+              if (descData && descData.plain_text) {
+                updates.description = descData.plain_text;
+                console.log(`  Description found (${updates.description.length} chars)`);
+              }
+            }
+          } catch (descError) {
+            console.error(`  Error fetching description for ${mlbId}:`, descError);
+          }
+        }
 
         if (Object.keys(updates).length > 0) {
           updates.updated_at = new Date().toISOString();
