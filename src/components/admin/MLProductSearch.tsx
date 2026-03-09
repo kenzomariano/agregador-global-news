@@ -4,16 +4,20 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
-import { Search, Loader2, ShoppingCart, X, Check, Package } from "lucide-react";
+import { Search, Loader2, ShoppingCart, X, Check, Package, Filter, ChevronDown, Truck } from "lucide-react";
 
 interface MLResult {
   ml_id: string;
   title: string;
   price: number;
+  original_price: number | null;
   currency: string;
   thumbnail: string | null;
   permalink: string;
@@ -22,12 +26,29 @@ interface MLResult {
   sold_quantity: number;
   category_id: string;
   seller_nickname: string | null;
+  shipping_free: boolean;
+}
+
+interface MLCategory {
+  id: string;
+  name: string;
 }
 
 interface MLProductSearchProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
+
+const ML_CATEGORIES: MLCategory[] = [
+  { id: "", name: "Todas as categorias" },
+  { id: "MLB1648", name: "Computação" },
+  { id: "MLB1051", name: "Celulares e Telefones" },
+  { id: "MLB1000", name: "Eletrônicos, Áudio e Vídeo" },
+  { id: "MLB1574", name: "Casa, Móveis e Decoração" },
+  { id: "MLB1276", name: "Esportes e Fitness" },
+  { id: "MLB1168", name: "Brinquedos e Hobbies" },
+  { id: "MLB1430", name: "Beleza e Cuidado Pessoal" },
+];
 
 export function MLProductSearch({ open, onOpenChange }: MLProductSearchProps) {
   const { toast } = useToast();
@@ -37,13 +58,30 @@ export function MLProductSearch({ open, onOpenChange }: MLProductSearchProps) {
   const [total, setTotal] = useState(0);
   const [searching, setSearching] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [filtersOpen, setFiltersOpen] = useState(false);
+
+  // Filters
+  const [category, setCategory] = useState("");
+  const [priceMin, setPriceMin] = useState("");
+  const [priceMax, setPriceMax] = useState("");
+  const [condition, setCondition] = useState("");
 
   const handleSearch = async (offset = 0) => {
     if (!query.trim()) return;
     setSearching(true);
     try {
+      const body: Record<string, any> = { 
+        query: query.trim(), 
+        limit: 20, 
+        offset 
+      };
+      if (category) body.category = category;
+      if (priceMin) body.priceMin = parseFloat(priceMin);
+      if (priceMax) body.priceMax = parseFloat(priceMax);
+      if (condition) body.condition = condition;
+
       const { data, error } = await supabase.functions.invoke("ml-search-products", {
-        body: { query: query.trim(), limit: 20, offset },
+        body,
       });
       if (error) throw error;
       if (offset === 0) {
@@ -59,6 +97,15 @@ export function MLProductSearch({ open, onOpenChange }: MLProductSearchProps) {
       setSearching(false);
     }
   };
+
+  const clearFilters = () => {
+    setCategory("");
+    setPriceMin("");
+    setPriceMax("");
+    setCondition("");
+  };
+
+  const hasActiveFilters = category || priceMin || priceMax || condition;
 
   const importMutation = useMutation({
     mutationFn: async (items: MLResult[]) => {
@@ -127,20 +174,106 @@ export function MLProductSearch({ open, onOpenChange }: MLProductSearchProps) {
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Ex: notebook gamer, fone bluetooth..."
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-              className="pl-9"
-            />
+        <div className="space-y-3">
+          {/* Search bar */}
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Ex: notebook gamer, fone bluetooth..."
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                className="pl-9"
+              />
+            </div>
+            <Button onClick={() => handleSearch()} disabled={searching || !query.trim()}>
+              {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : "Buscar"}
+            </Button>
           </div>
-          <Button onClick={() => handleSearch()} disabled={searching || !query.trim()}>
-            {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : "Buscar"}
-          </Button>
+
+          {/* Filters */}
+          <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
+            <CollapsibleTrigger asChild>
+              <Button variant="outline" size="sm" className="w-full justify-between">
+                <span className="flex items-center gap-2">
+                  <Filter className="h-4 w-4" />
+                  Filtros
+                  {hasActiveFilters && (
+                    <Badge variant="secondary" className="text-xs">Ativos</Badge>
+                  )}
+                </span>
+                <ChevronDown className={`h-4 w-4 transition-transform ${filtersOpen ? "rotate-180" : ""}`} />
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="pt-3">
+              <div className="grid grid-cols-2 gap-3 p-3 rounded-lg border bg-muted/30">
+                {/* Category */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Categoria</Label>
+                  <Select value={category} onValueChange={setCategory}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="Todas" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ML_CATEGORIES.map((cat) => (
+                        <SelectItem key={cat.id} value={cat.id || "all"}>
+                          {cat.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Condition */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Condição</Label>
+                  <Select value={condition} onValueChange={setCondition}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="Todas" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas</SelectItem>
+                      <SelectItem value="new">Novo</SelectItem>
+                      <SelectItem value="used">Usado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Price Min */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Preço mínimo (R$)</Label>
+                  <Input
+                    type="number"
+                    placeholder="0"
+                    value={priceMin}
+                    onChange={(e) => setPriceMin(e.target.value)}
+                    className="h-9"
+                  />
+                </div>
+
+                {/* Price Max */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Preço máximo (R$)</Label>
+                  <Input
+                    type="number"
+                    placeholder="∞"
+                    value={priceMax}
+                    onChange={(e) => setPriceMax(e.target.value)}
+                    className="h-9"
+                  />
+                </div>
+
+                {hasActiveFilters && (
+                  <div className="col-span-2">
+                    <Button variant="ghost" size="sm" onClick={clearFilters} className="text-xs">
+                      <X className="h-3 w-3 mr-1" /> Limpar filtros
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
         </div>
 
         {selectedIds.size > 0 && (
@@ -209,17 +342,22 @@ export function MLProductSearch({ open, onOpenChange }: MLProductSearchProps) {
                       <Badge variant="secondary" className="text-xs">
                         R$ {item.price?.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                       </Badge>
+                      {item.original_price && item.original_price > item.price && (
+                        <span className="text-xs text-muted-foreground line-through">
+                          R$ {item.original_price.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                        </span>
+                      )}
                       <span className="text-xs text-muted-foreground">
                         {item.condition === "new" ? "Novo" : "Usado"}
                       </span>
+                      {item.shipping_free && (
+                        <Badge variant="outline" className="text-xs text-green-600 border-green-600/30">
+                          <Truck className="h-3 w-3 mr-1" /> Frete grátis
+                        </Badge>
+                      )}
                       {item.sold_quantity > 0 && (
                         <span className="text-xs text-muted-foreground">
                           {item.sold_quantity} vendido(s)
-                        </span>
-                      )}
-                      {item.seller_nickname && (
-                        <span className="text-xs text-muted-foreground">
-                          por {item.seller_nickname}
                         </span>
                       )}
                     </div>
