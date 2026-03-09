@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
+import { useGenerateArticleFaqs } from "@/hooks/useArticleFaqs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
