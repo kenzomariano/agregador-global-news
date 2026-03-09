@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Trash2, RefreshCw, Pencil, ExternalLink, Eye } from "lucide-react";
+import { Trash2, RefreshCw, Pencil, ExternalLink, Eye, MessageCircleQuestion } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
