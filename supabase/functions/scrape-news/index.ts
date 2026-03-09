@@ -533,22 +533,26 @@ serve(async (req) => {
         // Build product search queries targeting Mercado Livre & Shopee via Google Shopping
         const PRODUCT_QUERY_MAP: Record<string, string[]> = {
           "Eletrônicos": [
-            "smartphone samsung galaxy mercado livre",
-            "notebook lenovo shopee brasil",
-            "fone bluetooth jbl mercado livre",
-            "smart tv 4k samsung shopee",
+            "site:produto.mercadolivre.com.br smartphone samsung",
+            "site:produto.mercadolivre.com.br notebook lenovo",
+            "site:produto.mercadolivre.com.br fone bluetooth",
+            "site:produto.mercadolivre.com.br smart tv 4k",
           ],
           "Vestuário": [
-            "tênis nike masculino mercado livre",
-            "mochila escolar shopee brasil",
-            "camiseta adidas mercado livre",
-            "tênis adidas feminino shopee",
+            "site:produto.mercadolivre.com.br tênis nike masculino",
+            "site:produto.mercadolivre.com.br mochila escolar",
+            "site:produto.mercadolivre.com.br camiseta adidas",
+            "site:produto.mercadolivre.com.br tênis feminino",
           ],
           "Casa e Jardim": [
-            "aspirador robô mercado livre",
-            "cafeteira nespresso shopee brasil",
-            "fritadeira airfryer mercado livre",
-            "panela elétrica shopee",
+            "site:produto.mercadolivre.com.br aspirador robô",
+            "site:produto.mercadolivre.com.br cafeteira nespresso",
+            "site:produto.mercadolivre.com.br fritadeira airfryer",
+            "site:produto.mercadolivre.com.br panela elétrica",
+          ],
+          "Google Shopping": [
+            "site:produto.mercadolivre.com.br oferta",
+            "site:produto.mercadolivre.com.br promoção",
           ],
         };
 
