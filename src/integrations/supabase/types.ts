@@ -91,6 +91,41 @@ export type Database = {
           },
         ]
       }
+      article_faqs: {
+        Row: {
+          answer: string
+          article_id: string
+          created_at: string
+          id: string
+          position: number
+          question: string
+        }
+        Insert: {
+          answer: string
+          article_id: string
+          created_at?: string
+          id?: string
+          position?: number
+          question: string
+        }
+        Update: {
+          answer?: string
+          article_id?: string
+          created_at?: string
+          id?: string
+          position?: number
+          question?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "article_faqs_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "articles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       article_likes: {
         Row: {
           article_id: string
