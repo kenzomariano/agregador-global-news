@@ -275,6 +275,25 @@ export function ArticlesManager() {
     }
   };
 
+  const handleGenerateFaq = async (articleId: string) => {
+    setGeneratingFaqId(articleId);
+    try {
+      await generateFaq.mutateAsync(articleId);
+      toast({
+        title: "FAQ gerado!",
+        description: "Perguntas frequentes criadas com sucesso.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao gerar FAQ",
+        description: error.message || "Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setGeneratingFaqId(null);
+    }
+  };
+
   const allSelected = filteredArticles && filteredArticles.length > 0 && 
     filteredArticles.every((a) => selectedIds.has(a.id));
 
