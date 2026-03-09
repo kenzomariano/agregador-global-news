@@ -56,7 +56,11 @@ export function HeroBanner({ articles }: HeroBannerProps) {
   return (
     <section className="relative w-full overflow-hidden rounded-xl mb-8">
       {/* Slides */}
-      <div className="relative aspect-[4/5] sm:aspect-[16/9] md:aspect-[16/6]">
+      <div
+        className="relative aspect-[4/5] sm:aspect-[16/9] md:aspect-[16/6]"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
         {articles.map((a, i) => {
           const cat = CATEGORIES[a.category as CategoryKey];
           const t = a.published_at
