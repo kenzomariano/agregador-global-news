@@ -1,9 +1,9 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2, RefreshCw, Globe, FileText, Package, Upload, Link } from "lucide-react";
+import { Plus, Trash2, RefreshCw, Globe, FileText, Package, Upload, Link, Clock, Zap } from "lucide-react";
 import { SEOHead } from "@/components/seo/SEOHead";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -34,6 +34,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useNewsSources, type NewsSource } from "@/hooks/useArticles";
 import { supabase } from "@/integrations/supabase/client";
+import { formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 type SourceType = "article" | "product";
 
@@ -42,6 +44,128 @@ interface ExtendedNewsSource extends Omit<NewsSource, 'source_type' | 'sitemap_u
   sitemap_url: string | null;
 }
 
+interface AutoScrapeStatus {
+  timestamp: string;
+  sourcesCount: number;
+  results: { name: string; status: string; count?: number }[];
+}
+
+function AutoScrapeCard() {
+  const { toast } = useToast();
+  const [lastRun, setLastRun] = useState<AutoScrapeStatus | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [runningManual, setRunningManual] = useState(false);
+
+  useEffect(() => {
+    const fetchStatus = async () => {
+      setLoading(true);
+      const { data } = await supabase
+        .from("site_settings")
+        .select("value")
+        .eq("key", "auto_scrape_last_run")
+        .maybeSingle();
+      if (data?.value) {
+        try {
+          setLastRun(JSON.parse(data.value));
+        } catch { /* ignore */ }
+      }
+      setLoading(false);
+    };
+    fetchStatus();
+  }, []);
+
+  const handleManualRun = async () => {
+    setRunningManual(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("auto-scrape", {
+        body: { triggered_by: "manual" },
+      });
+      if (error) throw error;
+      toast({
+        title: "Scraping automático concluído!",
+        description: `${data.totalItems || 0} itens importados de ${data.sourcesProcessed || 0} fontes.`,
+      });
+      // Refresh status
+      const { data: settingsData } = await supabase
+        .from("site_settings")
+        .select("value")
+        .eq("key", "auto_scrape_last_run")
+        .maybeSingle();
+      if (settingsData?.value) {
+        try { setLastRun(JSON.parse(settingsData.value)); } catch { /* ignore */ }
+      }
+    } catch (error: any) {
+      toast({
+        title: "Erro no scraping automático",
+        description: error.message || "Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setRunningManual(false);
+    }
+  };
+
+  return (
+    <Card className="border-primary/20 bg-primary/5">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-lg flex items-center gap-2">
+          <Clock className="h-5 w-5 text-primary" />
+          Scraping Automático
+        </CardTitle>
+        <CardDescription>
+          Todas as fontes ativas são extraídas automaticamente todos os dias às 8h da manhã (UTC).
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {loading ? (
+          <Skeleton className="h-16 w-full" />
+        ) : lastRun ? (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-sm">
+              <Badge variant="outline" className="gap-1">
+                <Clock className="h-3 w-3" />
+                Última execução
+              </Badge>
+              <span className="text-muted-foreground">
+                {formatDistanceToNow(new Date(lastRun.timestamp), { addSuffix: true, locale: ptBR })}
+              </span>
+              <span className="text-muted-foreground">
+                • {lastRun.sourcesCount} fonte(s)
+              </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {lastRun.results.map((r, i) => (
+                <div key={i} className="flex items-center gap-2 text-sm bg-background rounded-md p-2 border">
+                  <span className={`h-2 w-2 rounded-full ${r.status === "success" ? "bg-green-500" : "bg-destructive"}`} />
+                  <span className="font-medium truncate">{r.name}</span>
+                  {r.count !== undefined && (
+                    <Badge variant="secondary" className="ml-auto text-xs">{r.count} itens</Badge>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            Nenhuma execução automática registrada ainda. O cron job irá executar diariamente às 8h UTC.
+          </p>
+        )}
+
+        <Button
+          onClick={handleManualRun}
+          disabled={runningManual}
+          variant="outline"
+          className="w-full"
+        >
+          <Zap className={`h-4 w-4 mr-2 ${runningManual ? "animate-pulse" : ""}`} />
+          {runningManual ? "Executando scraping de todas as fontes..." : "Executar Agora (Todas as Fontes)"}
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+interface SourcesPageProps { }
 export default function SourcesPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -205,7 +329,7 @@ export default function SourcesPage() {
     <>
       <SEOHead
         title="Gerenciar Fontes"
-        description="Adicione e gerencie as fontes de conteúdo do NewsHub Brasil."
+        description="Adicione e gerencie as fontes de conteúdo do DESIGNE."
       />
 
       <div className="container py-6 max-w-4xl">
@@ -335,6 +459,11 @@ export default function SourcesPage() {
           </Dialog>
         </header>
 
+        {/* Auto Scrape Card */}
+        <div className="mb-8">
+          <AutoScrapeCard />
+        </div>
+
         {isLoading ? (
           <div className="space-y-4">
             {Array.from({ length: 3 }).map((_, i) => (
@@ -451,81 +580,62 @@ export default function SourcesPage() {
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12">
               <Globe className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="font-semibold text-lg mb-2">Nenhuma fonte cadastrada</h3>
-              <p className="text-muted-foreground text-center mb-4">
-                Adicione sites para começar a agregar conteúdo.
+              <h3 className="font-semibold mb-2">Nenhuma fonte cadastrada</h3>
+              <p className="text-sm text-muted-foreground text-center mb-4">
+                Adicione sites de notícias ou lojas para começar a agregar conteúdo.
               </p>
               <Button onClick={() => setDialogOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" />
-                Adicionar Primeira Fonte
+                Adicionar Fonte
               </Button>
             </CardContent>
           </Card>
         )}
+
+        {/* Sitemap Upload Dialog */}
+        <Dialog open={sitemapDialogOpen} onOpenChange={setSitemapDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Upload de Sitemap</DialogTitle>
+              <DialogDescription>
+                Cole o conteúdo XML do sitemap ou faça upload de um arquivo.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Arquivo XML</Label>
+                <Input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".xml,text/xml"
+                  onChange={handleFileUpload}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Ou cole o XML</Label>
+                <Textarea
+                  placeholder="<?xml version='1.0'?>..."
+                  rows={6}
+                  value={sitemapContent}
+                  onChange={(e) => setSitemapContent(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setSitemapDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleSitemapScrape} disabled={!sitemapContent}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Extrair do Sitemap
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
-
-      {/* Sitemap Upload Dialog */}
-      <Dialog open={sitemapDialogOpen} onOpenChange={setSitemapDialogOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Importar via Sitemap</DialogTitle>
-            <DialogDescription>
-              Faça upload de um arquivo XML de sitemap ou cole o conteúdo para extrair os itens mais recentes.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Upload de Arquivo XML</Label>
-              <Input
-                ref={fileInputRef}
-                type="file"
-                accept=".xml,application/xml,text/xml"
-                onChange={handleFileUpload}
-                className="cursor-pointer"
-              />
-            </div>
-
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">ou</span>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="sitemap-content">Cole o conteúdo do Sitemap</Label>
-              <Textarea
-                id="sitemap-content"
-                placeholder="<?xml version='1.0' encoding='UTF-8'?>..."
-                value={sitemapContent}
-                onChange={(e) => setSitemapContent(e.target.value)}
-                rows={8}
-                className="font-mono text-xs"
-              />
-            </div>
-
-            {!sitemapContent && selectedSourceForSitemap?.sitemap_url && (
-              <p className="text-sm text-muted-foreground">
-                💡 Esta fonte já tem um sitemap configurado: <br />
-                <span className="font-mono text-xs break-all">{selectedSourceForSitemap.sitemap_url}</span>
-              </p>
-            )}
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setSitemapDialogOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSitemapScrape}>
-              <RefreshCw className="h-4 w-4 mr-2" />
-              {sitemapContent ? "Extrair do Sitemap" : "Usar Sitemap Configurado"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </>
   );
 }
