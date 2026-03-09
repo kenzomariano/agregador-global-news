@@ -2,6 +2,7 @@ import { Link, useParams } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ExternalLink, ShoppingBag, ArrowLeft, Tag, Store, Clock, CheckCircle, XCircle } from "lucide-react";
+import { ProductCarousel } from "@/components/products/ProductCarousel";
 import { SEOHead } from "@/components/seo/SEOHead";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -200,39 +201,14 @@ export default function ProductDetailPage() {
 
         <Separator className="my-8" />
 
-        {/* Related products */}
+        {/* Related products carousel */}
         {relatedProducts && relatedProducts.length > 0 && (
-          <section>
-            <h2 className="text-xl font-bold font-serif mb-4 flex items-center gap-2">
-              <span className="w-1 h-6 rounded-full bg-primary" />
-              Produtos Similares
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {relatedProducts.map((p) => (
-                <Link key={p.id} to={`/produto/${p.slug}`}>
-                  <Card className="overflow-hidden hover:shadow-lg transition-shadow h-full">
-                    <div className="aspect-square bg-muted overflow-hidden">
-                      {p.image_url ? (
-                        <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" loading="lazy" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <ShoppingBag className="h-10 w-10 text-muted-foreground/30" />
-                        </div>
-                      )}
-                    </div>
-                    <CardContent className="p-3">
-                      <p className="text-sm font-medium line-clamp-2">{p.name}</p>
-                      {p.price !== null && (
-                        <p className="text-lg font-bold text-primary mt-1">
-                          {new Intl.NumberFormat("pt-BR", { style: "currency", currency: p.currency || "BRL" }).format(p.price)}
-                        </p>
-                      )}
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))}
-            </div>
-          </section>
+          <div className="mb-8">
+            <ProductCarousel
+              products={relatedProducts}
+              title="Produtos Similares"
+            />
+          </div>
         )}
       </div>
 
