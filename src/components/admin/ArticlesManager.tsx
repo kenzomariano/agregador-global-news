@@ -27,6 +27,8 @@ export function ArticlesManager() {
   const [rescraping, setRescraping] = useState<string | null>(null);
   const [bulkRescraping, setBulkRescraping] = useState(false);
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [generatingFaqId, setGeneratingFaqId] = useState<string | null>(null);
+  const generateFaq = useGenerateArticleFaqs();
 
   const [editForm, setEditForm] = useState({
     title: "",
