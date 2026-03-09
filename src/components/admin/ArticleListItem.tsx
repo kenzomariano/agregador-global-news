@@ -27,7 +27,9 @@ interface ArticleListItemProps {
   onEdit: (article: Article) => void;
   onDelete: (id: string) => void;
   onRescrape: (article: Article) => void;
+  onGenerateFaq?: (articleId: string) => void;
   isRescraping: boolean;
+  isGeneratingFaq?: boolean;
 }
 
 export function ArticleListItem({
