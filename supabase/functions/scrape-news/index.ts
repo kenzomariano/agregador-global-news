@@ -887,13 +887,50 @@ serve(async (req) => {
               }
             }
           }
-          // Priority 3: For ML products, try the products catalog API
+          // Priority 3: For ML products, try Items API (works for MLB-XXXXX URLs)
           if (!imageUrl) {
-            const mlbMatch = cleanUrl.match(/\/p\/(MLB\d+)/i);
-            if (mlbMatch) {
+            // Extract MLB item ID from various URL formats
+            const mlbItemMatch = cleanUrl.match(/MLB[-_]?(\d+)/i);
+            if (mlbItemMatch) {
+              const mlbId = `MLB${mlbItemMatch[1]}`;
               try {
-                // Try products catalog API (public, no auth needed)
-                const mlCatalogUrl = `https://api.mercadolibre.com/products/${mlbMatch[1]}`;
+                // Items API is public and returns pictures
+                const mlItemUrl = `https://api.mercadolibre.com/items/${mlbId}`;
+                console.log(`Fetching ML Items API: ${mlItemUrl}`);
+                const mlItemResp = await fetch(mlItemUrl);
+                if (mlItemResp.ok) {
+                  const mlItemData = await mlItemResp.json();
+                  const mlPictures = mlItemData.pictures || [];
+                  if (mlPictures.length > 0) {
+                    const mlPicUrl = (mlPictures[0].secure_url || mlPictures[0].url || "").replace("http://", "https://");
+                    if (mlPicUrl) {
+                      imageUrl = mlPicUrl;
+                      console.log(`Got ML Items API image: ${imageUrl.slice(0, 100)}`);
+                    }
+                  }
+                  // Also extract price from API if not found
+                  if (!price && mlItemData.price) {
+                    price = mlItemData.price;
+                    console.log(`Got ML Items API price: R$ ${price}`);
+                  }
+                  // Extract thumbnail as last resort
+                  if (!imageUrl && mlItemData.thumbnail) {
+                    imageUrl = mlItemData.thumbnail.replace("http://", "https://").replace("-I.jpg", "-O.jpg");
+                    console.log(`Got ML thumbnail: ${imageUrl.slice(0, 100)}`);
+                  }
+                } else {
+                  console.log(`ML Items API returned ${mlItemResp.status}`);
+                }
+              } catch (e) {
+                console.log(`ML Items API failed: ${e}`);
+              }
+            }
+            
+            // Also try catalog API for /p/MLB URLs
+            const mlbCatalogMatch = cleanUrl.match(/\/p\/(MLB\d+)/i);
+            if (!imageUrl && mlbCatalogMatch) {
+              try {
+                const mlCatalogUrl = `https://api.mercadolibre.com/products/${mlbCatalogMatch[1]}`;
                 console.log(`Fetching ML catalog API: ${mlCatalogUrl}`);
                 const mlCatalogResp = await fetch(mlCatalogUrl);
                 if (mlCatalogResp.ok) {
