@@ -7,6 +7,7 @@ import { ArticlesManager } from "@/components/admin/ArticlesManager";
 import { AdsManager } from "@/components/admin/AdsManager";
 import { SiteSettingsManager } from "@/components/admin/SiteSettingsManager";
 import { GuidesManager } from "@/components/admin/GuidesManager";
+import { ProductsManager } from "@/components/admin/ProductsManager";
 import { useArticles } from "@/hooks/useArticles";
 import { useSources } from "@/hooks/useSources";
 import { useAdPlacements } from "@/hooks/useAdPlacements";
