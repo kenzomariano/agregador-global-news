@@ -124,7 +124,7 @@ export function ArticleCard({ article, variant = "default" }: ArticleCardProps) 
   return (
     <Link to={`/noticia/${article.slug}`} className="group block">
       <Card className="overflow-hidden hover:shadow-md transition-shadow h-full">
-        <div className="aspect-[16/10] overflow-hidden">
+        <div className="aspect-[4/3] sm:aspect-[16/10] overflow-hidden">
           {article.image_url ? (
             <img
               src={article.image_url}
@@ -134,28 +134,28 @@ export function ArticleCard({ article, variant = "default" }: ArticleCardProps) 
             />
           ) : (
             <div className="h-full w-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-              <span className="text-4xl">📰</span>
+              <span className="text-3xl sm:text-4xl">📰</span>
             </div>
           )}
         </div>
-        <CardContent className="p-4">
-          <Badge variant="outline" className="mb-2">
+        <CardContent className="p-3 sm:p-4">
+          <Badge variant="outline" className="mb-1.5 sm:mb-2 text-[10px] sm:text-xs">
             {category?.label || article.category}
           </Badge>
-          <h3 className="font-semibold font-serif line-clamp-2 group-hover:text-primary transition-colors">
+          <h3 className="text-sm sm:text-base font-semibold font-serif line-clamp-2 group-hover:text-primary transition-colors leading-snug">
             {article.title}
           </h3>
           {article.excerpt && (
-            <p className="mt-2 text-sm text-muted-foreground line-clamp-2">{article.excerpt}</p>
+            <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-muted-foreground line-clamp-2 hidden sm:block">{article.excerpt}</p>
           )}
-          <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
-            <span>{article.news_sources?.name || "Fonte"}</span>
+          <div className="mt-2 sm:mt-3 flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs text-muted-foreground">
+            <span className="truncate max-w-[80px] sm:max-w-none">{article.news_sources?.name || "Fonte"}</span>
             <span>•</span>
-            <time dateTime={article.published_at || undefined}>{timeAgo}</time>
+            <time dateTime={article.published_at || undefined} className="shrink-0">{timeAgo}</time>
             {readingTime > 0 && (
               <>
-                <span>•</span>
-                <span>{readingTime} min</span>
+                <span className="hidden sm:inline">•</span>
+                <span className="hidden sm:inline">{readingTime} min</span>
               </>
             )}
           </div>

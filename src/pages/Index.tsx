@@ -49,7 +49,7 @@ export default function Index() {
         ]}
       />
 
-      <div className="container py-6">
+      <div className="container py-4 sm:py-6 px-3 sm:px-4">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Main content */}
           <div className="lg:col-span-8 xl:col-span-9">
@@ -68,11 +68,11 @@ export default function Index() {
             {/* Remaining articles grid */}
             {remainingArticles.length > 0 && (
               <section className="mb-8">
-                <h2 className="text-xl font-bold font-serif mb-4 flex items-center gap-2">
-                  <span className="w-1 h-6 rounded-full bg-primary" />
+                <h2 className="text-lg sm:text-xl font-bold font-serif mb-3 sm:mb-4 flex items-center gap-2">
+                  <span className="w-1 h-5 sm:h-6 rounded-full bg-primary" />
                   Últimas Notícias
                 </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                   {remainingArticles.map((article) => (
                     <ArticleCard key={article.id} article={article} />
                   ))}
