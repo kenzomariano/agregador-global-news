@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, Link } from "react-router-dom";
-import { Search, Loader2 } from "lucide-react";
+import { Search, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { SEOHead } from "@/components/seo/SEOHead";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -11,41 +11,50 @@ import { StructuredBreadcrumb } from "@/components/seo/StructuredBreadcrumb";
 import { CATEGORIES, type CategoryKey } from "@/lib/categories";
 import type { Article } from "@/hooks/useArticles";
 
+const SEARCH_PER_PAGE = 12;
+
 export default function SearchPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const query = searchParams.get("q") || "";
   const categoryFilter = searchParams.get("categoria") || "";
+  const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
   const [inputValue, setInputValue] = useState(query);
   const [results, setResults] = useState<Article[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
 
   useEffect(() => {
     if (query) {
-      performSearch(query, categoryFilter);
+      performSearch(query, categoryFilter, page);
     }
-  }, [query, categoryFilter]);
+  }, [query, categoryFilter, page]);
 
-  const performSearch = async (q: string, cat: string) => {
+  const performSearch = async (q: string, cat: string, p: number) => {
     setLoading(true);
     setSearched(true);
     try {
+      const from = (p - 1) * SEARCH_PER_PAGE;
+      const to = from + SEARCH_PER_PAGE - 1;
+
       let dbQuery = supabase
         .from("articles")
-        .select("*, news_sources(name, logo_url)")
+        .select("*, news_sources(name, logo_url)", { count: "exact" })
         .or(`title.ilike.%${q}%,excerpt.ilike.%${q}%`)
         .order("published_at", { ascending: false })
-        .limit(30);
+        .range(from, to);
 
       if (cat) {
         dbQuery = dbQuery.eq("category", cat as CategoryKey);
       }
 
-      const { data, error } = await dbQuery;
+      const { data, error, count } = await dbQuery;
       if (error) throw error;
       setResults((data as Article[]) || []);
+      setTotalCount(count || 0);
     } catch {
       setResults([]);
+      setTotalCount(0);
     } finally {
       setLoading(false);
     }
@@ -117,13 +126,41 @@ export default function SearchPage() {
           results.length > 0 ? (
             <div>
               <p className="text-sm text-muted-foreground mb-4">
-                {results.length} resultado{results.length !== 1 ? "s" : ""} para "<strong>{query}</strong>"
+                {totalCount} resultado{totalCount !== 1 ? "s" : ""} para "<strong>{query}</strong>"
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {results.map((article) => (
                   <ArticleCard key={article.id} article={article} />
                 ))}
               </div>
+              {/* Pagination */}
+              {(() => {
+                const totalPages = Math.ceil(totalCount / SEARCH_PER_PAGE);
+                if (totalPages <= 1) return null;
+                const params: Record<string, string> = { q: query };
+                if (categoryFilter) params.categoria = categoryFilter;
+                return (
+                  <nav className="flex items-center justify-center gap-2 mt-8" aria-label="Paginação">
+                    {page > 1 && (
+                      <Button variant="outline" size="sm" asChild>
+                        <Link to={`/buscar?${new URLSearchParams({ ...params, ...(page > 2 ? { page: String(page - 1) } : {}) })}`}>
+                          <ChevronLeft className="h-4 w-4 mr-1" /> Anterior
+                        </Link>
+                      </Button>
+                    )}
+                    <span className="text-sm text-muted-foreground px-3">
+                      Página {page} de {totalPages}
+                    </span>
+                    {page < totalPages && (
+                      <Button variant="outline" size="sm" asChild>
+                        <Link to={`/buscar?${new URLSearchParams({ ...params, page: String(page + 1) })}`}>
+                          Próxima <ChevronRight className="h-4 w-4 ml-1" />
+                        </Link>
+                      </Button>
+                    )}
+                  </nav>
+                );
+              })()}
             </div>
           ) : (
             <div className="text-center py-12 text-muted-foreground">

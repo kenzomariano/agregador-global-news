@@ -12,12 +12,12 @@ import { useAdPlacements } from "@/hooks/useAdPlacements";
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("overview");
-  const { data: articles } = useArticles(undefined, 1000);
+  const { data: articlesData } = useArticles(undefined, 1000);
   const { data: sources } = useSources();
   const { data: ads } = useAdPlacements();
 
   const stats = {
-    articles: articles?.length || 0,
+    articles: articlesData?.articles?.length || 0,
     sources: sources?.length || 0,
     activeSources: sources?.filter(s => s.is_active).length || 0,
     activeAds: ads?.filter(a => a.is_active).length || 0,

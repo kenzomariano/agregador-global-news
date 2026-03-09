@@ -83,10 +83,20 @@ export function SEOHead({
     updateMeta("twitter:image", twitterImage);
 
     // Article specific
-    if (type === "article" && publishedTime) {
-      updateProperty("article:published_time", publishedTime);
+    if (type === "article") {
+      if (publishedTime) {
+        updateProperty("article:published_time", publishedTime);
+      }
       if (author) {
         updateProperty("article:author", author);
+      }
+      // Google News meta tags
+      if (keywords.length > 0) {
+        updateMeta("news_keywords", keywords.join(", "));
+      }
+      // article:section for category
+      if (keywords[0]) {
+        updateProperty("article:section", keywords[0]);
       }
     }
 

@@ -8,6 +8,8 @@ import { PopularTags } from "@/components/news/PopularTags";
 import { AffiliateProducts } from "@/components/products/AffiliateProducts";
 import { FAQSection } from "@/components/news/FAQSection";
 import { ArticleCard } from "@/components/news/ArticleCard";
+import { DailySummary } from "@/components/news/DailySummary";
+import { NewsletterWidget } from "@/components/news/NewsletterWidget";
 import { HorizontalAd, SidebarAd } from "@/components/ads/AdBanner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useArticles } from "@/hooks/useArticles";
@@ -23,7 +25,8 @@ const MAIN_CATEGORIES: CategoryKey[] = [
 ];
 
 export default function Index() {
-  const { data: allArticles, isLoading } = useArticles(undefined, 50);
+  const { data, isLoading } = useArticles(undefined, 50);
+  const allArticles = data?.articles;
 
   // First 5 for banner, rest for cards
   const bannerArticles = allArticles?.slice(0, 5) || [];
@@ -56,6 +59,8 @@ export default function Index() {
             ) : (
               <HeroBanner articles={bannerArticles} />
             )}
+            {/* Daily Summary */}
+            <DailySummary />
 
             {/* Ad Banner after hero */}
             <HorizontalAd />
@@ -100,6 +105,7 @@ export default function Index() {
           <aside className="lg:col-span-4 xl:col-span-3">
             <div className="sticky top-32 space-y-6">
               <PopularTags />
+              <NewsletterWidget />
               <SidebarAd />
               <TrendingTrailers />
               <SidebarAd />

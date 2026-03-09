@@ -12,7 +12,7 @@ export default function TrendingPage() {
     <>
       <SEOHead
         title="Notícias Mais Lidas"
-        description="As notícias mais lidas e populares do momento no NewsHub Brasil. Confira o que está em alta no Brasil e no mundo."
+        description="As notícias mais lidas e populares do momento no DESIGNE. Confira o que está em alta no Brasil e no mundo."
         keywords={["mais lidas", "trending", "populares", "notícias", "brasil"]}
       />
 
