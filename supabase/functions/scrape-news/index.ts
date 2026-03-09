@@ -653,7 +653,7 @@ serve(async (req) => {
                   
                   console.log(`Product found: ${cleanUrl.slice(0, 80)} | img: ${bestImage ? "YES" : "NO"} | title: ${(result.title || "").slice(0, 60)}`);
                 } else {
-                  console.log(`Skipped: ${cleanUrl.slice(0, 80)} (ecommerce=${isEcommerce}, catalog=${isCatalogPage})`);
+                  console.log(`Skipped: ${cleanUrl.slice(0, 80)} (ecommerce=${isEcommerce}, productPattern=${isProductUrl})`);
                 }
               }
             } else {
