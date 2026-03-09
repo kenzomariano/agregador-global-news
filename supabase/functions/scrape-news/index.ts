@@ -1308,7 +1308,12 @@ ${rawContent.slice(0, 12000)}`;
               }
               
               // Always translate title and excerpt for foreign sources OR if content seems to be in English
-              const needsTranslation = typedSource.is_foreign || /^[A-Za-z\s\-:,.'!?"()]+$/.test(title);
+              // Detect if title/excerpt need translation: foreign source OR title looks English
+              const commonEnglishWords = /\b(the|and|for|with|that|from|have|this|will|about|after|also|been|before|between|could|during|first|into|just|know|like|make|many|more|most|much|only|other|over|said|should|some|such|than|their|them|then|there|these|they|through|very|were|what|when|where|which|while|would|your)\b/gi;
+              const enMatches = (title + " " + excerpt).match(commonEnglishWords) || [];
+              const titleWords = (title + " " + excerpt).split(/\s+/).length;
+              const enWordRatio = enMatches.length / Math.max(titleWords, 1);
+              const needsTranslation = typedSource.is_foreign || enWordRatio > 0.2;
               
               if (needsTranslation && content) {
                 const translateMetaResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
