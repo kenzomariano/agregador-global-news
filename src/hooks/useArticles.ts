@@ -36,23 +36,26 @@ export interface NewsSource {
   created_at: string;
 }
 
-export function useArticles(category?: CategoryKey, limit = 20) {
+export function useArticles(category?: CategoryKey, limit = 20, page = 1) {
   return useQuery({
-    queryKey: ["articles", category, limit],
+    queryKey: ["articles", category, limit, page],
     queryFn: async () => {
+      const from = (page - 1) * limit;
+      const to = from + limit - 1;
+
       let query = supabase
         .from("articles")
-        .select("*, news_sources(name, logo_url)")
+        .select("*, news_sources(name, logo_url)", { count: "exact" })
         .order("published_at", { ascending: false })
-        .limit(limit);
+        .range(from, to);
 
       if (category) {
         query = query.eq("category", category);
       }
 
-      const { data, error } = await query;
+      const { data, error, count } = await query;
       if (error) throw error;
-      return data as Article[];
+      return { articles: data as Article[], total: count || 0 };
     },
   });
 }
