@@ -8,6 +8,8 @@ import { PopularTags } from "@/components/news/PopularTags";
 import { AffiliateProducts } from "@/components/products/AffiliateProducts";
 import { FAQSection } from "@/components/news/FAQSection";
 import { ArticleCard } from "@/components/news/ArticleCard";
+import { DailySummary } from "@/components/news/DailySummary";
+import { NewsletterWidget } from "@/components/news/NewsletterWidget";
 import { HorizontalAd, SidebarAd } from "@/components/ads/AdBanner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useArticles } from "@/hooks/useArticles";
