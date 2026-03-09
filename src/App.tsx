@@ -16,6 +16,8 @@ import TagPage from "./pages/TagPage";
 import AuthPage from "./pages/AuthPage";
 import SearchPage from "./pages/SearchPage";
 import NewsletterPage from "./pages/NewsletterPage";
+import GuidesListPage from "./pages/GuidesListPage";
+import GuidePage from "./pages/GuidePage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AccountPage from "./pages/AccountPage";
 import NotFound from "./pages/NotFound";
@@ -39,6 +41,8 @@ const App = () => (
               <Route path="/produto/:slug" element={<ProductDetailPage />} />
               <Route path="/tag/:tag" element={<TagPage />} />
               <Route path="/buscar" element={<SearchPage />} />
+              <Route path="/guias" element={<GuidesListPage />} />
+              <Route path="/guia/:slug" element={<GuidePage />} />
               <Route path="/newsletter" element={<NewsletterPage />} />
               <Route path="/conta" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
               <Route
