@@ -1032,9 +1032,8 @@ ${allText.slice(0, 4000)}`;
           }
 
           if (!imageUrl) {
-            console.log(`Skipping product without valid product image: ${cleanUrl}`);
-            skippedCount++;
-            continue;
+            console.log(`Product without image, using placeholder: ${cleanUrl}`);
+            imageUrl = null; // Will be stored as null, frontend shows placeholder
           }
 
           console.log(`Product result: name="${name}", price=${price}, image=${imageUrl ? "yes" : "no"}, category="${category}"`);
