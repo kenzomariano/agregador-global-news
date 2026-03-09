@@ -15,6 +15,7 @@ import ProductDetailPage from "./pages/ProductDetailPage";
 import TagPage from "./pages/TagPage";
 import AuthPage from "./pages/AuthPage";
 import SearchPage from "./pages/SearchPage";
+import NewsletterPage from "./pages/NewsletterPage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AccountPage from "./pages/AccountPage";
 import NotFound from "./pages/NotFound";
