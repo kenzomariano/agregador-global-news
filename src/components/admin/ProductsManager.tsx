@@ -8,9 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Search, Pencil, Trash2, ExternalLink, Loader2, Plus, Package } from "lucide-react";
+import { Search, Pencil, Trash2, ExternalLink, Loader2, Plus, Package, EyeOff, X } from "lucide-react";
 
 interface Product {
   id: string;
