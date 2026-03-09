@@ -610,12 +610,15 @@ serve(async (req) => {
                 
                 // Positive product URL patterns - must match at least one
                 const PRODUCT_URL_PATTERNS = [
-                  /amazon\.com\.br\/.*\/dp\//i,              // Amazon product
-                  /amazon\.com\.br\/dp\//i,                  // Amazon short product
                   /mercadolivre\.com\.br\/.*-_JM/i,          // ML product (old format)
                   /mercadolivre\.com\.br\/.*\/p\/MLB/i,      // ML product (new format)
                   /mercadolivre\.com\.br\/MLB-/i,            // ML product direct
+                  /produto\.mercadolivre\.com\.br\//i,       // ML product subdomain
+                  /mercadolivre\.com\.br\/.*MLB\d+/i,        // ML product ID in URL
                   /shopee\.com\.br\/.*-i\.\d+\.\d+/i,       // Shopee product
+                  /shopee\.com\.br\/product\//i,             // Shopee product alt
+                  /amazon\.com\.br\/.*\/dp\//i,              // Amazon product
+                  /amazon\.com\.br\/dp\//i,                  // Amazon short product
                   /magazineluiza\.com\.br\/.*\/p\//i,        // Magalu product
                   /kabum\.com\.br\/produto\//i,              // Kabum product
                   /americanas\.com\.br\/produto\//i,         // Americanas product
