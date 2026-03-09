@@ -132,6 +132,19 @@ export function ArticleListItem({
                 <Button
                   variant="ghost"
                   size="icon"
+                  onClick={() => onGenerateFaq?.(article.id)}
+                  disabled={isGeneratingFaq}
+                  title="Gerar FAQ com IA"
+                  className="h-8 w-8"
+                >
+                  <MessageCircleQuestion
+                    className={`h-4 w-4 ${isGeneratingFaq ? "animate-pulse" : ""}`}
+                  />
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={() => onEdit(article)}
                   title="Editar"
                   className="h-8 w-8"
