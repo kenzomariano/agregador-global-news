@@ -11,12 +11,16 @@ import { StructuredBreadcrumb } from "@/components/seo/StructuredBreadcrumb";
 import { CATEGORIES, type CategoryKey } from "@/lib/categories";
 import type { Article } from "@/hooks/useArticles";
 
+const SEARCH_PER_PAGE = 12;
+
 export default function SearchPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const query = searchParams.get("q") || "";
   const categoryFilter = searchParams.get("categoria") || "";
+  const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
   const [inputValue, setInputValue] = useState(query);
   const [results, setResults] = useState<Article[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
 
