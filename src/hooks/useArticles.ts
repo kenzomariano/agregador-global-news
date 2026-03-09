@@ -77,16 +77,32 @@ export function useFeaturedArticles(limit = 5) {
   });
 }
 
-export function useTrendingArticles(limit = 10) {
+export type TrendingPeriod = "today" | "week" | "month" | "all";
+
+export function useTrendingArticles(limit = 10, period: TrendingPeriod = "all") {
   return useQuery({
-    queryKey: ["trending-articles", limit],
+    queryKey: ["trending-articles", limit, period],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("articles")
         .select("*, news_sources(name, logo_url)")
         .order("views_count", { ascending: false })
         .limit(limit);
 
+      if (period !== "all") {
+        const now = new Date();
+        let since: Date;
+        if (period === "today") {
+          since = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        } else if (period === "week") {
+          since = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        } else {
+          since = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        }
+        query = query.gte("published_at", since.toISOString());
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return data as Article[];
     },
