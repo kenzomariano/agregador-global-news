@@ -2,6 +2,7 @@ import { Link, useParams } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ExternalLink, ShoppingBag, ArrowLeft, Tag, Store, Clock, CheckCircle, XCircle } from "lucide-react";
+import { ProductCarousel } from "@/components/products/ProductCarousel";
 import { SEOHead } from "@/components/seo/SEOHead";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
