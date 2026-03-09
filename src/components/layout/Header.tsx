@@ -168,6 +168,12 @@ export function Header() {
                   🛒 Produtos
                 </Link>
               )}
+              <Link
+                to="/guias"
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
+                📖 Guias
+              </Link>
 
               {isAdmin && (
                 <>
