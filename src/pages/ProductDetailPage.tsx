@@ -110,8 +110,14 @@ export default function ProductDetailPage() {
                 loading="lazy"
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center">
-                <ShoppingBag className="h-24 w-24 text-muted-foreground/30" />
+              <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-muted to-muted/50 relative overflow-hidden">
+                <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'repeating-linear-gradient(45deg, currentColor 0, currentColor 1px, transparent 0, transparent 50%)', backgroundSize: '32px 32px' }} />
+                <div className="relative flex flex-col items-center gap-4">
+                  <div className="rounded-full bg-primary/10 p-6">
+                    <ShoppingBag className="h-12 w-12 text-primary/40" />
+                  </div>
+                  <span className="text-sm font-medium text-muted-foreground/50 uppercase tracking-wider">Imagem indisponível</span>
+                </div>
               </div>
             )}
             {product.is_available === false && (
