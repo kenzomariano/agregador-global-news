@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useProducts } from "@/hooks/useProducts";
+import { ProductCarousel } from "@/components/products/ProductCarousel";
 import { StructuredBreadcrumb } from "@/components/seo/StructuredBreadcrumb";
 
 export default function ProductsPage() {
