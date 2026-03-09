@@ -22,6 +22,7 @@ import { TMDBMentions } from "@/components/entertainment/TMDBMention";
 import { ImageLightbox } from "@/components/ui/ImageLightbox";
 import { SidebarAd, HorizontalAd, InArticleAd } from "@/components/ads/AdBanner";
 import { SidebarProducts } from "@/components/products/SidebarProducts";
+import { ArticleFAQ } from "@/components/news/ArticleFAQ";
 import { useArticleBySlug, useRelatedArticles, useIncrementViews } from "@/hooks/useArticles";
 import { useArticleTMDBMentions } from "@/hooks/useArticleTMDBMentions";
 import { CATEGORIES, type CategoryKey } from "@/lib/categories";
