@@ -142,7 +142,7 @@ export function ArticleCard({ article, variant = "default" }: ArticleCardProps) 
           <Badge variant="outline" className="mb-1.5 sm:mb-2 text-[10px] sm:text-xs">
             {category?.label || article.category}
           </Badge>
-          <h3 className="text-sm sm:text-base font-semibold font-serif line-clamp-2 group-hover:text-primary transition-colors leading-snug">
+          <h3 className="text-sm sm:text-base font-semibold font-serif group-hover:text-primary transition-colors leading-snug">
             {article.title}
           </h3>
           {article.excerpt && (
