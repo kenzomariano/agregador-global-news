@@ -15,6 +15,7 @@ import { ArticleContent } from "@/components/news/ArticleContent";
 import { ArticleTags } from "@/components/news/ArticleTags";
 import { ShareButtons } from "@/components/news/ShareButtons";
 import { LikeButton } from "@/components/news/LikeButton";
+import { SaveButton } from "@/components/news/SaveButton";
 import { CommentSection } from "@/components/news/CommentSection";
 import { TrendingSidebar } from "@/components/news/TrendingSidebar";
 import { TMDBMentions } from "@/components/entertainment/TMDBMention";
@@ -167,6 +168,7 @@ export default function ArticlePage() {
               {/* Share & Like */}
               <div className="flex flex-wrap items-center gap-3 border-y py-3">
                 <LikeButton articleId={article.id} />
+                <SaveButton articleId={article.id} />
                 <ShareButtons url={articleUrl} title={article.title} />
               </div>
             </header>
@@ -224,6 +226,7 @@ export default function ArticlePage() {
             {/* Share & Like bottom */}
             <div className="flex flex-wrap items-center gap-3 border-t pt-4 mb-6">
               <LikeButton articleId={article.id} />
+              <SaveButton articleId={article.id} />
               <ShareButtons url={articleUrl} title={article.title} />
             </div>
 
