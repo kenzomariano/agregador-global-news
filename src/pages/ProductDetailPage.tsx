@@ -8,7 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
-import { AffiliateProducts } from "@/components/products/AffiliateProducts";
 import { StructuredBreadcrumb } from "@/components/seo/StructuredBreadcrumb";
 import { useProductBySlug, useProducts } from "@/hooks/useProducts";
 
