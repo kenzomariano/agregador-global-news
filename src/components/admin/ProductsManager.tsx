@@ -171,11 +171,66 @@ export function ProductsManager() {
         </Card>
       ) : (
         <div className="space-y-2">
-          <p className="text-sm text-muted-foreground">{filtered.length} produto(s)</p>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Checkbox
+                checked={filtered.length > 0 && selectedIds.size === filtered.length}
+                onCheckedChange={toggleSelectAll}
+              />
+              <span className="text-sm text-muted-foreground">{filtered.length} produto(s)</span>
+            </div>
+
+            {selectedIds.size > 0 && (
+              <div className="flex items-center gap-2 ml-auto">
+                <Badge variant="secondary">{selectedIds.size} selecionado(s)</Badge>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={bulkActing}
+                  onClick={() => setSelectedIds(new Set())}
+                >
+                  <X className="h-3 w-3 mr-1" />
+                  Limpar
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={bulkActing}
+                  onClick={() => {
+                    if (confirm(`Marcar ${selectedIds.size} produto(s) como indisponível?`)) {
+                      bulkUnavailableMutation.mutate(Array.from(selectedIds));
+                    }
+                  }}
+                >
+                  {bulkUnavailableMutation.isPending ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <EyeOff className="h-3 w-3 mr-1" />}
+                  Indisponível
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  disabled={bulkActing}
+                  onClick={() => {
+                    if (confirm(`Excluir ${selectedIds.size} produto(s)? Esta ação não pode ser desfeita.`)) {
+                      bulkDeleteMutation.mutate(Array.from(selectedIds));
+                    }
+                  }}
+                >
+                  {bulkDeleteMutation.isPending ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Trash2 className="h-3 w-3 mr-1" />}
+                  Excluir
+                </Button>
+              </div>
+            )}
+          </div>
+
           {filtered.map((product) => (
-            <Card key={product.id} className="overflow-hidden">
+            <Card key={product.id} className={`overflow-hidden transition-colors ${selectedIds.has(product.id) ? "border-primary/50 bg-primary/5" : ""}`}>
               <CardContent className="p-4">
-                <div className="flex items-start gap-4">
+                <div className="flex items-start gap-3">
+                  <Checkbox
+                    checked={selectedIds.has(product.id)}
+                    onCheckedChange={() => toggleSelect(product.id)}
+                    className="mt-1"
+                  />
                   {product.image_url && (
                     <img
                       src={product.image_url}
