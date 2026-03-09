@@ -1,9 +1,9 @@
-import { ExternalLink, Tag, ShoppingBag } from "lucide-react";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Link } from "react-router-dom";
+import { Tag, ShoppingBag } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useAffiliateProducts, type AffiliateProduct } from "@/hooks/useAffiliateProducts";
+import { useProducts, type Product } from "@/hooks/useProducts";
 
 interface AffiliateProductsProps {
   category?: string;
@@ -13,12 +13,16 @@ interface AffiliateProductsProps {
 }
 
 export function AffiliateProducts({
-  category = "ofertas",
+  category,
   limit = 6,
   title = "🔥 Ofertas do Dia",
   compact = false,
 }: AffiliateProductsProps) {
-  const { data: products, isLoading } = useAffiliateProducts(category, limit);
+  const { data: allProducts, isLoading } = useProducts(limit);
+
+  const products = category && category !== "ofertas"
+    ? allProducts?.filter((p) => p.category?.toLowerCase().includes(category.toLowerCase()))
+    : allProducts;
 
   if (isLoading) {
     return (
@@ -27,13 +31,13 @@ export function AffiliateProducts({
           <span className="w-1 h-6 rounded-full bg-primary" />
           {title}
         </h2>
-        <div className={compact ? "space-y-3" : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"}>
+        <div className={compact ? "space-y-3" : "grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4"}>
           {Array.from({ length: compact ? 3 : limit }).map((_, i) => (
             <Card key={i} className="overflow-hidden">
-              <CardContent className="p-4 space-y-2">
-                <Skeleton className="h-5 w-full" />
-                <Skeleton className="h-4 w-20" />
-                <Skeleton className="h-6 w-24" />
+              <Skeleton className="aspect-square w-full" />
+              <CardContent className="p-3 space-y-2">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-5 w-20" />
               </CardContent>
             </Card>
           ))}
@@ -51,8 +55,8 @@ export function AffiliateProducts({
           <Tag className="h-4 w-4 text-primary" />
           {title}
         </h3>
-        {products.slice(0, 3).map((product, i) => (
-          <CompactProductCard key={i} product={product} />
+        {products.slice(0, 3).map((product) => (
+          <CompactProductCard key={product.id} product={product} />
         ))}
       </section>
     );
@@ -64,89 +68,90 @@ export function AffiliateProducts({
         <span className="w-1 h-6 rounded-full bg-primary" />
         {title}
       </h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {products.map((product, i) => (
-          <ProductCard key={i} product={product} />
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+        {products.slice(0, limit).map((product) => (
+          <ProductCard key={product.id} product={product} />
         ))}
       </div>
     </section>
   );
 }
 
-function ProductCard({ product }: { product: AffiliateProduct }) {
-  const storeName = product.store === "mercadolivre" ? "Mercado Livre" : "Shopee";
-  const storeColor = product.store === "mercadolivre" ? "bg-yellow-500" : "bg-orange-500";
+function ProductCard({ product }: { product: Product }) {
+  const storeName = product.news_sources?.name || "Loja";
 
   return (
-    <Card className="overflow-hidden hover:shadow-lg transition-shadow flex flex-col">
-      <CardContent className="p-4 flex-1">
-        <div className="flex items-center gap-2 mb-2">
-          <Badge variant="destructive" className="text-xs">
-            -{product.discount_percent}%
-          </Badge>
-          <Badge variant="outline" className="text-xs">
-            {storeName}
-          </Badge>
+    <Link to={`/produto/${product.slug}`} className="group block">
+      <Card className="overflow-hidden hover:shadow-lg transition-shadow h-full flex flex-col">
+        <div className="aspect-square overflow-hidden bg-muted">
+          {product.image_url ? (
+            <img
+              src={product.image_url}
+              alt={product.name}
+              loading="lazy"
+              className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105 p-2"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <ShoppingBag className="h-10 w-10 text-muted-foreground/30" />
+            </div>
+          )}
         </div>
-
-        <h3 className="font-medium line-clamp-2 mb-2">{product.name}</h3>
-        <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-          {product.description}
-        </p>
-
-        <div className="space-y-1">
-          <p className="text-sm text-muted-foreground line-through">
-            R$ {product.price.toFixed(2)}
-          </p>
-          <p className="text-lg font-bold text-primary">
-            R$ {product.sale_price.toFixed(2)}
-          </p>
-        </div>
-      </CardContent>
-
-      <CardFooter className="p-4 pt-0">
-        <Button asChild variant="default" size="sm" className="w-full">
-          <a href={product.affiliate_url} target="_blank" rel="noopener noreferrer nofollow">
-            <ExternalLink className="h-4 w-4 mr-2" />
-            Ver no {storeName}
-          </a>
-        </Button>
-      </CardFooter>
-    </Card>
+        <CardContent className="p-3 sm:p-4 flex-1 flex flex-col">
+          {product.category && (
+            <Badge variant="outline" className="text-[10px] sm:text-xs mb-1.5 w-fit">
+              {product.category}
+            </Badge>
+          )}
+          <h3 className="text-sm sm:text-base font-medium group-hover:text-primary transition-colors leading-snug mb-auto">
+            {product.name}
+          </h3>
+          <div className="mt-2">
+            {product.price != null && (
+              <p className="text-base sm:text-lg font-bold text-primary">
+                {(product.currency || "R$")} {product.price.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+              </p>
+            )}
+            <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">{storeName}</p>
+          </div>
+        </CardContent>
+      </Card>
+    </Link>
   );
 }
 
-function CompactProductCard({ product }: { product: AffiliateProduct }) {
-  const storeName = product.store === "mercadolivre" ? "ML" : "Shopee";
-
+function CompactProductCard({ product }: { product: Product }) {
   return (
-    <a
-      href={product.affiliate_url}
-      target="_blank"
-      rel="noopener noreferrer nofollow"
-      className="block"
-    >
+    <Link to={`/produto/${product.slug}`} className="block">
       <Card className="overflow-hidden hover:shadow-md transition-shadow">
         <CardContent className="p-3 flex items-center gap-3">
-          <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-            <ShoppingBag className="h-5 w-5 text-primary" />
+          <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-muted overflow-hidden">
+            {product.image_url ? (
+              <img
+                src={product.image_url}
+                alt={product.name}
+                loading="lazy"
+                className="w-full h-full object-contain p-1"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <ShoppingBag className="h-5 w-5 text-muted-foreground/30" />
+              </div>
+            )}
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium line-clamp-1">{product.name}</p>
             <div className="flex items-center gap-2 text-xs">
-              <span className="text-muted-foreground line-through">
-                R$ {product.price.toFixed(2)}
-              </span>
-              <span className="font-bold text-primary">
-                R$ {product.sale_price.toFixed(2)}
-              </span>
-              <Badge variant="outline" className="text-[10px] px-1">
-                {storeName}
-              </Badge>
+              {product.price != null && (
+                <span className="font-bold text-primary">
+                  R$ {product.price.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                </span>
+              )}
+              <span className="text-muted-foreground">{product.news_sources?.name || "Loja"}</span>
             </div>
           </div>
         </CardContent>
       </Card>
-    </a>
+    </Link>
   );
 }
