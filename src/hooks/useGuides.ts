@@ -64,7 +64,7 @@ export function useGuideBySlug(slug: string) {
       return {
         ...data,
         steps: Array.isArray(data.steps) ? data.steps : [],
-      } as Guide;
+      } as unknown as Guide;
     },
     enabled: !!slug,
   });
