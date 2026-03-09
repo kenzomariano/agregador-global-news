@@ -26,7 +26,7 @@ export default function SearchPage() {
 
   useEffect(() => {
     if (query) {
-      performSearch(query, categoryFilter);
+      performSearch(query, categoryFilter, page);
     }
   }, [query, categoryFilter]);
 
