@@ -8,9 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Search, Pencil, Trash2, ExternalLink, Loader2, Plus, Package } from "lucide-react";
+import { Search, Pencil, Trash2, ExternalLink, Loader2, Plus, Package, EyeOff, X } from "lucide-react";
 
 interface Product {
   id: string;
@@ -32,6 +33,7 @@ export function ProductsManager() {
   const [search, setSearch] = useState("");
   const [editProduct, setEditProduct] = useState<Product | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const { data: products, isLoading } = useQuery({
     queryKey: ["admin-products"],
@@ -87,10 +89,56 @@ export function ProductsManager() {
     onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
 
+  const bulkDeleteMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase.from("products").delete().in("id", ids);
+      if (error) throw error;
+    },
+    onSuccess: (_, ids) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      setSelectedIds(new Set());
+      toast({ title: `${ids.length} produto(s) excluído(s)!` });
+    },
+    onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+  });
+
+  const bulkUnavailableMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase.from("products").update({ is_available: false }).in("id", ids);
+      if (error) throw error;
+    },
+    onSuccess: (_, ids) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      setSelectedIds(new Set());
+      toast({ title: `${ids.length} produto(s) marcado(s) como indisponível!` });
+    },
+    onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+  });
+
   const filtered = products?.filter((p) =>
     p.name.toLowerCase().includes(search.toLowerCase()) ||
     (p.category || "").toLowerCase().includes(search.toLowerCase())
   ) || [];
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filtered.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filtered.map((p) => p.id)));
+    }
+  };
+
+  const bulkActing = bulkDeleteMutation.isPending || bulkUnavailableMutation.isPending;
 
   return (
     <div className="space-y-4">
@@ -123,11 +171,66 @@ export function ProductsManager() {
         </Card>
       ) : (
         <div className="space-y-2">
-          <p className="text-sm text-muted-foreground">{filtered.length} produto(s)</p>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Checkbox
+                checked={filtered.length > 0 && selectedIds.size === filtered.length}
+                onCheckedChange={toggleSelectAll}
+              />
+              <span className="text-sm text-muted-foreground">{filtered.length} produto(s)</span>
+            </div>
+
+            {selectedIds.size > 0 && (
+              <div className="flex items-center gap-2 ml-auto">
+                <Badge variant="secondary">{selectedIds.size} selecionado(s)</Badge>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={bulkActing}
+                  onClick={() => setSelectedIds(new Set())}
+                >
+                  <X className="h-3 w-3 mr-1" />
+                  Limpar
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={bulkActing}
+                  onClick={() => {
+                    if (confirm(`Marcar ${selectedIds.size} produto(s) como indisponível?`)) {
+                      bulkUnavailableMutation.mutate(Array.from(selectedIds));
+                    }
+                  }}
+                >
+                  {bulkUnavailableMutation.isPending ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <EyeOff className="h-3 w-3 mr-1" />}
+                  Indisponível
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  disabled={bulkActing}
+                  onClick={() => {
+                    if (confirm(`Excluir ${selectedIds.size} produto(s)? Esta ação não pode ser desfeita.`)) {
+                      bulkDeleteMutation.mutate(Array.from(selectedIds));
+                    }
+                  }}
+                >
+                  {bulkDeleteMutation.isPending ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Trash2 className="h-3 w-3 mr-1" />}
+                  Excluir
+                </Button>
+              </div>
+            )}
+          </div>
+
           {filtered.map((product) => (
-            <Card key={product.id} className="overflow-hidden">
+            <Card key={product.id} className={`overflow-hidden transition-colors ${selectedIds.has(product.id) ? "border-primary/50 bg-primary/5" : ""}`}>
               <CardContent className="p-4">
-                <div className="flex items-start gap-4">
+                <div className="flex items-start gap-3">
+                  <Checkbox
+                    checked={selectedIds.has(product.id)}
+                    onCheckedChange={() => toggleSelect(product.id)}
+                    className="mt-1"
+                  />
                   {product.image_url && (
                     <img
                       src={product.image_url}
