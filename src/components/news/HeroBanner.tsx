@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,7 @@ interface HeroBannerProps {
 
 export function HeroBanner({ articles }: HeroBannerProps) {
   const [current, setCurrent] = useState(0);
+  const touchStartX = useRef<number | null>(null);
   const total = articles.length;
 
   const next = useCallback(() => {
@@ -31,6 +32,19 @@ export function HeroBanner({ articles }: HeroBannerProps) {
     return () => clearInterval(timer);
   }, [next, total]);
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null) return;
+    const delta = touchStartX.current - e.changedTouches[0].clientX;
+    if (Math.abs(delta) > 40) {
+      delta > 0 ? next() : prev();
+    }
+    touchStartX.current = null;
+  };
+
   if (total === 0) return null;
 
   const article = articles[current];
@@ -42,7 +56,11 @@ export function HeroBanner({ articles }: HeroBannerProps) {
   return (
     <section className="relative w-full overflow-hidden rounded-xl mb-8">
       {/* Slides */}
-      <div className="relative aspect-[4/5] sm:aspect-[16/9] md:aspect-[16/6]">
+      <div
+        className="relative aspect-[4/5] sm:aspect-[16/9] md:aspect-[16/6]"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
         {articles.map((a, i) => {
           const cat = CATEGORIES[a.category as CategoryKey];
           const t = a.published_at
