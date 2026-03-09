@@ -1223,6 +1223,49 @@ ${rawContent.slice(0, 12000)}`;
               
               // Remove markdown code blocks if AI returned them
               content = content.replace(/^```html?\s*/i, "").replace(/\s*```$/i, "").trim();
+
+              // Validate translation: check if content is still predominantly in English
+              if (typedSource.is_foreign && content.length > 200) {
+                const textOnly = content.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+                const words = textOnly.split(/\s+/).filter((w: string) => w.length > 3);
+                const sampleWords = words.slice(0, 80);
+                const englishWords = ["the", "and", "that", "have", "for", "not", "with", "you", "this", "but", "from", "they", "been", "have", "said", "each", "which", "their", "will", "other", "about", "many", "then", "them", "some", "would", "make", "like", "into", "could", "time", "very", "when", "come", "just", "know", "take", "people", "also", "after", "year", "because", "most", "only", "over", "such", "than", "first", "been", "now", "long", "great", "since", "movie", "film", "show", "series", "according", "however", "while", "during", "between", "before", "being", "should", "those", "still", "where", "what", "there", "through"];
+                const engCount = sampleWords.filter((w: string) => englishWords.includes(w.toLowerCase())).length;
+                const engRatio = engCount / Math.max(sampleWords.length, 1);
+                
+                if (engRatio > 0.15) {
+                  console.log(`Content still in English (${(engRatio * 100).toFixed(0)}% EN words), retrying translation...`);
+                  
+                  const retryPrompt = `TRADUZA o seguinte conteúdo HTML de INGLÊS para PORTUGUÊS DO BRASIL. Mantenha todas as tags HTML intactas. Traduza TODO o texto. NÃO deixe nenhuma frase em inglês. Retorne APENAS o HTML traduzido.\n\n${content.slice(0, 12000)}`;
+                  
+                  try {
+                    const retryResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+                      method: "POST",
+                      headers: {
+                        "Authorization": `Bearer ${lovableApiKey}`,
+                        "Content-Type": "application/json",
+                      },
+                      body: JSON.stringify({
+                        model: "google/gemini-3-flash-preview",
+                        messages: [{ role: "user", content: retryPrompt }],
+                      }),
+                    });
+                    
+                    if (retryResponse.ok) {
+                      const retryData = await retryResponse.json();
+                      const retryContent = (retryData.choices?.[0]?.message?.content || "")
+                        .replace(/^```html?\s*/i, "").replace(/\s*```$/i, "").trim();
+                      
+                      if (retryContent.length > 200) {
+                        content = retryContent;
+                        console.log(`Translation retry successful (${content.length} chars)`);
+                      }
+                    }
+                  } catch (retryErr) {
+                    console.log(`Translation retry failed: ${retryErr}`);
+                  }
+                }
+              }
               
               // CRITICAL: Validate that AI returned actual article content, not an error message
               const invalidContentPatterns = [
@@ -1265,7 +1308,12 @@ ${rawContent.slice(0, 12000)}`;
               }
               
               // Always translate title and excerpt for foreign sources OR if content seems to be in English
-              const needsTranslation = typedSource.is_foreign || /^[A-Za-z\s\-:,.'!?"()]+$/.test(title);
+              // Detect if title/excerpt need translation: foreign source OR title looks English
+              const commonEnglishWords = /\b(the|and|for|with|that|from|have|this|will|about|after|also|been|before|between|could|during|first|into|just|know|like|make|many|more|most|much|only|other|over|said|should|some|such|than|their|them|then|there|these|they|through|very|were|what|when|where|which|while|would|your)\b/gi;
+              const enMatches = (title + " " + excerpt).match(commonEnglishWords) || [];
+              const titleWords = (title + " " + excerpt).split(/\s+/).length;
+              const enWordRatio = enMatches.length / Math.max(titleWords, 1);
+              const needsTranslation = typedSource.is_foreign || enWordRatio > 0.2;
               
               if (needsTranslation && content) {
                 const translateMetaResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
