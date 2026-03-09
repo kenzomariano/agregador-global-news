@@ -15,7 +15,8 @@ import type { CategoryKey } from "@/lib/categories";
 export function ArticlesManager() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { data: articles, isLoading } = useArticles(undefined, 100);
+  const { data: articlesData, isLoading } = useArticles(undefined, 100);
+  const articles = articlesData?.articles;
   
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
