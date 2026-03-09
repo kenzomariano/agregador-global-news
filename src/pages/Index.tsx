@@ -58,6 +58,8 @@ export default function Index() {
             ) : (
               <HeroBanner articles={bannerArticles} />
             )}
+            {/* Daily Summary */}
+            <DailySummary />
 
             {/* Ad Banner after hero */}
             <HorizontalAd />
