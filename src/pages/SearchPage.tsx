@@ -28,7 +28,7 @@ export default function SearchPage() {
     if (query) {
       performSearch(query, categoryFilter, page);
     }
-  }, [query, categoryFilter]);
+  }, [query, categoryFilter, page]);
 
   const performSearch = async (q: string, cat: string) => {
     setLoading(true);
