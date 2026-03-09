@@ -21,7 +21,7 @@ import { TrendingSidebar } from "@/components/news/TrendingSidebar";
 import { TMDBMentions } from "@/components/entertainment/TMDBMention";
 import { ImageLightbox } from "@/components/ui/ImageLightbox";
 import { SidebarAd, HorizontalAd, InArticleAd } from "@/components/ads/AdBanner";
-import { AffiliateProducts } from "@/components/products/AffiliateProducts";
+import { SidebarProducts } from "@/components/products/SidebarProducts";
 import { useArticleBySlug, useRelatedArticles, useIncrementViews } from "@/hooks/useArticles";
 import { useArticleTMDBMentions } from "@/hooks/useArticleTMDBMentions";
 import { CATEGORIES, type CategoryKey } from "@/lib/categories";
@@ -267,11 +267,10 @@ export default function ArticlePage() {
           {/* Sidebar */}
           <aside className="lg:col-span-4 xl:col-span-3">
             <div className="sticky top-32 space-y-6">
-              <AffiliateProducts
+              <SidebarProducts
                 category={article.category}
                 limit={3}
                 title="Ofertas Relacionadas"
-                compact
               />
               <TrendingSidebar />
               <SidebarAd />

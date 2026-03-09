@@ -8,7 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
-import { AffiliateProducts } from "@/components/products/AffiliateProducts";
 import { StructuredBreadcrumb } from "@/components/seo/StructuredBreadcrumb";
 import { useProductBySlug, useProducts } from "@/hooks/useProducts";
 
@@ -200,15 +199,6 @@ export default function ProductDetailPage() {
         </div>
 
         <Separator className="my-8" />
-
-        {/* Affiliate offers */}
-        <div className="mb-8">
-          <AffiliateProducts
-            category={product.category || "ofertas"}
-            limit={6}
-            title="🔥 Ofertas Relacionadas"
-          />
-        </div>
 
         {/* Related products */}
         {relatedProducts && relatedProducts.length > 0 && (
