@@ -249,6 +249,9 @@ export default function ArticlePage() {
             {/* Comments */}
             <CommentSection articleId={article.id} />
 
+            {/* FAQ Section with JSON-LD */}
+            <ArticleFAQ articleId={article.id} articleTitle={article.title} />
+
             {/* Related articles */}
             {relatedArticles && relatedArticles.length > 0 && (
               <section className="border-t pt-8 mt-8">
