@@ -1,0 +1,411 @@
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
+import { Search, Pencil, Trash2, ExternalLink, Loader2, Plus, Package } from "lucide-react";
+
+interface Product {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  price: number | null;
+  currency: string | null;
+  image_url: string | null;
+  original_url: string;
+  category: string | null;
+  is_available: boolean | null;
+  created_at: string | null;
+}
+
+export function ProductsManager() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [search, setSearch] = useState("");
+  const [editProduct, setEditProduct] = useState<Product | null>(null);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+
+  const { data: products, isLoading } = useQuery({
+    queryKey: ["admin-products"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("products")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as Product[];
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("products").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      toast({ title: "Produto excluído!" });
+    },
+    onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async (product: Partial<Product> & { id: string }) => {
+      const { id, ...updates } = product;
+      const { error } = await supabase.from("products").update(updates).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      setEditProduct(null);
+      toast({ title: "Produto atualizado!" });
+    },
+    onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+  });
+
+  const createMutation = useMutation({
+    mutationFn: async (product: { name: string; slug: string; original_url: string; description?: string; price?: number; currency?: string; image_url?: string; category?: string }) => {
+      const { error } = await supabase.from("products").insert(product);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      setIsCreateOpen(false);
+      toast({ title: "Produto criado!" });
+    },
+    onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+  });
+
+  const filtered = products?.filter((p) =>
+    p.name.toLowerCase().includes(search.toLowerCase()) ||
+    (p.category || "").toLowerCase().includes(search.toLowerCase())
+  ) || [];
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+        <div className="relative w-full sm:max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar produtos..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <Button onClick={() => setIsCreateOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Novo Produto
+        </Button>
+      </div>
+
+      {isLoading ? (
+        <div className="flex justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : filtered.length === 0 ? (
+        <Card>
+          <CardContent className="py-12 text-center text-muted-foreground">
+            <Package className="h-12 w-12 mx-auto mb-3 opacity-50" />
+            <p>Nenhum produto encontrado.</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-2">
+          <p className="text-sm text-muted-foreground">{filtered.length} produto(s)</p>
+          {filtered.map((product) => (
+            <Card key={product.id} className="overflow-hidden">
+              <CardContent className="p-4">
+                <div className="flex items-start gap-4">
+                  {product.image_url && (
+                    <img
+                      src={product.image_url}
+                      alt={product.name}
+                      className="w-16 h-16 object-cover rounded shrink-0"
+                    />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-medium text-sm line-clamp-1">{product.name}</h3>
+                    <div className="flex flex-wrap items-center gap-2 mt-1">
+                      {product.price != null && (
+                        <Badge variant="secondary">
+                          {product.currency || "R$"} {product.price.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                        </Badge>
+                      )}
+                      {product.category && (
+                        <Badge variant="outline" className="text-xs">{product.category}</Badge>
+                      )}
+                      <Badge variant={product.is_available ? "default" : "destructive"} className="text-xs">
+                        {product.is_available ? "Disponível" : "Indisponível"}
+                      </Badge>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Button variant="ghost" size="icon" asChild>
+                      <a href={product.original_url} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="h-4 w-4" />
+                      </a>
+                    </Button>
+                    <Button variant="ghost" size="icon" onClick={() => setEditProduct(product)}>
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => {
+                        if (confirm("Excluir este produto?")) deleteMutation.mutate(product.id);
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Edit Dialog */}
+      <ProductEditDialog
+        product={editProduct}
+        open={!!editProduct}
+        onOpenChange={(open) => { if (!open) setEditProduct(null); }}
+        onSave={(updates) => {
+          if (editProduct) updateMutation.mutate({ id: editProduct.id, ...updates });
+        }}
+        saving={updateMutation.isPending}
+      />
+
+      {/* Create Dialog */}
+      <ProductCreateDialog
+        open={isCreateOpen}
+        onOpenChange={setIsCreateOpen}
+        onSave={(data) => createMutation.mutate(data)}
+        saving={createMutation.isPending}
+      />
+    </div>
+  );
+}
+
+function ProductEditDialog({
+  product,
+  open,
+  onOpenChange,
+  onSave,
+  saving,
+}: {
+  product: Product | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSave: (updates: Partial<Product>) => void;
+  saving: boolean;
+}) {
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [price, setPrice] = useState("");
+  const [currency, setCurrency] = useState("BRL");
+  const [imageUrl, setImageUrl] = useState("");
+  const [originalUrl, setOriginalUrl] = useState("");
+  const [category, setCategory] = useState("");
+  const [isAvailable, setIsAvailable] = useState(true);
+
+  // Sync state when product changes
+  useState(() => {
+    if (product) {
+      setName(product.name);
+      setDescription(product.description || "");
+      setPrice(product.price?.toString() || "");
+      setCurrency(product.currency || "BRL");
+      setImageUrl(product.image_url || "");
+      setOriginalUrl(product.original_url);
+      setCategory(product.category || "");
+      setIsAvailable(product.is_available ?? true);
+    }
+  });
+
+  // Reset when product changes
+  const currentId = product?.id;
+  useState(() => undefined);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Editar Produto</DialogTitle>
+        </DialogHeader>
+        {product && (
+          <ProductForm
+            name={product.name}
+            description={product.description || ""}
+            price={product.price?.toString() || ""}
+            currency={product.currency || "BRL"}
+            imageUrl={product.image_url || ""}
+            originalUrl={product.original_url}
+            category={product.category || ""}
+            isAvailable={product.is_available ?? true}
+            saving={saving}
+            submitLabel="Salvar Alterações"
+            onSubmit={(data) => onSave({
+              name: data.name,
+              description: data.description || null,
+              price: data.price ? parseFloat(data.price) : null,
+              currency: data.currency,
+              image_url: data.imageUrl || null,
+              original_url: data.originalUrl,
+              category: data.category || null,
+              is_available: data.isAvailable,
+            })}
+          />
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ProductCreateDialog({
+  open,
+  onOpenChange,
+  onSave,
+  saving,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSave: (data: { name: string; slug: string; original_url: string; description?: string; price?: number; currency?: string; image_url?: string; category?: string }) => void;
+  saving: boolean;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Novo Produto</DialogTitle>
+        </DialogHeader>
+        <ProductForm
+          name=""
+          description=""
+          price=""
+          currency="BRL"
+          imageUrl=""
+          originalUrl=""
+          category=""
+          isAvailable={true}
+          saving={saving}
+          submitLabel="Criar Produto"
+          onSubmit={(data) => {
+            const slug = data.name
+              .toLowerCase()
+              .normalize("NFD")
+              .replace(/[\u0300-\u036f]/g, "")
+              .replace(/[^a-z0-9\s-]/g, "")
+              .replace(/\s+/g, "-")
+              + "-" + Date.now().toString(36);
+            onSave({
+              name: data.name,
+              slug,
+              original_url: data.originalUrl,
+              description: data.description || undefined,
+              price: data.price ? parseFloat(data.price) : undefined,
+              currency: data.currency || undefined,
+              image_url: data.imageUrl || undefined,
+              category: data.category || undefined,
+            });
+          }}
+        />
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ProductForm({
+  name: initName,
+  description: initDesc,
+  price: initPrice,
+  currency: initCurrency,
+  imageUrl: initImage,
+  originalUrl: initUrl,
+  category: initCategory,
+  isAvailable: initAvailable,
+  saving,
+  submitLabel,
+  onSubmit,
+}: {
+  name: string;
+  description: string;
+  price: string;
+  currency: string;
+  imageUrl: string;
+  originalUrl: string;
+  category: string;
+  isAvailable: boolean;
+  saving: boolean;
+  submitLabel: string;
+  onSubmit: (data: { name: string; description: string; price: string; currency: string; imageUrl: string; originalUrl: string; category: string; isAvailable: boolean }) => void;
+}) {
+  const [name, setName] = useState(initName);
+  const [description, setDescription] = useState(initDesc);
+  const [price, setPrice] = useState(initPrice);
+  const [currency, setCurrency] = useState(initCurrency);
+  const [imageUrl, setImageUrl] = useState(initImage);
+  const [originalUrl, setOriginalUrl] = useState(initUrl);
+  const [category, setCategory] = useState(initCategory);
+  const [isAvailable, setIsAvailable] = useState(initAvailable);
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label>Nome *</Label>
+        <Input value={name} onChange={(e) => setName(e.target.value)} />
+      </div>
+      <div className="space-y-2">
+        <Label>Descrição</Label>
+        <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-2">
+          <Label>Preço</Label>
+          <Input type="number" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="0.00" />
+        </div>
+        <div className="space-y-2">
+          <Label>Moeda</Label>
+          <Input value={currency} onChange={(e) => setCurrency(e.target.value)} placeholder="BRL" />
+        </div>
+      </div>
+      <div className="space-y-2">
+        <Label>URL Original *</Label>
+        <Input value={originalUrl} onChange={(e) => setOriginalUrl(e.target.value)} placeholder="https://..." />
+      </div>
+      <div className="space-y-2">
+        <Label>URL da Imagem</Label>
+        <Input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://..." />
+      </div>
+      <div className="space-y-2">
+        <Label>Categoria</Label>
+        <Input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Ex: tecnologia" />
+      </div>
+      <div className="flex items-center gap-3">
+        <Switch checked={isAvailable} onCheckedChange={setIsAvailable} />
+        <Label>Disponível</Label>
+      </div>
+      <Button
+        className="w-full"
+        disabled={saving || !name || !originalUrl}
+        onClick={() => onSubmit({ name, description, price, currency, imageUrl, originalUrl, category, isAvailable })}
+      >
+        {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+        {submitLabel}
+      </Button>
+    </div>
+  );
+}
