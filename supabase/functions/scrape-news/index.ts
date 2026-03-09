@@ -530,34 +530,34 @@ serve(async (req) => {
 
     if (itemLinks.length < maxItems) {
       if (isProductSource) {
-        // Build specific product search queries - prioritize Amazon (has images in metadata)
+        // Build product search queries targeting Mercado Livre & Shopee via Google Shopping
         const PRODUCT_QUERY_MAP: Record<string, string[]> = {
           "Eletrônicos": [
-            "smartphone samsung galaxy site:amazon.com.br/dp",
-            "notebook lenovo ideapad site:amazon.com.br/dp",
-            "fone jbl bluetooth site:amazon.com.br/dp",
-            "smart tv 4k samsung site:amazon.com.br/dp",
+            "smartphone samsung galaxy mercado livre",
+            "notebook lenovo shopee brasil",
+            "fone bluetooth jbl mercado livre",
+            "smart tv 4k samsung shopee",
           ],
           "Vestuário": [
-            "tênis nike masculino site:amazon.com.br/dp",
-            "mochila escolar site:amazon.com.br/dp",
-            "camiseta adidas site:amazon.com.br/dp",
-            "tênis adidas feminino site:amazon.com.br/dp",
+            "tênis nike masculino mercado livre",
+            "mochila escolar shopee brasil",
+            "camiseta adidas mercado livre",
+            "tênis adidas feminino shopee",
           ],
           "Casa e Jardim": [
-            "aspirador robô site:amazon.com.br/dp",
-            "cafeteira nespresso site:amazon.com.br/dp",
-            "panela elétrica site:amazon.com.br/dp",
-            "fritadeira airfryer site:amazon.com.br/dp",
+            "aspirador robô mercado livre",
+            "cafeteira nespresso shopee brasil",
+            "fritadeira airfryer mercado livre",
+            "panela elétrica shopee",
           ],
         };
 
         const categoryName = typedSource.name;
         const specificQueries = PRODUCT_QUERY_MAP[categoryName] || [
-          `${categoryName} site:amazon.com.br/dp`,
+          `${categoryName} mercado livre`,
+          `${categoryName} shopee brasil`,
         ];
         
-        // Use all queries in order (don't shuffle) to ensure consistency
         const searchQueries = specificQueries.slice(0, Math.min(4, specificQueries.length));
 
         console.log(`Using Firecrawl Search API for products: ${searchQueries.join(" | ")}`);
