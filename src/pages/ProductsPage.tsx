@@ -18,7 +18,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useProducts } from "@/hooks/useProducts";
-import { AffiliateProducts } from "@/components/products/AffiliateProducts";
 import { StructuredBreadcrumb } from "@/components/seo/StructuredBreadcrumb";
 
 export default function ProductsPage() {
