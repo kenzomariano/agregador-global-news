@@ -182,6 +182,10 @@ export default function AdminDashboard() {
           <AdsManager />
         </TabsContent>
 
+        <TabsContent value="products">
+          <ProductsManager />
+        </TabsContent>
+
         <TabsContent value="settings">
           <SiteSettingsManager />
         </TabsContent>
