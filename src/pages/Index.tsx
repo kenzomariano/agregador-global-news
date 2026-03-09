@@ -104,6 +104,7 @@ export default function Index() {
           <aside className="lg:col-span-4 xl:col-span-3">
             <div className="sticky top-32 space-y-6">
               <PopularTags />
+              <NewsletterWidget />
               <SidebarAd />
               <TrendingTrailers />
               <SidebarAd />
