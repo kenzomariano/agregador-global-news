@@ -200,7 +200,7 @@ export function Header() {
                         onClick={() => setSheetOpen(false)}
                         className="flex items-center gap-3 px-4 py-3 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                       >
-                        <span className="text-base leading-none">{cat.icon}</span>
+                        <span className="text-base leading-none">{CATEGORY_EMOJIS[key]}</span>
                         {cat.label}
                       </Link>
                     ) : null;
