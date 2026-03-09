@@ -66,6 +66,12 @@ export default function AdminDashboard() {
             <span className="hidden sm:inline">Fontes</span>
           </TabsTrigger>
           <TabsTrigger 
+            value="products" 
+            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex gap-2 py-3"
+          >
+            <Package className="h-4 w-4" />
+            <span className="hidden sm:inline">Produtos</span>
+          <TabsTrigger 
             value="ads" 
             className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex gap-2 py-3"
           >
