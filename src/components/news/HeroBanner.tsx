@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,7 @@ interface HeroBannerProps {
 
 export function HeroBanner({ articles }: HeroBannerProps) {
   const [current, setCurrent] = useState(0);
+  const touchStartX = useRef<number | null>(null);
   const total = articles.length;
 
   const next = useCallback(() => {
