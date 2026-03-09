@@ -385,6 +385,8 @@ export function ProductsManager() {
       {/* ML Search Dialog */}
       <MLProductSearch open={isMLSearchOpen} onOpenChange={setIsMLSearchOpen} />
     </div>
+  );
+}
 
 function ProductEditDialog({
   product,
