@@ -168,6 +168,7 @@ export default function ArticlePage() {
               {/* Share & Like */}
               <div className="flex flex-wrap items-center gap-3 border-y py-3">
                 <LikeButton articleId={article.id} />
+                <SaveButton articleId={article.id} />
                 <ShareButtons url={articleUrl} title={article.title} />
               </div>
             </header>
