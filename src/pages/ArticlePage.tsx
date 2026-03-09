@@ -267,11 +267,10 @@ export default function ArticlePage() {
           {/* Sidebar */}
           <aside className="lg:col-span-4 xl:col-span-3">
             <div className="sticky top-32 space-y-6">
-              <AffiliateProducts
+              <SidebarProducts
                 category={article.category}
                 limit={3}
                 title="Ofertas Relacionadas"
-                compact
               />
               <TrendingSidebar />
               <SidebarAd />
