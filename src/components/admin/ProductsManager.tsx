@@ -228,10 +228,16 @@ export function ProductsManager() {
             className="pl-9"
           />
         </div>
-        <Button onClick={() => setIsCreateOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Novo Produto
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setIsMLSearchOpen(true)}>
+            <ShoppingCart className="h-4 w-4 mr-2" />
+            Importar do ML
+          </Button>
+          <Button onClick={() => setIsCreateOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Novo Produto
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
