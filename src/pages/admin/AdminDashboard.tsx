@@ -12,7 +12,7 @@ import { useAdPlacements } from "@/hooks/useAdPlacements";
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("overview");
-  const { data: articles } = useArticles(undefined, 1000);
+  const { data: articlesData } = useArticles(undefined, 1000);
   const { data: sources } = useSources();
   const { data: ads } = useAdPlacements();
 
