@@ -85,38 +85,10 @@ export default function ProductsPage() {
         {/* Featured products from database */}
         {!isLoading && products && products.length > 0 && (
           <div className="mb-8">
-            <h2 className="text-xl font-bold font-serif mb-4 flex items-center gap-2">
-              <span className="w-1 h-6 rounded-full bg-primary" />
-              🛒 Ofertas em Destaque
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {products.slice(0, 6).map((product) => (
-                <Link key={product.id} to={`/produto/${product.slug}`}>
-                  <Card className="overflow-hidden hover:shadow-lg transition-shadow h-full flex flex-col">
-                    <div className="aspect-video bg-muted overflow-hidden">
-                      {product.image_url ? (
-                        <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" loading="lazy" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <ShoppingBag className="h-10 w-10 text-muted-foreground/30" />
-                        </div>
-                      )}
-                    </div>
-                    <CardContent className="p-4 flex-1">
-                      <p className="font-medium line-clamp-2 mb-2">{product.name}</p>
-                      {product.price !== null && (
-                        <p className="text-lg font-bold text-primary">
-                          {new Intl.NumberFormat("pt-BR", { style: "currency", currency: product.currency || "BRL" }).format(product.price)}
-                        </p>
-                      )}
-                      {product.news_sources?.name && (
-                        <p className="text-xs text-muted-foreground mt-1">via {product.news_sources.name}</p>
-                      )}
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))}
-            </div>
+            <ProductCarousel
+              products={products.slice(0, 8)}
+              title="🛒 Ofertas em Destaque"
+            />
           </div>
         )}
 
