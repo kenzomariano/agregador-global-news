@@ -98,11 +98,11 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get products from ML that need enrichment (no image or no price)
+    // Get products from ML that need enrichment (no image, no price, or no description)
     const { data: products, error: productsError } = await supabase
       .from("products")
-      .select("id, name, original_url, image_url, price")
-      .or("image_url.is.null,price.is.null")
+      .select("id, name, original_url, image_url, price, description")
+      .or("image_url.is.null,price.is.null,description.is.null")
       .ilike("original_url", "%mercadolivre.com.br%")
       .limit(20);
 
@@ -162,7 +162,23 @@ Deno.serve(async (req) => {
         }
 
         // Get description if missing (separate API call)
-        // Skip for now to save API calls
+        if (!product.description) {
+          try {
+            const descResponse = await fetch(`https://api.mercadolibre.com/items/${mlbId}/description`, {
+              headers: { Authorization: `Bearer ${mlToken}` },
+            });
+            
+            if (descResponse.ok) {
+              const descData = await descResponse.json();
+              if (descData && descData.plain_text) {
+                updates.description = descData.plain_text;
+                console.log(`  Description found (${updates.description.length} chars)`);
+              }
+            }
+          } catch (descError) {
+            console.error(`  Error fetching description for ${mlbId}:`, descError);
+          }
+        }
 
         if (Object.keys(updates).length > 0) {
           updates.updated_at = new Date().toISOString();
