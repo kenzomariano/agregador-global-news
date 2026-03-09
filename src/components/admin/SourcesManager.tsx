@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2, RefreshCw, Globe, FileText, Package, Upload, Link } from "lucide-react";
+import { ScrapeQueuePanel } from "./ScrapeQueuePanel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -207,6 +208,9 @@ export function SourcesManager() {
 
   return (
     <div className="space-y-6">
+      {/* Scrape Queue Panel */}
+      <ScrapeQueuePanel />
+
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-semibold">Gerenciar Fontes</h2>
