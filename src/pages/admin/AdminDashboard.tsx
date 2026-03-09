@@ -163,6 +163,10 @@ export default function AdminDashboard() {
           <ArticlesManager />
         </TabsContent>
 
+        <TabsContent value="guides">
+          <GuidesManager />
+        </TabsContent>
+
         <TabsContent value="sources">
           <SourcesManager />
         </TabsContent>
