@@ -30,26 +30,31 @@ export default function SearchPage() {
     }
   }, [query, categoryFilter, page]);
 
-  const performSearch = async (q: string, cat: string) => {
+  const performSearch = async (q: string, cat: string, p: number) => {
     setLoading(true);
     setSearched(true);
     try {
+      const from = (p - 1) * SEARCH_PER_PAGE;
+      const to = from + SEARCH_PER_PAGE - 1;
+
       let dbQuery = supabase
         .from("articles")
-        .select("*, news_sources(name, logo_url)")
+        .select("*, news_sources(name, logo_url)", { count: "exact" })
         .or(`title.ilike.%${q}%,excerpt.ilike.%${q}%`)
         .order("published_at", { ascending: false })
-        .limit(30);
+        .range(from, to);
 
       if (cat) {
         dbQuery = dbQuery.eq("category", cat as CategoryKey);
       }
 
-      const { data, error } = await dbQuery;
+      const { data, error, count } = await dbQuery;
       if (error) throw error;
       setResults((data as Article[]) || []);
+      setTotalCount(count || 0);
     } catch {
       setResults([]);
+      setTotalCount(0);
     } finally {
       setLoading(false);
     }
