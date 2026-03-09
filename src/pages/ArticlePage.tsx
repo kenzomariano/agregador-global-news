@@ -15,6 +15,7 @@ import { ArticleContent } from "@/components/news/ArticleContent";
 import { ArticleTags } from "@/components/news/ArticleTags";
 import { ShareButtons } from "@/components/news/ShareButtons";
 import { LikeButton } from "@/components/news/LikeButton";
+import { SaveButton } from "@/components/news/SaveButton";
 import { CommentSection } from "@/components/news/CommentSection";
 import { TrendingSidebar } from "@/components/news/TrendingSidebar";
 import { TMDBMentions } from "@/components/entertainment/TMDBMention";
