@@ -353,7 +353,9 @@ export function ArticlesManager() {
               onEdit={handleEdit}
               onDelete={handleDelete}
               onRescrape={handleRescrape}
+              onGenerateFaq={handleGenerateFaq}
               isRescraping={rescraping === article.id}
+              isGeneratingFaq={generatingFaqId === article.id}
             />
           ))}
         </div>
