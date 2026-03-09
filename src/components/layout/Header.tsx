@@ -294,6 +294,14 @@ export function Header() {
                 </Link>
               </li>
             )}
+            <li>
+              <Link
+                to="/guias"
+                className="px-3 py-1.5 text-sm font-medium rounded-md hover:bg-accent transition-colors"
+              >
+                📖 Guias
+              </Link>
+            </li>
           </ul>
         </div>
       </nav>
