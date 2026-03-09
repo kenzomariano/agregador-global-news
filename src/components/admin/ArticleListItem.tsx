@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Trash2, RefreshCw, Pencil, ExternalLink, Eye } from "lucide-react";
+import { Trash2, RefreshCw, Pencil, ExternalLink, Eye, MessageCircleQuestion } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -27,7 +27,9 @@ interface ArticleListItemProps {
   onEdit: (article: Article) => void;
   onDelete: (id: string) => void;
   onRescrape: (article: Article) => void;
+  onGenerateFaq?: (articleId: string) => void;
   isRescraping: boolean;
+  isGeneratingFaq?: boolean;
 }
 
 export function ArticleListItem({
@@ -37,7 +39,9 @@ export function ArticleListItem({
   onEdit,
   onDelete,
   onRescrape,
+  onGenerateFaq,
   isRescraping,
+  isGeneratingFaq,
 }: ArticleListItemProps) {
   const category = CATEGORIES[article.category as CategoryKey];
   const timeAgo = article.published_at
@@ -122,6 +126,19 @@ export function ArticleListItem({
                 >
                   <RefreshCw
                     className={`h-4 w-4 ${isRescraping ? "animate-spin" : ""}`}
+                  />
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => onGenerateFaq?.(article.id)}
+                  disabled={isGeneratingFaq}
+                  title="Gerar FAQ com IA"
+                  className="h-8 w-8"
+                >
+                  <MessageCircleQuestion
+                    className={`h-4 w-4 ${isGeneratingFaq ? "animate-pulse" : ""}`}
                   />
                 </Button>
 

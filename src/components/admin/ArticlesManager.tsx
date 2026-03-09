@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
+import { useGenerateArticleFaqs } from "@/hooks/useArticleFaqs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -26,6 +27,8 @@ export function ArticlesManager() {
   const [rescraping, setRescraping] = useState<string | null>(null);
   const [bulkRescraping, setBulkRescraping] = useState(false);
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [generatingFaqId, setGeneratingFaqId] = useState<string | null>(null);
+  const generateFaq = useGenerateArticleFaqs();
 
   const [editForm, setEditForm] = useState({
     title: "",
@@ -272,6 +275,25 @@ export function ArticlesManager() {
     }
   };
 
+  const handleGenerateFaq = async (articleId: string) => {
+    setGeneratingFaqId(articleId);
+    try {
+      await generateFaq.mutateAsync(articleId);
+      toast({
+        title: "FAQ gerado!",
+        description: "Perguntas frequentes criadas com sucesso.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao gerar FAQ",
+        description: error.message || "Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setGeneratingFaqId(null);
+    }
+  };
+
   const allSelected = filteredArticles && filteredArticles.length > 0 && 
     filteredArticles.every((a) => selectedIds.has(a.id));
 
@@ -331,7 +353,9 @@ export function ArticlesManager() {
               onEdit={handleEdit}
               onDelete={handleDelete}
               onRescrape={handleRescrape}
+              onGenerateFaq={handleGenerateFaq}
               isRescraping={rescraping === article.id}
+              isGeneratingFaq={generatingFaqId === article.id}
             />
           ))}
         </div>
