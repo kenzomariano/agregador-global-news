@@ -1,7 +1,9 @@
+import { useRef } from "react";
 import { Link } from "react-router-dom";
-import { Tag, ShoppingBag } from "lucide-react";
+import { Tag, ShoppingBag, ChevronLeft, ChevronRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useProducts, type Product } from "@/hooks/useProducts";
 
@@ -18,11 +20,18 @@ export function AffiliateProducts({
   title = "🔥 Ofertas do Dia",
   compact = false,
 }: AffiliateProductsProps) {
+  const scrollRef = useRef<HTMLDivElement>(null);
   const { data: allProducts, isLoading } = useProducts(limit);
 
   const products = category && category !== "ofertas"
     ? allProducts?.filter((p) => p.category?.toLowerCase().includes(category.toLowerCase()))
     : allProducts;
+
+  const scroll = (dir: "left" | "right") => {
+    if (!scrollRef.current) return;
+    const amount = scrollRef.current.offsetWidth * 0.7;
+    scrollRef.current.scrollBy({ left: dir === "left" ? -amount : amount, behavior: "smooth" });
+  };
 
   if (isLoading) {
     return (
@@ -31,9 +40,9 @@ export function AffiliateProducts({
           <span className="w-1 h-6 rounded-full bg-primary" />
           {title}
         </h2>
-        <div className={compact ? "space-y-3" : "grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4"}>
-          {Array.from({ length: compact ? 3 : limit }).map((_, i) => (
-            <Card key={i} className="overflow-hidden">
+        <div className="flex gap-3 overflow-hidden">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Card key={i} className="overflow-hidden flex-shrink-0 w-[45%] sm:w-[220px]">
               <Skeleton className="aspect-square w-full" />
               <CardContent className="p-3 space-y-2">
                 <Skeleton className="h-4 w-full" />
@@ -62,15 +71,32 @@ export function AffiliateProducts({
     );
   }
 
+
   return (
     <section className="space-y-4">
-      <h2 className="text-xl font-bold font-serif flex items-center gap-2">
-        <span className="w-1 h-6 rounded-full bg-primary" />
-        {title}
-      </h2>
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg sm:text-xl font-bold font-serif flex items-center gap-2">
+          <span className="w-1 h-5 sm:h-6 rounded-full bg-primary" />
+          {title}
+        </h2>
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => scroll("left")}>
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => scroll("right")}>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+      <div
+        ref={scrollRef}
+        className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2 -mx-1 px-1"
+        style={{ scrollbarWidth: "none", msOverflowStyle: "none", WebkitOverflowScrolling: "touch" }}
+      >
         {products.slice(0, limit).map((product) => (
-          <ProductCard key={product.id} product={product} />
+          <div key={product.id} className="flex-shrink-0 w-[45%] sm:w-[220px] snap-start">
+            <ProductCard product={product} />
+          </div>
         ))}
       </div>
     </section>
