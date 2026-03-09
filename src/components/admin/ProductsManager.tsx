@@ -33,6 +33,7 @@ export function ProductsManager() {
   const [search, setSearch] = useState("");
   const [editProduct, setEditProduct] = useState<Product | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const { data: products, isLoading } = useQuery({
     queryKey: ["admin-products"],
