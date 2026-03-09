@@ -71,11 +71,6 @@ export function AffiliateProducts({
     );
   }
 
-  const scroll = (dir: "left" | "right") => {
-    if (!scrollRef.current) return;
-    const amount = scrollRef.current.offsetWidth * 0.7;
-    scrollRef.current.scrollBy({ left: dir === "left" ? -amount : amount, behavior: "smooth" });
-  };
 
   return (
     <section className="space-y-4">
