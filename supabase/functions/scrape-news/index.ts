@@ -533,29 +533,33 @@ serve(async (req) => {
         // Build product search queries targeting Mercado Livre & Shopee via Google Shopping
         const PRODUCT_QUERY_MAP: Record<string, string[]> = {
           "Eletrônicos": [
-            "smartphone samsung galaxy mercado livre",
-            "notebook lenovo shopee brasil",
-            "fone bluetooth jbl mercado livre",
-            "smart tv 4k samsung shopee",
+            "site:produto.mercadolivre.com.br smartphone samsung",
+            "site:produto.mercadolivre.com.br notebook lenovo",
+            "site:produto.mercadolivre.com.br fone bluetooth",
+            "site:produto.mercadolivre.com.br smart tv 4k",
           ],
           "Vestuário": [
-            "tênis nike masculino mercado livre",
-            "mochila escolar shopee brasil",
-            "camiseta adidas mercado livre",
-            "tênis adidas feminino shopee",
+            "site:produto.mercadolivre.com.br tênis nike masculino",
+            "site:produto.mercadolivre.com.br mochila escolar",
+            "site:produto.mercadolivre.com.br camiseta adidas",
+            "site:produto.mercadolivre.com.br tênis feminino",
           ],
           "Casa e Jardim": [
-            "aspirador robô mercado livre",
-            "cafeteira nespresso shopee brasil",
-            "fritadeira airfryer mercado livre",
-            "panela elétrica shopee",
+            "site:produto.mercadolivre.com.br aspirador robô",
+            "site:produto.mercadolivre.com.br cafeteira nespresso",
+            "site:produto.mercadolivre.com.br fritadeira airfryer",
+            "site:produto.mercadolivre.com.br panela elétrica",
+          ],
+          "Google Shopping": [
+            "site:produto.mercadolivre.com.br oferta",
+            "site:produto.mercadolivre.com.br promoção",
           ],
         };
 
         const categoryName = typedSource.name;
         const specificQueries = PRODUCT_QUERY_MAP[categoryName] || [
-          `${categoryName} mercado livre`,
-          `${categoryName} shopee brasil`,
+          `site:produto.mercadolivre.com.br ${categoryName}`,
+          `site:produto.mercadolivre.com.br ${categoryName} oferta`,
         ];
         
         const searchQueries = specificQueries.slice(0, Math.min(4, specificQueries.length));
@@ -615,6 +619,7 @@ serve(async (req) => {
                   /mercadolivre\.com\.br\/MLB-/i,            // ML product direct
                   /produto\.mercadolivre\.com\.br\//i,       // ML product subdomain
                   /mercadolivre\.com\.br\/.*MLB\d+/i,        // ML product ID in URL
+                  /mercadolivre\.com\.br\/.*-\d{6,}/i,       // ML product with numeric ID
                   /shopee\.com\.br\/.*-i\.\d+\.\d+/i,       // Shopee product
                   /shopee\.com\.br\/product\//i,             // Shopee product alt
                   /amazon\.com\.br\/.*\/dp\//i,              // Amazon product
@@ -653,7 +658,7 @@ serve(async (req) => {
                   
                   console.log(`Product found: ${cleanUrl.slice(0, 80)} | img: ${bestImage ? "YES" : "NO"} | title: ${(result.title || "").slice(0, 60)}`);
                 } else {
-                  console.log(`Skipped: ${cleanUrl.slice(0, 80)} (ecommerce=${isEcommerce}, catalog=${isCatalogPage})`);
+                  console.log(`Skipped: ${cleanUrl.slice(0, 80)} (ecommerce=${isEcommerce}, productPattern=${isProductUrl})`);
                 }
               }
             } else {
@@ -882,13 +887,50 @@ serve(async (req) => {
               }
             }
           }
-          // Priority 3: For ML products, try the products catalog API
+          // Priority 3: For ML products, try Items API (works for MLB-XXXXX URLs)
           if (!imageUrl) {
-            const mlbMatch = cleanUrl.match(/\/p\/(MLB\d+)/i);
-            if (mlbMatch) {
+            // Extract MLB item ID from various URL formats
+            const mlbItemMatch = cleanUrl.match(/MLB[-_]?(\d+)/i);
+            if (mlbItemMatch) {
+              const mlbId = `MLB${mlbItemMatch[1]}`;
               try {
-                // Try products catalog API (public, no auth needed)
-                const mlCatalogUrl = `https://api.mercadolibre.com/products/${mlbMatch[1]}`;
+                // Items API is public and returns pictures
+                const mlItemUrl = `https://api.mercadolibre.com/items/${mlbId}`;
+                console.log(`Fetching ML Items API: ${mlItemUrl}`);
+                const mlItemResp = await fetch(mlItemUrl);
+                if (mlItemResp.ok) {
+                  const mlItemData = await mlItemResp.json();
+                  const mlPictures = mlItemData.pictures || [];
+                  if (mlPictures.length > 0) {
+                    const mlPicUrl = (mlPictures[0].secure_url || mlPictures[0].url || "").replace("http://", "https://");
+                    if (mlPicUrl) {
+                      imageUrl = mlPicUrl;
+                      console.log(`Got ML Items API image: ${imageUrl.slice(0, 100)}`);
+                    }
+                  }
+                  // Also extract price from API if not found
+                  if (!price && mlItemData.price) {
+                    price = mlItemData.price;
+                    console.log(`Got ML Items API price: R$ ${price}`);
+                  }
+                  // Extract thumbnail as last resort
+                  if (!imageUrl && mlItemData.thumbnail) {
+                    imageUrl = mlItemData.thumbnail.replace("http://", "https://").replace("-I.jpg", "-O.jpg");
+                    console.log(`Got ML thumbnail: ${imageUrl.slice(0, 100)}`);
+                  }
+                } else {
+                  console.log(`ML Items API returned ${mlItemResp.status}`);
+                }
+              } catch (e) {
+                console.log(`ML Items API failed: ${e}`);
+              }
+            }
+            
+            // Also try catalog API for /p/MLB URLs
+            const mlbCatalogMatch = cleanUrl.match(/\/p\/(MLB\d+)/i);
+            if (!imageUrl && mlbCatalogMatch) {
+              try {
+                const mlCatalogUrl = `https://api.mercadolibre.com/products/${mlbCatalogMatch[1]}`;
                 console.log(`Fetching ML catalog API: ${mlCatalogUrl}`);
                 const mlCatalogResp = await fetch(mlCatalogUrl);
                 if (mlCatalogResp.ok) {
@@ -990,9 +1032,8 @@ ${allText.slice(0, 4000)}`;
           }
 
           if (!imageUrl) {
-            console.log(`Skipping product without valid product image: ${cleanUrl}`);
-            skippedCount++;
-            continue;
+            console.log(`Product without image, using placeholder: ${cleanUrl}`);
+            imageUrl = null; // Will be stored as null, frontend shows placeholder
           }
 
           console.log(`Product result: name="${name}", price=${price}, image=${imageUrl ? "yes" : "no"}, category="${category}"`);
