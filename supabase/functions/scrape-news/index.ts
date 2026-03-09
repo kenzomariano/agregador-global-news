@@ -619,6 +619,7 @@ serve(async (req) => {
                   /mercadolivre\.com\.br\/MLB-/i,            // ML product direct
                   /produto\.mercadolivre\.com\.br\//i,       // ML product subdomain
                   /mercadolivre\.com\.br\/.*MLB\d+/i,        // ML product ID in URL
+                  /mercadolivre\.com\.br\/.*-\d{6,}/i,       // ML product with numeric ID
                   /shopee\.com\.br\/.*-i\.\d+\.\d+/i,       // Shopee product
                   /shopee\.com\.br\/product\//i,             // Shopee product alt
                   /amazon\.com\.br\/.*\/dp\//i,              // Amazon product
