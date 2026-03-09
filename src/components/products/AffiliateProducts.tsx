@@ -20,11 +20,18 @@ export function AffiliateProducts({
   title = "🔥 Ofertas do Dia",
   compact = false,
 }: AffiliateProductsProps) {
+  const scrollRef = useRef<HTMLDivElement>(null);
   const { data: allProducts, isLoading } = useProducts(limit);
 
   const products = category && category !== "ofertas"
     ? allProducts?.filter((p) => p.category?.toLowerCase().includes(category.toLowerCase()))
     : allProducts;
+
+  const scroll = (dir: "left" | "right") => {
+    if (!scrollRef.current) return;
+    const amount = scrollRef.current.offsetWidth * 0.7;
+    scrollRef.current.scrollBy({ left: dir === "left" ? -amount : amount, behavior: "smooth" });
+  };
 
   if (isLoading) {
     return (
@@ -33,9 +40,9 @@ export function AffiliateProducts({
           <span className="w-1 h-6 rounded-full bg-primary" />
           {title}
         </h2>
-        <div className={compact ? "space-y-3" : "grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4"}>
-          {Array.from({ length: compact ? 3 : limit }).map((_, i) => (
-            <Card key={i} className="overflow-hidden">
+        <div className="flex gap-3 overflow-hidden">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Card key={i} className="overflow-hidden flex-shrink-0 w-[45%] sm:w-[220px]">
               <Skeleton className="aspect-square w-full" />
               <CardContent className="p-3 space-y-2">
                 <Skeleton className="h-4 w-full" />
@@ -63,8 +70,6 @@ export function AffiliateProducts({
       </section>
     );
   }
-
-  const scrollRef = useRef<HTMLDivElement>(null);
 
   const scroll = (dir: "left" | "right") => {
     if (!scrollRef.current) return;
