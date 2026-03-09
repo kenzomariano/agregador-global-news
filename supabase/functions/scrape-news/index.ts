@@ -1448,6 +1448,88 @@ Exemplos de boas tags: "Piratas do Caribe", "Johnny Depp", "Disney", "Hollywood"
               }
             }
 
+            // Auto-generate FAQ for new article
+            if (insertedArticle && lovableApiKey && content && content.length > 500) {
+              try {
+                console.log(`Generating FAQ for: ${title}`);
+                const faqResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+                  method: "POST",
+                  headers: {
+                    "Authorization": `Bearer ${lovableApiKey}`,
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    model: "google/gemini-2.5-flash-lite",
+                    messages: [
+                      {
+                        role: "system",
+                        content: `Gere exatamente 4 perguntas frequentes (FAQ) em português brasileiro para o artigo. As perguntas devem ser naturais. As respostas devem ter 2-3 frases concisas.`,
+                      },
+                      {
+                        role: "user",
+                        content: `Título: ${title}\nCategoria: ${category}\n\nConteúdo:\n${content.slice(0, 3000)}`,
+                      },
+                    ],
+                    tools: [
+                      {
+                        type: "function",
+                        function: {
+                          name: "generate_faqs",
+                          description: "Generate FAQ questions and answers",
+                          parameters: {
+                            type: "object",
+                            properties: {
+                              faqs: {
+                                type: "array",
+                                items: {
+                                  type: "object",
+                                  properties: {
+                                    question: { type: "string" },
+                                    answer: { type: "string" },
+                                  },
+                                  required: ["question", "answer"],
+                                },
+                                maxItems: 4,
+                              },
+                            },
+                            required: ["faqs"],
+                          },
+                        },
+                      },
+                    ],
+                    tool_choice: { type: "function", function: { name: "generate_faqs" } },
+                  }),
+                });
+
+                if (faqResponse.ok) {
+                  const faqData = await faqResponse.json();
+                  const toolCall = faqData.choices?.[0]?.message?.tool_calls?.[0];
+                  if (toolCall?.function?.arguments) {
+                    const parsed = JSON.parse(toolCall.function.arguments);
+                    const faqs = (parsed.faqs || []).slice(0, 4);
+                    if (faqs.length > 0) {
+                      const faqInserts = faqs.map((faq: { question: string; answer: string }, idx: number) => ({
+                        article_id: insertedArticle.id,
+                        question: faq.question,
+                        answer: faq.answer,
+                        position: idx,
+                      }));
+                      const { error: faqError } = await supabase.from("article_faqs").insert(faqInserts);
+                      if (faqError) {
+                        console.error(`Failed to insert FAQs: ${faqError.message}`);
+                      } else {
+                        console.log(`Generated ${faqs.length} FAQs for: ${title}`);
+                      }
+                    }
+                  }
+                } else {
+                  console.log(`FAQ generation failed (${faqResponse.status}), skipping`);
+                }
+              } catch (faqErr) {
+                console.log(`FAQ generation error: ${faqErr}`);
+              }
+            }
+
             processedCount++;
             console.log(`Inserted article: ${title}`);
           }
