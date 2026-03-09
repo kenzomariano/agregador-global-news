@@ -11,7 +11,8 @@ interface CategorySectionProps {
 }
 
 export function CategorySection({ category, limit = 4 }: CategorySectionProps) {
-  const { data: articles, isLoading } = useArticles(category, limit);
+  const { data, isLoading } = useArticles(category, limit);
+  const articles = data?.articles;
   const categoryInfo = CATEGORIES[category];
 
   if (isLoading) {

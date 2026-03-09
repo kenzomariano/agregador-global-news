@@ -25,7 +25,8 @@ const MAIN_CATEGORIES: CategoryKey[] = [
 ];
 
 export default function Index() {
-  const { data: allArticles, isLoading } = useArticles(undefined, 50);
+  const { data, isLoading } = useArticles(undefined, 50);
+  const allArticles = data?.articles;
 
   // First 5 for banner, rest for cards
   const bannerArticles = allArticles?.slice(0, 5) || [];

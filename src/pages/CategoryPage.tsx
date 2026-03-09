@@ -42,7 +42,8 @@ export default function CategoryPage() {
   const categoryKey = category as CategoryKey;
   const categoryInfo = CATEGORIES[categoryKey];
   
-  const { data: articles, isLoading } = useArticles(categoryKey, 20);
+  const { data, isLoading } = useArticles(categoryKey, 20);
+  const articles = data?.articles;
 
   if (!categoryInfo) {
     return (

@@ -17,7 +17,7 @@ export default function AdminDashboard() {
   const { data: ads } = useAdPlacements();
 
   const stats = {
-    articles: articles?.length || 0,
+    articles: articlesData?.articles?.length || 0,
     sources: sources?.length || 0,
     activeSources: sources?.filter(s => s.is_active).length || 0,
     activeAds: ads?.filter(a => a.is_active).length || 0,
