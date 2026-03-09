@@ -19,6 +19,19 @@ import { useCategoriesWithArticles, useHasProducts } from "@/hooks/useMenuVisibi
 const PRIMARY_CATEGORIES = ["politica", "economia", "tecnologia", "esportes", "entretenimento"];
 const SECONDARY_CATEGORIES = ["saude", "ciencia", "mundo", "brasil", "cultura"];
 
+const CATEGORY_EMOJIS: Record<string, string> = {
+  politica: "🏛️",
+  economia: "📈",
+  tecnologia: "💻",
+  esportes: "⚽",
+  entretenimento: "🎬",
+  saude: "❤️",
+  ciencia: "🔬",
+  mundo: "🌍",
+  brasil: "🇧🇷",
+  cultura: "🎨",
+};
+
 export function Header() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
