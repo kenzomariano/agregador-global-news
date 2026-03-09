@@ -1,11 +1,41 @@
 import { useParams } from "react-router-dom";
+import { useEffect } from "react";
 import { SEOHead } from "@/components/seo/SEOHead";
 import { ArticleCard } from "@/components/news/ArticleCard";
 import { TrendingSidebar } from "@/components/news/TrendingSidebar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useArticles } from "@/hooks/useArticles";
+import { useArticles, type Article } from "@/hooks/useArticles";
 import { StructuredBreadcrumb } from "@/components/seo/StructuredBreadcrumb";
 import { CATEGORIES, type CategoryKey } from "@/lib/categories";
+
+function CategoryItemListJsonLd({ articles, category }: { articles: Article[]; category: string }) {
+  useEffect(() => {
+    const id = "category-itemlist-jsonld";
+    let script = document.getElementById(id) as HTMLScriptElement | null;
+    if (!script) {
+      script = document.createElement("script");
+      script.id = id;
+      script.type = "application/ld+json";
+      document.head.appendChild(script);
+    }
+    script.textContent = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "ItemList",
+      name: `Notícias de ${category}`,
+      itemListElement: articles.slice(0, 10).map((a, i) => ({
+        "@type": "ListItem",
+        position: i + 1,
+        url: `${window.location.origin}/noticia/${a.slug}`,
+        name: a.title,
+      })),
+    });
+    return () => {
+      const el = document.getElementById(id);
+      if (el?.parentNode) el.parentNode.removeChild(el);
+    };
+  }, [articles, category]);
+  return null;
+}
 
 export default function CategoryPage() {
   const { category } = useParams<{ category: string }>();
