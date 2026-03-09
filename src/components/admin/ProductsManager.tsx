@@ -12,7 +12,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Search, Pencil, Trash2, ExternalLink, Loader2, Plus, Package, EyeOff, X, Link2, ImagePlus, RefreshCw } from "lucide-react";
+import { Search, Pencil, Trash2, ExternalLink, Loader2, Plus, Package, EyeOff, X, Link2, ImagePlus, RefreshCw, ShoppingCart } from "lucide-react";
+import { MLProductSearch } from "./MLProductSearch";
 
 interface Product {
   id: string;
@@ -35,6 +36,7 @@ export function ProductsManager() {
   const [editProduct, setEditProduct] = useState<Product | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isMLSearchOpen, setIsMLSearchOpen] = useState(false);
 
   const { data: products, isLoading } = useQuery({
     queryKey: ["admin-products"],
@@ -226,10 +228,16 @@ export function ProductsManager() {
             className="pl-9"
           />
         </div>
-        <Button onClick={() => setIsCreateOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Novo Produto
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setIsMLSearchOpen(true)}>
+            <ShoppingCart className="h-4 w-4 mr-2" />
+            Importar do ML
+          </Button>
+          <Button onClick={() => setIsCreateOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Novo Produto
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -373,6 +381,9 @@ export function ProductsManager() {
         onSave={(data) => createMutation.mutate(data)}
         saving={createMutation.isPending}
       />
+
+      {/* ML Search Dialog */}
+      <MLProductSearch open={isMLSearchOpen} onOpenChange={setIsMLSearchOpen} />
     </div>
   );
 }
