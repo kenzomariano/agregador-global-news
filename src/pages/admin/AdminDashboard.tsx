@@ -36,7 +36,7 @@ export default function AdminDashboard() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6 h-auto gap-2 bg-transparent p-0">
+        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-7 h-auto gap-2 bg-transparent p-0">
           <TabsTrigger 
             value="overview" 
             className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex gap-2 py-3"
