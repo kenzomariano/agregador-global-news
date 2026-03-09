@@ -36,6 +36,7 @@ export function ProductsManager() {
   const [editProduct, setEditProduct] = useState<Product | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isMLSearchOpen, setIsMLSearchOpen] = useState(false);
 
   const { data: products, isLoading } = useQuery({
     queryKey: ["admin-products"],
