@@ -141,8 +141,81 @@ export function ProductsManager() {
 
   const bulkActing = bulkDeleteMutation.isPending || bulkUnavailableMutation.isPending;
 
+  const [enriching, setEnriching] = useState(false);
+
+  const mlProductsCount = products?.filter(p => p.original_url.includes("mercadolivre.com.br")).length || 0;
+  const mlMissingData = products?.filter(p => p.original_url.includes("mercadolivre.com.br") && (!p.image_url || p.price === null)).length || 0;
+
+  const handleMLConnect = () => {
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    window.open(`${supabaseUrl}/functions/v1/ml-oauth-callback`, "_blank");
+  };
+
+  const handleEnrichProducts = async () => {
+    setEnriching(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("ml-enrich-products");
+      if (error) throw error;
+      toast({
+        title: "Enriquecimento concluído",
+        description: `${data.enriched}/${data.total} produto(s) atualizados com imagens e preços do Mercado Livre.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+    } catch (e: any) {
+      const msg = e.message || String(e);
+      if (msg.includes("401") || msg.includes("token not available")) {
+        toast({
+          title: "Autenticação necessária",
+          description: "Conecte sua conta do Mercado Livre primeiro usando o botão acima.",
+          variant: "destructive",
+        });
+      } else {
+        toast({ title: "Erro", description: msg, variant: "destructive" });
+      }
+    } finally {
+      setEnriching(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
+      {/* ML Integration Section */}
+      {mlProductsCount > 0 && (
+        <Card className="border-primary/20 bg-primary/5">
+          <CardContent className="p-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 justify-between">
+              <div className="flex items-center gap-3">
+                <div className="rounded-lg bg-primary/10 p-2">
+                  <ImagePlus className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-medium text-sm">Integração Mercado Livre</h3>
+                  <p className="text-xs text-muted-foreground">
+                    {mlMissingData > 0
+                      ? `${mlMissingData} produto(s) do ML sem imagem ou preço`
+                      : "Todos os produtos do ML estão completos"
+                    }
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={handleMLConnect}>
+                  <Link2 className="h-4 w-4 mr-1" />
+                  Conectar ML
+                </Button>
+                {mlMissingData > 0 && (
+                  <Button size="sm" onClick={handleEnrichProducts} disabled={enriching}>
+                    {enriching ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1" />}
+                    Buscar Dados
+                  </Button>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
         <div className="relative w-full sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
