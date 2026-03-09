@@ -200,15 +200,6 @@ export default function ProductDetailPage() {
 
         <Separator className="my-8" />
 
-        {/* Affiliate offers */}
-        <div className="mb-8">
-          <AffiliateProducts
-            category={product.category || "ofertas"}
-            limit={6}
-            title="🔥 Ofertas Relacionadas"
-          />
-        </div>
-
         {/* Related products */}
         {relatedProducts && relatedProducts.length > 0 && (
           <section>
