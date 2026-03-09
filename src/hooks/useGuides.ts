@@ -42,7 +42,7 @@ export function useGuides(publishedOnly = true) {
       return (data as any[]).map((g) => ({
         ...g,
         steps: Array.isArray(g.steps) ? g.steps : [],
-      })) as Guide[];
+      })) as unknown as Guide[];
     },
   });
 }
