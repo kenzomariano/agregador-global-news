@@ -42,7 +42,7 @@ export function HeroBanner({ articles }: HeroBannerProps) {
   return (
     <section className="relative w-full overflow-hidden rounded-xl mb-8">
       {/* Slides */}
-      <div className="relative aspect-[16/7] md:aspect-[16/6]">
+      <div className="relative aspect-[4/5] sm:aspect-[16/9] md:aspect-[16/6]">
         {articles.map((a, i) => {
           const cat = CATEGORIES[a.category as CategoryKey];
           const t = a.published_at
@@ -67,24 +67,24 @@ export function HeroBanner({ articles }: HeroBannerProps) {
                 />
               ) : (
                 <div className="w-full h-full bg-gradient-to-br from-primary/30 to-primary/5 flex items-center justify-center">
-                  <span className="text-8xl">📰</span>
+                  <span className="text-6xl sm:text-8xl">📰</span>
                 </div>
               )}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-              <div className="absolute bottom-0 left-0 right-0 p-6 md:p-10">
-                <Badge variant="secondary" className="mb-3">
+              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 md:p-10">
+                <Badge variant="secondary" className="mb-2 text-xs sm:text-sm">
                   {cat?.label || a.category}
                 </Badge>
-                <h2 className="text-xl md:text-3xl lg:text-4xl font-bold text-white font-serif line-clamp-3 max-w-3xl">
+                <h2 className="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white font-serif line-clamp-3 max-w-3xl">
                   {a.title}
                 </h2>
                 {a.excerpt && (
-                  <p className="mt-2 text-white/80 line-clamp-2 max-w-2xl hidden md:block">
+                  <p className="mt-2 text-sm sm:text-base text-white/80 line-clamp-2 max-w-2xl">
                     {a.excerpt}
                   </p>
                 )}
-                <div className="mt-3 flex items-center gap-3 text-sm text-white/70">
-                  <span>{a.news_sources?.name || "Fonte"}</span>
+                <div className="mt-2 sm:mt-3 flex items-center gap-2 sm:gap-3 text-xs sm:text-sm text-white/70">
+                  <span className="truncate">{a.news_sources?.name || "Fonte"}</span>
                   <span>•</span>
                   <time>{t}</time>
                 </div>
@@ -100,31 +100,31 @@ export function HeroBanner({ articles }: HeroBannerProps) {
           <Button
             variant="ghost"
             size="icon"
-            className="absolute left-2 top-1/2 -translate-y-1/2 z-20 bg-black/30 hover:bg-black/50 text-white rounded-full h-10 w-10"
+            className="absolute left-1 sm:left-2 top-1/2 -translate-y-1/2 z-20 bg-black/40 hover:bg-black/60 text-white rounded-full h-9 w-9 sm:h-10 sm:w-10"
             onClick={(e) => { e.preventDefault(); prev(); }}
           >
-            <ChevronLeft className="h-6 w-6" />
+            <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
           </Button>
           <Button
             variant="ghost"
             size="icon"
-            className="absolute right-2 top-1/2 -translate-y-1/2 z-20 bg-black/30 hover:bg-black/50 text-white rounded-full h-10 w-10"
+            className="absolute right-1 sm:right-2 top-1/2 -translate-y-1/2 z-20 bg-black/40 hover:bg-black/60 text-white rounded-full h-9 w-9 sm:h-10 sm:w-10"
             onClick={(e) => { e.preventDefault(); next(); }}
           >
-            <ChevronRight className="h-6 w-6" />
+            <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
           </Button>
         </>
       )}
 
       {/* Dots */}
       {total > 1 && (
-        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex gap-2">
+        <div className="absolute bottom-2 sm:bottom-3 left-1/2 -translate-x-1/2 z-20 flex gap-1.5 sm:gap-2">
           {articles.map((_, i) => (
             <button
               key={i}
               onClick={(e) => { e.preventDefault(); setCurrent(i); }}
-              className={`w-2.5 h-2.5 rounded-full transition-all ${
-                i === current ? "bg-white w-6" : "bg-white/50 hover:bg-white/70"
+              className={`h-2 sm:h-2.5 rounded-full transition-all ${
+                i === current ? "bg-white w-5 sm:w-6" : "bg-white/50 hover:bg-white/70 w-2 sm:w-2.5"
               }`}
               aria-label={`Slide ${i + 1}`}
             />
