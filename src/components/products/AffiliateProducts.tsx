@@ -90,7 +90,8 @@ export function AffiliateProducts({
       </div>
       <div
         ref={scrollRef}
-        className="flex gap-3 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-2 -mx-1 px-1"
+        className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2 -mx-1 px-1"
+        style={{ scrollbarWidth: "none", msOverflowStyle: "none", WebkitOverflowScrolling: "touch" }}
       >
         {products.slice(0, limit).map((product) => (
           <div key={product.id} className="flex-shrink-0 w-[45%] sm:w-[220px] snap-start">
