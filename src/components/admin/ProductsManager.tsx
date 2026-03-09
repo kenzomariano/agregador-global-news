@@ -381,9 +381,10 @@ export function ProductsManager() {
         onSave={(data) => createMutation.mutate(data)}
         saving={createMutation.isPending}
       />
+
+      {/* ML Search Dialog */}
+      <MLProductSearch open={isMLSearchOpen} onOpenChange={setIsMLSearchOpen} />
     </div>
-  );
-}
 
 function ProductEditDialog({
   product,
