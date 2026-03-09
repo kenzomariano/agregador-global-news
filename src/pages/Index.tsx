@@ -49,7 +49,7 @@ export default function Index() {
         ]}
       />
 
-      <div className="container py-6">
+      <div className="container py-4 sm:py-6 px-3 sm:px-4">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Main content */}
           <div className="lg:col-span-8 xl:col-span-9">
