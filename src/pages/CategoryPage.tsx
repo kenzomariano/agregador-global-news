@@ -59,12 +59,17 @@ export default function CategoryPage() {
                   </div>
                 ))}
               </div>
-            ) : articles && articles.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {articles.map((article) => (
-                  <ArticleCard key={article.id} article={article} />
-                ))}
-              </div>
+          ) : articles && articles.length > 0 ? (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {articles.map((article) => (
+                    <ArticleCard key={article.id} article={article} />
+                  ))}
+                </div>
+                {/* JSON-LD ItemList for category */}
+                <CategoryItemListJsonLd articles={articles} category={categoryInfo.label} />
+              </>
+            
             ) : (
               <div className="text-center py-12 bg-card rounded-lg border">
                 <p className="text-muted-foreground">
