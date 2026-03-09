@@ -12,7 +12,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Search, Pencil, Trash2, ExternalLink, Loader2, Plus, Package, EyeOff, X, Link2, ImagePlus, RefreshCw } from "lucide-react";
+import { Search, Pencil, Trash2, ExternalLink, Loader2, Plus, Package, EyeOff, X, Link2, ImagePlus, RefreshCw, ShoppingCart } from "lucide-react";
+import { MLProductSearch } from "./MLProductSearch";
 
 interface Product {
   id: string;
