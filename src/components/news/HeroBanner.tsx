@@ -32,6 +32,19 @@ export function HeroBanner({ articles }: HeroBannerProps) {
     return () => clearInterval(timer);
   }, [next, total]);
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null) return;
+    const delta = touchStartX.current - e.changedTouches[0].clientX;
+    if (Math.abs(delta) > 40) {
+      delta > 0 ? next() : prev();
+    }
+    touchStartX.current = null;
+  };
+
   if (total === 0) return null;
 
   const article = articles[current];
