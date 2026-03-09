@@ -98,11 +98,11 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get products from ML that need enrichment (no image or no price)
+    // Get products from ML that need enrichment (no image, no price, or no description)
     const { data: products, error: productsError } = await supabase
       .from("products")
-      .select("id, name, original_url, image_url, price")
-      .or("image_url.is.null,price.is.null")
+      .select("id, name, original_url, image_url, price, description")
+      .or("image_url.is.null,price.is.null,description.is.null")
       .ilike("original_url", "%mercadolivre.com.br%")
       .limit(20);
 
