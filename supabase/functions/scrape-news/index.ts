@@ -558,8 +558,8 @@ serve(async (req) => {
 
         const categoryName = typedSource.name;
         const specificQueries = PRODUCT_QUERY_MAP[categoryName] || [
-          `${categoryName} mercado livre`,
-          `${categoryName} shopee brasil`,
+          `site:produto.mercadolivre.com.br ${categoryName}`,
+          `site:produto.mercadolivre.com.br ${categoryName} oferta`,
         ];
         
         const searchQueries = specificQueries.slice(0, Math.min(4, specificQueries.length));
