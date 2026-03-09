@@ -185,6 +185,8 @@ export default function AccountPage() {
           </CardContent>
         </Card>
 
+        <SavedArticlesSection />
+
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Alterar Senha</CardTitle>
