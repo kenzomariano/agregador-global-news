@@ -97,10 +97,32 @@ export function ArticlesManager() {
     if (!editingArticle) return;
 
     try {
+      const titleChanged = editForm.title !== editingArticle.title;
+      let newSlug = editingArticle.slug;
+
+      // If title changed, generate new slug and create redirect
+      if (titleChanged) {
+        const { data: slugData } = await supabase.rpc("generate_slug", { title: editForm.title });
+        if (slugData) {
+          newSlug = slugData;
+
+          // Save redirect from old slug to new slug
+          await supabase.from("article_redirects").upsert(
+            {
+              old_slug: editingArticle.slug,
+              new_slug: newSlug,
+              article_id: editingArticle.id,
+            },
+            { onConflict: "old_slug" }
+          );
+        }
+      }
+
       const { error } = await supabase
         .from("articles")
         .update({
           title: editForm.title,
+          slug: newSlug,
           excerpt: editForm.excerpt || null,
           content: editForm.content || null,
           category: editForm.category,
@@ -115,7 +137,9 @@ export function ArticlesManager() {
 
       toast({
         title: "Artigo atualizado!",
-        description: "As alterações foram salvas com sucesso.",
+        description: titleChanged
+          ? "Alterações salvas. Redirecionamento criado para a URL antiga."
+          : "As alterações foram salvas com sucesso.",
       });
 
       setEditingArticle(null);

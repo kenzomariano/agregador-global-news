@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { formatDistanceToNow, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ExternalLink, Clock, Eye, Globe, BookOpen } from "lucide-react";
@@ -24,6 +24,7 @@ import { SidebarAd, HorizontalAd, InArticleAd } from "@/components/ads/AdBanner"
 import { SidebarProducts } from "@/components/products/SidebarProducts";
 import { ArticleFAQ } from "@/components/news/ArticleFAQ";
 import { useArticleBySlug, useRelatedArticles, useIncrementViews } from "@/hooks/useArticles";
+import { supabase } from "@/integrations/supabase/client";
 import { useArticleTMDBMentions } from "@/hooks/useArticleTMDBMentions";
 import { CATEGORIES, type CategoryKey } from "@/lib/categories";
 
@@ -33,6 +34,7 @@ interface ArticleWithVideo {
 
 export default function ArticlePage() {
   const { slug } = useParams<{ slug: string }>();
+  const navigate = useNavigate();
   const { data: article, isLoading } = useArticleBySlug(slug || "");
   const { data: relatedArticles } = useRelatedArticles(
     article?.id || "",
@@ -56,6 +58,22 @@ export default function ArticlePage() {
       incrementViews.mutate(article.id);
     }
   }, [article?.id]);
+
+  // Check for redirects when article not found
+  useEffect(() => {
+    if (!isLoading && !article && slug) {
+      supabase
+        .from("article_redirects")
+        .select("new_slug")
+        .eq("old_slug", slug)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (data?.new_slug) {
+            navigate(`/noticia/${data.new_slug}`, { replace: true });
+          }
+        });
+    }
+  }, [isLoading, article, slug, navigate]);
   
   const handleImageClick = (src: string, alt: string) => {
     setLightboxSrc(src);
