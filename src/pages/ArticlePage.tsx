@@ -24,6 +24,7 @@ import { SidebarAd, HorizontalAd, InArticleAd } from "@/components/ads/AdBanner"
 import { SidebarProducts } from "@/components/products/SidebarProducts";
 import { ArticleFAQ } from "@/components/news/ArticleFAQ";
 import { useArticleBySlug, useRelatedArticles, useIncrementViews } from "@/hooks/useArticles";
+import { supabase } from "@/integrations/supabase/client";
 import { useArticleTMDBMentions } from "@/hooks/useArticleTMDBMentions";
 import { CATEGORIES, type CategoryKey } from "@/lib/categories";
 
