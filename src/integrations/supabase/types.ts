@@ -155,6 +155,38 @@ export type Database = {
           },
         ]
       }
+      article_redirects: {
+        Row: {
+          article_id: string
+          created_at: string
+          id: string
+          new_slug: string
+          old_slug: string
+        }
+        Insert: {
+          article_id: string
+          created_at?: string
+          id?: string
+          new_slug: string
+          old_slug: string
+        }
+        Update: {
+          article_id?: string
+          created_at?: string
+          id?: string
+          new_slug?: string
+          old_slug?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "article_redirects_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "articles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       article_tags: {
         Row: {
           article_id: string | null
