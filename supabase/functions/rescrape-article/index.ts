@@ -215,12 +215,10 @@ ${rawContent.slice(0, 12000)}`;
       }
     }
 
-    // Update the article
+    // Update only content, image and video - keep title, excerpt and slug unchanged
     const { error: updateError } = await supabase
       .from("articles")
       .update({
-        title,
-        excerpt: excerpt || null,
         content,
         image_url: imageUrl,
         video_url: videoUrl,
