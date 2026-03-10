@@ -33,6 +33,7 @@ interface ArticleWithVideo {
 
 export default function ArticlePage() {
   const { slug } = useParams<{ slug: string }>();
+  const navigate = useNavigate();
   const { data: article, isLoading } = useArticleBySlug(slug || "");
   const { data: relatedArticles } = useRelatedArticles(
     article?.id || "",
@@ -56,6 +57,22 @@ export default function ArticlePage() {
       incrementViews.mutate(article.id);
     }
   }, [article?.id]);
+
+  // Check for redirects when article not found
+  useEffect(() => {
+    if (!isLoading && !article && slug) {
+      supabase
+        .from("article_redirects")
+        .select("new_slug")
+        .eq("old_slug", slug)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (data?.new_slug) {
+            navigate(`/noticia/${data.new_slug}`, { replace: true });
+          }
+        });
+    }
+  }, [isLoading, article, slug, navigate]);
   
   const handleImageClick = (src: string, alt: string) => {
     setLightboxSrc(src);
