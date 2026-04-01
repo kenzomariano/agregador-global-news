@@ -1156,10 +1156,11 @@ ${allText.slice(0, 4000)}`;
               continue;
             }
 
-            // Always translate to PT-BR and clean content
+            // Always translate to PT-BR for foreign sources, clean content for all
+            const mustTranslate = typedSource.is_foreign;
             const cleanPrompt = `Você é um editor de notícias profissional brasileiro.
 
-TAREFA: Extraia APENAS o corpo principal do artigo e ${typedSource.is_foreign ? "traduza para Português do Brasil" : "mantenha em Português"}.
+TAREFA: Extraia APENAS o corpo principal do artigo e ${mustTranslate ? "TRADUZA COMPLETAMENTE para Português do Brasil. NENHUMA frase deve permanecer em inglês ou outro idioma estrangeiro." : "mantenha em Português"}.
 
 REMOVA COMPLETAMENTE (NÃO INCLUA NO RESULTADO):
 - Anúncios, banners, links de "Remove Ads", promoções
