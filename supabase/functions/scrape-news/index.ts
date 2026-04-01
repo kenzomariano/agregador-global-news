@@ -1387,12 +1387,28 @@ ${rawContent.slice(0, 12000)}`;
   "tags": ["tag1", "tag2", "tag3"]
 }
 
+REGRAS PARA CATEGORIA (MUITO IMPORTANTE):
+- "entretenimento": filmes, séries, TV, streaming, Netflix, Disney+, HBO, celebridades, música, shows, K-drama, anime, premiações (Oscar, Grammy, Emmy)
+- "tecnologia": gadgets, apps, inteligência artificial, redes sociais, startups, cibersegurança
+- "esportes": futebol, basquete, tênis, MMA, Fórmula 1, Olimpíadas, campeonatos
+- "economia": mercado financeiro, bolsa, investimentos, inflação, PIB, empresas, negócios
+- "politica": governo, eleições, congresso, leis, partidos, diplomacia
+- "mundo": eventos internacionais que NÃO se encaixam em outras categorias específicas
+- "brasil": eventos nacionais que NÃO se encaixam em outras categorias específicas
+- "saude": medicina, hospitais, vacinas, doenças, bem-estar, saúde mental
+- "ciencia": descobertas científicas, pesquisa, espaço, NASA, meio ambiente, clima
+- "cultura": artes, literatura, teatro, dança, exposições, patrimônio cultural
+
+ATENÇÃO: Um artigo sobre um diretor de séries coreanas e Netflix é "entretenimento", NÃO "brasil".
+Um artigo sobre um time de futebol brasileiro é "esportes", NÃO "brasil".
+Use "brasil" APENAS para assuntos nacionais genéricos que não se encaixam nas demais.
+
 REGRAS PARA TAGS:
 - Máximo 5 tags por artigo
 - Cada tag deve ter NO MÁXIMO 3 palavras
 - Use termos específicos e relevantes (nomes de pessoas, empresas, eventos, lugares)
 - Evite tags genéricas como "notícia", "atualização", "novo"
-- Prefira substantivos em vez de verbos
+- Tags devem estar em Português do Brasil
 
 Exemplos de boas tags: "Piratas do Caribe", "Johnny Depp", "Disney", "Hollywood", "Sequência Filme"`,
                   },
@@ -1428,6 +1444,8 @@ Exemplos de boas tags: "Piratas do Caribe", "Johnny Depp", "Disney", "Hollywood"
                 }
               }
             }
+            
+            console.log(`Categorized as: ${category}, tags: ${tags.join(", ")}`);
           }
 
           const slug = title
