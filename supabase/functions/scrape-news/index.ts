@@ -1156,10 +1156,11 @@ ${allText.slice(0, 4000)}`;
               continue;
             }
 
-            // Always translate to PT-BR and clean content
+            // Always translate to PT-BR for foreign sources, clean content for all
+            const mustTranslate = typedSource.is_foreign;
             const cleanPrompt = `Você é um editor de notícias profissional brasileiro.
 
-TAREFA: Extraia APENAS o corpo principal do artigo e ${typedSource.is_foreign ? "traduza para Português do Brasil" : "mantenha em Português"}.
+TAREFA: Extraia APENAS o corpo principal do artigo e ${mustTranslate ? "TRADUZA COMPLETAMENTE para Português do Brasil. NENHUMA frase deve permanecer em inglês ou outro idioma estrangeiro." : "mantenha em Português"}.
 
 REMOVA COMPLETAMENTE (NÃO INCLUA NO RESULTADO):
 - Anúncios, banners, links de "Remove Ads", promoções
@@ -1307,15 +1308,15 @@ ${rawContent.slice(0, 12000)}`;
                 continue;
               }
               
-              // Always translate title and excerpt for foreign sources OR if content seems to be in English
-              // Detect if title/excerpt need translation: foreign source OR title looks English
-              const commonEnglishWords = /\b(the|and|for|with|that|from|have|this|will|about|after|also|been|before|between|could|during|first|into|just|know|like|make|many|more|most|much|only|other|over|said|should|some|such|than|their|them|then|there|these|they|through|very|were|what|when|where|which|while|would|your)\b/gi;
+              // Always translate title and excerpt for foreign sources
+              const commonEnglishWords = /\b(the|and|for|with|that|from|have|this|will|about|after|also|been|before|between|could|during|first|into|just|know|like|make|many|more|most|much|only|other|over|said|should|some|such|than|their|them|then|there|these|they|through|very|were|what|when|where|which|while|would|your|director|takes|netflix|series|movie|film|show|season|episode|star|cast|trailer|release|streaming)\b/gi;
               const enMatches = (title + " " + excerpt).match(commonEnglishWords) || [];
               const titleWords = (title + " " + excerpt).split(/\s+/).length;
               const enWordRatio = enMatches.length / Math.max(titleWords, 1);
-              const needsTranslation = typedSource.is_foreign || enWordRatio > 0.2;
+              const needsTranslation = typedSource.is_foreign || enWordRatio > 0.15;
               
               if (needsTranslation && content) {
+                console.log(`Translating title/excerpt (foreign=${typedSource.is_foreign}, enRatio=${(enWordRatio * 100).toFixed(0)}%): ${title.slice(0, 60)}`);
                 const translateMetaResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
                   method: "POST",
                   headers: {
@@ -1327,7 +1328,7 @@ ${rawContent.slice(0, 12000)}`;
                     messages: [
                       {
                         role: "system",
-                        content: "Traduza para Português do Brasil. Mantenha nomes próprios, títulos de filmes/séries conhecidos. Responda APENAS em JSON: {\"title\": \"...\", \"excerpt\": \"...\"}",
+                        content: `Traduza o título e resumo abaixo para Português do Brasil. Mantenha nomes próprios quando conhecidos no Brasil (ex: Netflix, Disney). Traduza títulos de filmes/séries para o nome conhecido no Brasil quando existir (ex: "Crash Landing on You" → "Pousando no Amor"). Responda SOMENTE com JSON válido: {"title": "...", "excerpt": "..."}`,
                       },
                       {
                         role: "user",
@@ -1341,15 +1342,22 @@ ${rawContent.slice(0, 12000)}`;
                   const metaData = await translateMetaResponse.json();
                   const metaContent = metaData.choices?.[0]?.message?.content || "";
                   try {
-                    const jsonMatch = metaContent.match(/\{[\s\S]*\}/);
+                    // Clean markdown code blocks if present
+                    const cleanMeta = metaContent.replace(/^```json?\s*/i, "").replace(/\s*```$/i, "").trim();
+                    const jsonMatch = cleanMeta.match(/\{[\s\S]*\}/);
                     if (jsonMatch) {
                       const parsed = JSON.parse(jsonMatch[0]);
-                      if (parsed.title) title = parsed.title;
-                      if (parsed.excerpt) excerpt = parsed.excerpt;
+                      if (parsed.title && parsed.title.length > 5) {
+                        console.log(`Title translated: "${title}" → "${parsed.title}"`);
+                        title = parsed.title;
+                      }
+                      if (parsed.excerpt && parsed.excerpt.length > 5) excerpt = parsed.excerpt;
                     }
                   } catch (e) {
-                    console.log("Could not parse translated metadata");
+                    console.log(`Could not parse translated metadata: ${metaContent.slice(0, 100)}`);
                   }
+                } else {
+                  console.log(`Title translation failed: ${translateMetaResponse.status}`);
                 }
               }
             } else {
@@ -1387,12 +1395,28 @@ ${rawContent.slice(0, 12000)}`;
   "tags": ["tag1", "tag2", "tag3"]
 }
 
+REGRAS PARA CATEGORIA (MUITO IMPORTANTE):
+- "entretenimento": filmes, séries, TV, streaming, Netflix, Disney+, HBO, celebridades, música, shows, K-drama, anime, premiações (Oscar, Grammy, Emmy)
+- "tecnologia": gadgets, apps, inteligência artificial, redes sociais, startups, cibersegurança
+- "esportes": futebol, basquete, tênis, MMA, Fórmula 1, Olimpíadas, campeonatos
+- "economia": mercado financeiro, bolsa, investimentos, inflação, PIB, empresas, negócios
+- "politica": governo, eleições, congresso, leis, partidos, diplomacia
+- "mundo": eventos internacionais que NÃO se encaixam em outras categorias específicas
+- "brasil": eventos nacionais que NÃO se encaixam em outras categorias específicas
+- "saude": medicina, hospitais, vacinas, doenças, bem-estar, saúde mental
+- "ciencia": descobertas científicas, pesquisa, espaço, NASA, meio ambiente, clima
+- "cultura": artes, literatura, teatro, dança, exposições, patrimônio cultural
+
+ATENÇÃO: Um artigo sobre um diretor de séries coreanas e Netflix é "entretenimento", NÃO "brasil".
+Um artigo sobre um time de futebol brasileiro é "esportes", NÃO "brasil".
+Use "brasil" APENAS para assuntos nacionais genéricos que não se encaixam nas demais.
+
 REGRAS PARA TAGS:
 - Máximo 5 tags por artigo
 - Cada tag deve ter NO MÁXIMO 3 palavras
 - Use termos específicos e relevantes (nomes de pessoas, empresas, eventos, lugares)
 - Evite tags genéricas como "notícia", "atualização", "novo"
-- Prefira substantivos em vez de verbos
+- Tags devem estar em Português do Brasil
 
 Exemplos de boas tags: "Piratas do Caribe", "Johnny Depp", "Disney", "Hollywood", "Sequência Filme"`,
                   },
@@ -1428,6 +1452,8 @@ Exemplos de boas tags: "Piratas do Caribe", "Johnny Depp", "Disney", "Hollywood"
                 }
               }
             }
+            
+            console.log(`Categorized as: ${category}, tags: ${tags.join(", ")}`);
           }
 
           const slug = title
