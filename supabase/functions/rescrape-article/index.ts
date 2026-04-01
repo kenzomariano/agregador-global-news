@@ -232,15 +232,101 @@ ${rawContent.slice(0, 12000)}`;
       }
     }
 
-    // Update only content, image and video - keep title, excerpt and slug unchanged
+    // Build update object
+    const updateData: Record<string, unknown> = {
+      content,
+      image_url: imageUrl,
+      video_url: videoUrl,
+      updated_at: new Date().toISOString(),
+    };
+
+    // For foreign sources, also update title, excerpt and recategorize
+    if (isForeign && lovableApiKey) {
+      // Translate title and excerpt
+      const commonEnglishWords = /\b(the|and|for|with|that|from|have|this|will|about|director|takes|netflix|series|movie|film|show|season|streaming|star)\b/gi;
+      const enMatches = (title + " " + excerpt).match(commonEnglishWords) || [];
+      const titleWords = (title + " " + excerpt).split(/\s+/).length;
+      const enWordRatio = enMatches.length / Math.max(titleWords, 1);
+
+      if (enWordRatio > 0.15) {
+        console.log(`Translating title (enRatio=${(enWordRatio * 100).toFixed(0)}%): ${title.slice(0, 60)}`);
+        try {
+          const translateResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${lovableApiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: "google/gemini-3-flash-preview",
+              messages: [
+                {
+                  role: "system",
+                  content: `Traduza o título e resumo para Português do Brasil. Traduza títulos de filmes/séries para o nome conhecido no Brasil (ex: "Crash Landing on You" → "Pousando no Amor"). Responda SOMENTE com JSON: {"title": "...", "excerpt": "..."}`,
+                },
+                { role: "user", content: `Título: ${title}\nResumo: ${excerpt}` },
+              ],
+            }),
+          });
+          if (translateResp.ok) {
+            const tData = await translateResp.json();
+            const tContent = (tData.choices?.[0]?.message?.content || "").replace(/^```json?\s*/i, "").replace(/\s*```$/i, "").trim();
+            const jsonMatch = tContent.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+              const parsed = JSON.parse(jsonMatch[0]);
+              if (parsed.title && parsed.title.length > 5) {
+                console.log(`Title translated: "${title}" → "${parsed.title}"`);
+                updateData.title = parsed.title;
+                title = parsed.title;
+              }
+              if (parsed.excerpt && parsed.excerpt.length > 5) updateData.excerpt = parsed.excerpt;
+            }
+          }
+        } catch (e) {
+          console.log(`Title translation failed: ${e}`);
+        }
+      }
+
+      // Recategorize
+      const categories = ["politica", "economia", "tecnologia", "esportes", "entretenimento", "saude", "ciencia", "mundo", "brasil", "cultura"];
+      try {
+        const catResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${lovableApiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash-lite",
+            messages: [
+              {
+                role: "system",
+                content: `Classifique a notícia em UMA categoria. Responda APENAS com a categoria, nada mais.
+Categorias: ${categories.join(", ")}
+REGRAS: entretenimento = filmes, séries, TV, streaming, Netflix, celebridades, música. esportes = futebol, basquete, etc. Use "brasil" APENAS para assuntos nacionais genéricos.`,
+              },
+              { role: "user", content: `Título: ${title}\n${content.slice(0, 1000)}` },
+            ],
+          }),
+        });
+        if (catResp.ok) {
+          const catData = await catResp.json();
+          const cat = (catData.choices?.[0]?.message?.content || "").toLowerCase().trim();
+          if (categories.includes(cat)) {
+            console.log(`Recategorized: ${articleRow?.category} → ${cat}`);
+            updateData.category = cat;
+          }
+        }
+      } catch (e) {
+        console.log(`Recategorization failed: ${e}`);
+      }
+
+      updateData.is_translated = true;
+    }
+
     const { error: updateError } = await supabase
       .from("articles")
-      .update({
-        content,
-        image_url: imageUrl,
-        video_url: videoUrl,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updateData)
       .eq("id", articleId);
 
     if (updateError) {
