@@ -1308,15 +1308,15 @@ ${rawContent.slice(0, 12000)}`;
                 continue;
               }
               
-              // Always translate title and excerpt for foreign sources OR if content seems to be in English
-              // Detect if title/excerpt need translation: foreign source OR title looks English
-              const commonEnglishWords = /\b(the|and|for|with|that|from|have|this|will|about|after|also|been|before|between|could|during|first|into|just|know|like|make|many|more|most|much|only|other|over|said|should|some|such|than|their|them|then|there|these|they|through|very|were|what|when|where|which|while|would|your)\b/gi;
+              // Always translate title and excerpt for foreign sources
+              const commonEnglishWords = /\b(the|and|for|with|that|from|have|this|will|about|after|also|been|before|between|could|during|first|into|just|know|like|make|many|more|most|much|only|other|over|said|should|some|such|than|their|them|then|there|these|they|through|very|were|what|when|where|which|while|would|your|director|takes|netflix|series|movie|film|show|season|episode|star|cast|trailer|release|streaming)\b/gi;
               const enMatches = (title + " " + excerpt).match(commonEnglishWords) || [];
               const titleWords = (title + " " + excerpt).split(/\s+/).length;
               const enWordRatio = enMatches.length / Math.max(titleWords, 1);
-              const needsTranslation = typedSource.is_foreign || enWordRatio > 0.2;
+              const needsTranslation = typedSource.is_foreign || enWordRatio > 0.15;
               
               if (needsTranslation && content) {
+                console.log(`Translating title/excerpt (foreign=${typedSource.is_foreign}, enRatio=${(enWordRatio * 100).toFixed(0)}%): ${title.slice(0, 60)}`);
                 const translateMetaResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
                   method: "POST",
                   headers: {
@@ -1328,7 +1328,7 @@ ${rawContent.slice(0, 12000)}`;
                     messages: [
                       {
                         role: "system",
-                        content: "Traduza para Português do Brasil. Mantenha nomes próprios, títulos de filmes/séries conhecidos. Responda APENAS em JSON: {\"title\": \"...\", \"excerpt\": \"...\"}",
+                        content: `Traduza o título e resumo abaixo para Português do Brasil. Mantenha nomes próprios quando conhecidos no Brasil (ex: Netflix, Disney). Traduza títulos de filmes/séries para o nome conhecido no Brasil quando existir (ex: "Crash Landing on You" → "Pousando no Amor"). Responda SOMENTE com JSON válido: {"title": "...", "excerpt": "..."}`,
                       },
                       {
                         role: "user",
@@ -1342,15 +1342,22 @@ ${rawContent.slice(0, 12000)}`;
                   const metaData = await translateMetaResponse.json();
                   const metaContent = metaData.choices?.[0]?.message?.content || "";
                   try {
-                    const jsonMatch = metaContent.match(/\{[\s\S]*\}/);
+                    // Clean markdown code blocks if present
+                    const cleanMeta = metaContent.replace(/^```json?\s*/i, "").replace(/\s*```$/i, "").trim();
+                    const jsonMatch = cleanMeta.match(/\{[\s\S]*\}/);
                     if (jsonMatch) {
                       const parsed = JSON.parse(jsonMatch[0]);
-                      if (parsed.title) title = parsed.title;
-                      if (parsed.excerpt) excerpt = parsed.excerpt;
+                      if (parsed.title && parsed.title.length > 5) {
+                        console.log(`Title translated: "${title}" → "${parsed.title}"`);
+                        title = parsed.title;
+                      }
+                      if (parsed.excerpt && parsed.excerpt.length > 5) excerpt = parsed.excerpt;
                     }
                   } catch (e) {
-                    console.log("Could not parse translated metadata");
+                    console.log(`Could not parse translated metadata: ${metaContent.slice(0, 100)}`);
                   }
+                } else {
+                  console.log(`Title translation failed: ${translateMetaResponse.status}`);
                 }
               }
             } else {
