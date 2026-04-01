@@ -64,7 +64,24 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    console.log(`Re-scraping article: ${url}`);
+    // Check if source is foreign
+    const { data: articleRow } = await supabase
+      .from("articles")
+      .select("source_id, title, excerpt, category, slug")
+      .eq("id", articleId)
+      .single();
+    
+    let isForeign = false;
+    if (articleRow?.source_id) {
+      const { data: sourceRow } = await supabase
+        .from("news_sources")
+        .select("is_foreign")
+        .eq("id", articleRow.source_id)
+        .single();
+      isForeign = sourceRow?.is_foreign || false;
+    }
+
+    console.log(`Re-scraping article: ${url} (foreign=${isForeign})`);
 
     // Scrape the article
     const articleResponse = await fetch("https://api.firecrawl.dev/v1/scrape", {
