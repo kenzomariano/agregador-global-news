@@ -242,7 +242,11 @@ ${rawContent.slice(0, 12000)}`;
 
     // For foreign sources, also update title, excerpt and recategorize
     if (isForeign && lovableApiKey) {
-      // Translate title and excerpt
+      // Title/excerpt were already translated above (lines 195-231), include in update
+      updateData.title = title;
+      updateData.excerpt = excerpt;
+
+      // Also check if title still needs translation (in case the first pass failed)
       const commonEnglishWords = /\b(the|and|for|with|that|from|have|this|will|about|director|takes|netflix|series|movie|film|show|season|streaming|star)\b/gi;
       const enMatches = (title + " " + excerpt).match(commonEnglishWords) || [];
       const titleWords = (title + " " + excerpt).split(/\s+/).length;
