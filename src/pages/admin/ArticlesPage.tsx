@@ -284,6 +284,59 @@ export default function ArticlesPage() {
     }
   };
 
+  const handleBulkTranslate = async () => {
+    setBulkTranslating(true);
+    try {
+      // Find articles with English titles (no Portuguese accented chars, has 3+ letter English words)
+      const englishArticles = articles?.filter((a) => {
+        const hasAccents = /[àáâãçéêíóôõúü]/i.test(a.title);
+        if (hasAccents) return false;
+        const enWords = a.title.match(/\b[a-zA-Z]{3,}\b/g) || [];
+        return enWords.length >= 3;
+      }) || [];
+
+      if (englishArticles.length === 0) {
+        toast({ title: "Nenhum artigo em inglês encontrado" });
+        return;
+      }
+
+      setTranslateProgress({ done: 0, total: englishArticles.length });
+      let success = 0;
+      let failed = 0;
+
+      for (const article of englishArticles) {
+        try {
+          await supabase.functions.invoke("rescrape-article", {
+            body: { articleId: article.id, url: article.original_url },
+          });
+          success++;
+        } catch {
+          failed++;
+        }
+        setTranslateProgress({ done: success + failed, total: englishArticles.length });
+      }
+
+      toast({
+        title: "Tradução em massa concluída",
+        description: `${success} traduzido(s)${failed > 0 ? `, ${failed} falha(s)` : ""}.`,
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["articles"] });
+    } finally {
+      setBulkTranslating(false);
+      setTranslateProgress({ done: 0, total: 0 });
+    }
+  };
+
+  const englishArticleCount = useMemo(() => {
+    return articles?.filter((a) => {
+      const hasAccents = /[àáâãçéêíóôõúü]/i.test(a.title);
+      if (hasAccents) return false;
+      const enWords = a.title.match(/\b[a-zA-Z]{3,}\b/g) || [];
+      return enWords.length >= 3;
+    }).length || 0;
+  }, [articles]);
+
   const allSelected = filteredArticles && filteredArticles.length > 0 && 
     filteredArticles.every((a) => selectedIds.has(a.id));
 
@@ -296,10 +349,27 @@ export default function ArticlesPage() {
 
       <div className="container py-6 max-w-6xl">
         <header className="mb-8">
-          <h1 className="text-3xl font-bold font-serif">Gerenciar Artigos</h1>
-          <p className="text-muted-foreground mt-2">
-            Edite, atualize ou remova artigos publicados.
-          </p>
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold font-serif">Gerenciar Artigos</h1>
+              <p className="text-muted-foreground mt-2">
+                Edite, atualize ou remova artigos publicados.
+              </p>
+            </div>
+            {englishArticleCount > 0 && (
+              <Button
+                onClick={handleBulkTranslate}
+                disabled={bulkTranslating}
+                variant="outline"
+                className="gap-2"
+              >
+                <RefreshCw className={`h-4 w-4 ${bulkTranslating ? "animate-spin" : ""}`} />
+                {bulkTranslating
+                  ? `Traduzindo ${translateProgress.done}/${translateProgress.total}...`
+                  : `Re-traduzir ${englishArticleCount} artigo(s) em inglês`}
+              </Button>
+            )}
+          </div>
         </header>
 
         {/* Filters */}
