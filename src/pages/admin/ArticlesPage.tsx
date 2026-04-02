@@ -27,6 +27,8 @@ export default function ArticlesPage() {
   const [rescraping, setRescraping] = useState<string | null>(null);
   const [bulkRescraping, setBulkRescraping] = useState(false);
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [bulkTranslating, setBulkTranslating] = useState(false);
+  const [translateProgress, setTranslateProgress] = useState({ done: 0, total: 0 });
 
   const [editForm, setEditForm] = useState({
     title: "",
