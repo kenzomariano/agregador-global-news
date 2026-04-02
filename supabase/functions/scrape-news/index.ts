@@ -1158,19 +1158,34 @@ ${allText.slice(0, 4000)}`;
 
             // Always translate to PT-BR for foreign sources, clean content for all
             const mustTranslate = typedSource.is_foreign;
+            
+            // Detect source-specific noise patterns
+            const sourceUrl = typedSource.url.toLowerCase();
+            const isOtakukart = sourceUrl.includes("otakukart");
+            const sourceSpecificRules = isOtakukart ? `
+REGRAS ESPECÍFICAS PARA OTAKUKART:
+- REMOVA completamente: menus do site como "Anime", "Manga", "K-Drama", "Korean", "K-Pop", "Kdrama", "Reviews", "News"
+- REMOVA listas de navegação do tipo: "Home > Anime > ..."
+- REMOVA rodapés com links para redes sociais, "About Us", "Contact", "Privacy Policy"
+- REMOVA seções de "Trending", "Popular", "Recent Posts", "You May Also Like"
+- REMOVA menções a "OtakuKart" como portal/site
+- REMOVA créditos de imagens como "Image Courtesy: ..."
+- REMOVA completamente qualquer sidebar ou conteúdo de navegação lateral
+` : "";
+
             const cleanPrompt = `Você é um editor de notícias profissional brasileiro.
 
 TAREFA: Extraia APENAS o corpo principal do artigo e ${mustTranslate ? "TRADUZA COMPLETAMENTE para Português do Brasil. NENHUMA frase deve permanecer em inglês ou outro idioma estrangeiro." : "mantenha em Português"}.
-
+${sourceSpecificRules}
 REMOVA COMPLETAMENTE (NÃO INCLUA NO RESULTADO):
 - Anúncios, banners, links de "Remove Ads", promoções
 - Elementos de reCAPTCHA, captchas, popups
 - Controles de player de vídeo e texto de legendas de player
-- Menus de navegação, breadcrumbs, sidebar
-- Rodapés e cabeçalhos do site
+- Menus de navegação, breadcrumbs, sidebar, header e footer do site
+- Rodapés e cabeçalhos do site (incluindo links para seções do portal)
 - Links de compartilhamento social e botões de redes sociais
 - Seções de comentários e formulários
-- Conteúdo relacionado/sugerido, "Leia também", "Related Stories"
+- Conteúdo relacionado/sugerido, "Leia também", "Related Stories", "You May Also Like"
 - Texto repetido, duplicado ou spam
 - Links de navegação interna e paginação
 - Avisos de cookies e GDPR
@@ -1182,6 +1197,8 @@ REMOVA COMPLETAMENTE (NÃO INCLUA NO RESULTADO):
 - Qualquer elemento de UI que não seja parte do texto do artigo
 - Listas de episódios, listas de filmes, ou índices de conteúdo que não fazem parte do artigo
 - Texto promocional como "Sign up for our newsletter"
+- Créditos de imagens, "Image Courtesy", "Source:", "Credits:"
+- Disclaimers e avisos legais do portal
 
 FORMATE o conteúdo usando HTML semântico:
 - <h2> para subtítulos principais (seções do artigo)
@@ -1328,7 +1345,37 @@ ${rawContent.slice(0, 12000)}`;
                     messages: [
                       {
                         role: "system",
-                        content: `Traduza o título e resumo abaixo para Português do Brasil. Mantenha nomes próprios quando conhecidos no Brasil (ex: Netflix, Disney). Traduza títulos de filmes/séries para o nome conhecido no Brasil quando existir (ex: "Crash Landing on You" → "Pousando no Amor"). Responda SOMENTE com JSON válido: {"title": "...", "excerpt": "..."}`,
+                        content: `Traduza o título e resumo abaixo para Português do Brasil.
+
+REGRAS DE TRADUÇÃO DE NOMES:
+- Mantenha nomes de plataformas: Netflix, Disney+, HBO, Amazon Prime, Apple TV+
+- SEMPRE traduza títulos de filmes/séries/animes para o nome OFICIAL no Brasil. Exemplos:
+  "Crash Landing on You" → "Pousando no Amor"
+  "Squid Game" → "Round 6"
+  "Money Heist" → "La Casa de Papel"
+  "My Love from the Star" → "Meu Amor das Estrelas"
+  "Goblin" → "Goblin: The Lonely and Great God"
+  "Descendants of the Sun" → "Descendentes do Sol"
+  "It's Okay to Not Be Okay" → "Tudo Bem Não Ser Normal"
+  "Vincenzo" → "Vincenzo"
+  "All of Us Are Dead" → "Se Estivéssemos Todos Mortos"
+  "Alchemy of Souls" → "Alquimia das Almas"
+  "Hellbound" → "Rumo ao Inferno"
+  "Sweet Home" → "Sweet Home"
+  "The Glory" → "A Glória"
+  "Moving" → "Moving"
+  "Naruto" → "Naruto"
+  "One Piece" → "One Piece"
+  "Attack on Titan" → "Ataque dos Titãs"
+  "Demon Slayer" → "Demon Slayer: Kimetsu no Yaiba"
+  "My Hero Academia" → "Boku no Hero Academia"
+  "Jujutsu Kaisen" → "Jujutsu Kaisen"
+  "Solo Leveling" → "Solo Leveling"
+  "Elden Ring" → "Elden Ring"
+- Se não souber o nome oficial no Brasil, traduza literalmente
+- Mantenha nomes de pessoas, empresas e marcas em inglês
+
+Responda SOMENTE com JSON válido: {"title": "...", "excerpt": "..."}`,
                       },
                       {
                         role: "user",
