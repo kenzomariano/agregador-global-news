@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { RefreshCw } from "lucide-react";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { SEOHead } from "@/components/seo/SEOHead";
 import { Card, CardContent } from "@/components/ui/card";
