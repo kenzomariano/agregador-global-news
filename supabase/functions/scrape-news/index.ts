@@ -1345,7 +1345,37 @@ ${rawContent.slice(0, 12000)}`;
                     messages: [
                       {
                         role: "system",
-                        content: `Traduza o título e resumo abaixo para Português do Brasil. Mantenha nomes próprios quando conhecidos no Brasil (ex: Netflix, Disney). Traduza títulos de filmes/séries para o nome conhecido no Brasil quando existir (ex: "Crash Landing on You" → "Pousando no Amor"). Responda SOMENTE com JSON válido: {"title": "...", "excerpt": "..."}`,
+                        content: `Traduza o título e resumo abaixo para Português do Brasil.
+
+REGRAS DE TRADUÇÃO DE NOMES:
+- Mantenha nomes de plataformas: Netflix, Disney+, HBO, Amazon Prime, Apple TV+
+- SEMPRE traduza títulos de filmes/séries/animes para o nome OFICIAL no Brasil. Exemplos:
+  "Crash Landing on You" → "Pousando no Amor"
+  "Squid Game" → "Round 6"
+  "Money Heist" → "La Casa de Papel"
+  "My Love from the Star" → "Meu Amor das Estrelas"
+  "Goblin" → "Goblin: The Lonely and Great God"
+  "Descendants of the Sun" → "Descendentes do Sol"
+  "It's Okay to Not Be Okay" → "Tudo Bem Não Ser Normal"
+  "Vincenzo" → "Vincenzo"
+  "All of Us Are Dead" → "Se Estivéssemos Todos Mortos"
+  "Alchemy of Souls" → "Alquimia das Almas"
+  "Hellbound" → "Rumo ao Inferno"
+  "Sweet Home" → "Sweet Home"
+  "The Glory" → "A Glória"
+  "Moving" → "Moving"
+  "Naruto" → "Naruto"
+  "One Piece" → "One Piece"
+  "Attack on Titan" → "Ataque dos Titãs"
+  "Demon Slayer" → "Demon Slayer: Kimetsu no Yaiba"
+  "My Hero Academia" → "Boku no Hero Academia"
+  "Jujutsu Kaisen" → "Jujutsu Kaisen"
+  "Solo Leveling" → "Solo Leveling"
+  "Elden Ring" → "Elden Ring"
+- Se não souber o nome oficial no Brasil, traduza literalmente
+- Mantenha nomes de pessoas, empresas e marcas em inglês
+
+Responda SOMENTE com JSON válido: {"title": "...", "excerpt": "..."}`,
                       },
                       {
                         role: "user",
