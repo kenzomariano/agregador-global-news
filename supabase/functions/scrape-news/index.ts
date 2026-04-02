@@ -1158,19 +1158,34 @@ ${allText.slice(0, 4000)}`;
 
             // Always translate to PT-BR for foreign sources, clean content for all
             const mustTranslate = typedSource.is_foreign;
+            
+            // Detect source-specific noise patterns
+            const sourceUrl = typedSource.url.toLowerCase();
+            const isOtakukart = sourceUrl.includes("otakukart");
+            const sourceSpecificRules = isOtakukart ? `
+REGRAS ESPECÍFICAS PARA OTAKUKART:
+- REMOVA completamente: menus do site como "Anime", "Manga", "K-Drama", "Korean", "K-Pop", "Kdrama", "Reviews", "News"
+- REMOVA listas de navegação do tipo: "Home > Anime > ..."
+- REMOVA rodapés com links para redes sociais, "About Us", "Contact", "Privacy Policy"
+- REMOVA seções de "Trending", "Popular", "Recent Posts", "You May Also Like"
+- REMOVA menções a "OtakuKart" como portal/site
+- REMOVA créditos de imagens como "Image Courtesy: ..."
+- REMOVA completamente qualquer sidebar ou conteúdo de navegação lateral
+` : "";
+
             const cleanPrompt = `Você é um editor de notícias profissional brasileiro.
 
 TAREFA: Extraia APENAS o corpo principal do artigo e ${mustTranslate ? "TRADUZA COMPLETAMENTE para Português do Brasil. NENHUMA frase deve permanecer em inglês ou outro idioma estrangeiro." : "mantenha em Português"}.
-
+${sourceSpecificRules}
 REMOVA COMPLETAMENTE (NÃO INCLUA NO RESULTADO):
 - Anúncios, banners, links de "Remove Ads", promoções
 - Elementos de reCAPTCHA, captchas, popups
 - Controles de player de vídeo e texto de legendas de player
-- Menus de navegação, breadcrumbs, sidebar
-- Rodapés e cabeçalhos do site
+- Menus de navegação, breadcrumbs, sidebar, header e footer do site
+- Rodapés e cabeçalhos do site (incluindo links para seções do portal)
 - Links de compartilhamento social e botões de redes sociais
 - Seções de comentários e formulários
-- Conteúdo relacionado/sugerido, "Leia também", "Related Stories"
+- Conteúdo relacionado/sugerido, "Leia também", "Related Stories", "You May Also Like"
 - Texto repetido, duplicado ou spam
 - Links de navegação interna e paginação
 - Avisos de cookies e GDPR
@@ -1182,6 +1197,8 @@ REMOVA COMPLETAMENTE (NÃO INCLUA NO RESULTADO):
 - Qualquer elemento de UI que não seja parte do texto do artigo
 - Listas de episódios, listas de filmes, ou índices de conteúdo que não fazem parte do artigo
 - Texto promocional como "Sign up for our newsletter"
+- Créditos de imagens, "Image Courtesy", "Source:", "Credits:"
+- Disclaimers e avisos legais do portal
 
 FORMATE o conteúdo usando HTML semântico:
 - <h2> para subtítulos principais (seções do artigo)
