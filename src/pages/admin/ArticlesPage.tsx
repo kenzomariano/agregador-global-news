@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { RefreshCw } from "lucide-react";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { Checkbox } from "@/components/ui/checkbox";
 import { SEOHead } from "@/components/seo/SEOHead";
