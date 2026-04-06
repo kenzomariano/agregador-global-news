@@ -91,6 +91,8 @@ export function ArticlesManager() {
       excerpt: article.excerpt || "",
       content: article.content || "",
       category: article.category,
+      subcategory: article.subcategory || "",
+      status: article.status,
       image_url: article.image_url || "",
       video_url: (article as any).video_url || "",
       is_featured: article.is_featured,
