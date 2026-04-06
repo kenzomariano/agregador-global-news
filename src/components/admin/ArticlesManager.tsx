@@ -22,6 +22,7 @@ export function ArticlesManager() {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [editingArticle, setEditingArticle] = useState<Article | null>(null);
   const [rescraping, setRescraping] = useState<string | null>(null);
