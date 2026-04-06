@@ -76,11 +76,17 @@ export default function CategoryPage() {
   const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
   const categoryKey = category as CategoryKey;
   const categoryInfo = CATEGORIES[categoryKey];
+  const [subcategoryFilter, setSubcategoryFilter] = useState<string | null>(null);
   
   const { data, isLoading } = useArticles(categoryKey, PER_PAGE, page);
   const articles = data?.articles;
-  const total = data?.total || 0;
-  const totalPages = Math.ceil(total / PER_PAGE);
+  const isEntertainment = categoryKey === "entretenimento";
+
+  const filteredArticles = subcategoryFilter
+    ? articles?.filter((a) => a.subcategory === subcategoryFilter)
+    : articles;
+  const total = subcategoryFilter ? (filteredArticles?.length || 0) : (data?.total || 0);
+  const totalPages = subcategoryFilter ? 1 : Math.ceil(total / PER_PAGE);
 
   if (!categoryInfo) {
     return (
