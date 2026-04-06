@@ -120,6 +120,27 @@ export default function CategoryPage() {
           <p className="text-muted-foreground mt-2">
             Últimas notícias e atualizações de {categoryInfo.label}
           </p>
+          {isEntertainment && (
+            <div className="flex flex-wrap gap-2 mt-4">
+              <Badge
+                variant={subcategoryFilter === null ? "default" : "outline"}
+                className="cursor-pointer"
+                onClick={() => setSubcategoryFilter(null)}
+              >
+                Todos
+              </Badge>
+              {Object.entries(ENTERTAINMENT_SUBCATEGORIES).map(([key, { label, icon }]) => (
+                <Badge
+                  key={key}
+                  variant={subcategoryFilter === key ? "default" : "outline"}
+                  className="cursor-pointer"
+                  onClick={() => setSubcategoryFilter(subcategoryFilter === key ? null : key)}
+                >
+                  {icon} {label}
+                </Badge>
+              ))}
+            </div>
+          )}
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
