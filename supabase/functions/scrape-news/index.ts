@@ -1544,7 +1544,8 @@ Exemplos de boas tags: "Piratas do Caribe", "Johnny Depp", "Disney", "Hollywood"
               video_url: videoUrl,
               original_url: itemUrl,
               category,
-              is_featured: processedCount === 0,
+              status: "draft",
+              is_featured: false,
               is_translated: typedSource.is_foreign,
               published_at: new Date().toISOString(),
             }).select("id").single();

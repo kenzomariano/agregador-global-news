@@ -1,4 +1,4 @@
-import { Trash2, RefreshCw, Star, StarOff, X } from "lucide-react";
+import { Trash2, RefreshCw, Star, StarOff, X, CheckCircle, Archive } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -18,6 +18,7 @@ interface ArticleBulkActionsProps {
   onBulkDelete: () => void;
   onBulkRescrape: () => void;
   onBulkFeature: (featured: boolean) => void;
+  onBulkStatusChange: (status: "published" | "archived" | "draft") => void;
   isDeleting: boolean;
   isRescraping: boolean;
 }
@@ -28,6 +29,7 @@ export function ArticleBulkActions({
   onBulkDelete,
   onBulkRescrape,
   onBulkFeature,
+  onBulkStatusChange,
   isDeleting,
   isRescraping,
 }: ArticleBulkActionsProps) {
@@ -39,41 +41,33 @@ export function ArticleBulkActions({
         {selectedCount} artigo(s) selecionado(s)
       </span>
       
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={onClearSelection}
-        className="ml-auto sm:ml-0"
-      >
+      <Button variant="ghost" size="sm" onClick={onClearSelection} className="ml-auto sm:ml-0">
         <X className="h-4 w-4 mr-1" />
         Limpar
       </Button>
 
       <div className="flex gap-2 flex-wrap">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onBulkRescrape}
-          disabled={isRescraping}
-        >
+        <Button variant="outline" size="sm" onClick={() => onBulkStatusChange("published")} className="text-green-600">
+          <CheckCircle className="h-4 w-4 mr-1" />
+          Aprovar
+        </Button>
+
+        <Button variant="outline" size="sm" onClick={() => onBulkStatusChange("archived")}>
+          <Archive className="h-4 w-4 mr-1" />
+          Arquivar
+        </Button>
+
+        <Button variant="outline" size="sm" onClick={onBulkRescrape} disabled={isRescraping}>
           <RefreshCw className={`h-4 w-4 mr-1 ${isRescraping ? "animate-spin" : ""}`} />
           Atualizar
         </Button>
 
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onBulkFeature(true)}
-        >
+        <Button variant="outline" size="sm" onClick={() => onBulkFeature(true)}>
           <Star className="h-4 w-4 mr-1" />
           Destacar
         </Button>
 
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onBulkFeature(false)}
-        >
+        <Button variant="outline" size="sm" onClick={() => onBulkFeature(false)}>
           <StarOff className="h-4 w-4 mr-1" />
           Remover destaque
         </Button>
@@ -94,9 +88,7 @@ export function ArticleBulkActions({
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={onBulkDelete}>
-                Excluir todos
-              </AlertDialogAction>
+              <AlertDialogAction onClick={onBulkDelete}>Excluir todos</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>

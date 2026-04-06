@@ -18,15 +18,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CATEGORIES, type CategoryKey } from "@/lib/categories";
+import { CATEGORIES, ENTERTAINMENT_SUBCATEGORIES, type CategoryKey } from "@/lib/categories";
 import { ArticleTagsManager } from "./ArticleTagsManager";
-import type { Article } from "@/hooks/useArticles";
+import type { Article, ArticleStatus } from "@/hooks/useArticles";
 
 interface EditFormData {
   title: string;
   excerpt: string;
   content: string;
   category: CategoryKey;
+  subcategory: string;
+  status: ArticleStatus;
   image_url: string;
   video_url: string;
   is_featured: boolean;
@@ -47,6 +49,8 @@ export function ArticleEditDialog({
   onClose,
   onSave,
 }: ArticleEditDialogProps) {
+  const showSubcategory = editForm.category === "entretenimento";
+
   return (
     <Dialog open={!!article} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -90,10 +94,45 @@ export function ArticleEditDialog({
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="edit-category">Categoria</Label>
+              <Label>Status</Label>
+              <Select
+                value={editForm.status}
+                onValueChange={(value) => onFormChange({ ...editForm, status: value as ArticleStatus })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="draft">🟡 Rascunho</SelectItem>
+                  <SelectItem value="published">🟢 Publicado</SelectItem>
+                  <SelectItem value="archived">⚫ Arquivado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Destaque</Label>
+              <Select
+                value={editForm.is_featured ? "true" : "false"}
+                onValueChange={(value) => onFormChange({ ...editForm, is_featured: value === "true" })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="false">Não</SelectItem>
+                  <SelectItem value="true">Sim</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Categoria</Label>
               <Select
                 value={editForm.category}
-                onValueChange={(value) => onFormChange({ ...editForm, category: value as CategoryKey })}
+                onValueChange={(value) => onFormChange({ ...editForm, category: value as CategoryKey, subcategory: value !== "entretenimento" ? "" : editForm.subcategory })}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -108,21 +147,27 @@ export function ArticleEditDialog({
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="edit-featured">Destaque</Label>
-              <Select
-                value={editForm.is_featured ? "true" : "false"}
-                onValueChange={(value) => onFormChange({ ...editForm, is_featured: value === "true" })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="false">Não</SelectItem>
-                  <SelectItem value="true">Sim</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            {showSubcategory && (
+              <div className="space-y-2">
+                <Label>Subcategoria</Label>
+                <Select
+                  value={editForm.subcategory || "none"}
+                  onValueChange={(value) => onFormChange({ ...editForm, subcategory: value === "none" ? "" : value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Nenhuma</SelectItem>
+                    {Object.entries(ENTERTAINMENT_SUBCATEGORIES).map(([key, { label, icon }]) => (
+                      <SelectItem key={key} value={key}>
+                        {icon} {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -148,7 +193,6 @@ export function ArticleEditDialog({
 
           <Separator className="my-4" />
 
-          {/* Tags Manager */}
           {article && (
             <ArticleTagsManager
               articleId={article.id}

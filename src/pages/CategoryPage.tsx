@@ -1,13 +1,14 @@
 import { useParams, useSearchParams, Link } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { SEOHead } from "@/components/seo/SEOHead";
 import { ArticleCard } from "@/components/news/ArticleCard";
 import { TrendingSidebar } from "@/components/news/TrendingSidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useArticles, type Article } from "@/hooks/useArticles";
 import { StructuredBreadcrumb } from "@/components/seo/StructuredBreadcrumb";
-import { CATEGORIES, type CategoryKey } from "@/lib/categories";
+import { CATEGORIES, ENTERTAINMENT_SUBCATEGORIES, type CategoryKey } from "@/lib/categories";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const PER_PAGE = 20;
@@ -75,11 +76,17 @@ export default function CategoryPage() {
   const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
   const categoryKey = category as CategoryKey;
   const categoryInfo = CATEGORIES[categoryKey];
+  const [subcategoryFilter, setSubcategoryFilter] = useState<string | null>(null);
   
   const { data, isLoading } = useArticles(categoryKey, PER_PAGE, page);
   const articles = data?.articles;
-  const total = data?.total || 0;
-  const totalPages = Math.ceil(total / PER_PAGE);
+  const isEntertainment = categoryKey === "entretenimento";
+
+  const filteredArticles = subcategoryFilter
+    ? articles?.filter((a) => a.subcategory === subcategoryFilter)
+    : articles;
+  const total = subcategoryFilter ? (filteredArticles?.length || 0) : (data?.total || 0);
+  const totalPages = subcategoryFilter ? 1 : Math.ceil(total / PER_PAGE);
 
   if (!categoryInfo) {
     return (
@@ -113,6 +120,27 @@ export default function CategoryPage() {
           <p className="text-muted-foreground mt-2">
             Últimas notícias e atualizações de {categoryInfo.label}
           </p>
+          {isEntertainment && (
+            <div className="flex flex-wrap gap-2 mt-4">
+              <Badge
+                variant={subcategoryFilter === null ? "default" : "outline"}
+                className="cursor-pointer"
+                onClick={() => setSubcategoryFilter(null)}
+              >
+                Todos
+              </Badge>
+              {Object.entries(ENTERTAINMENT_SUBCATEGORIES).map(([key, { label, icon }]) => (
+                <Badge
+                  key={key}
+                  variant={subcategoryFilter === key ? "default" : "outline"}
+                  className="cursor-pointer"
+                  onClick={() => setSubcategoryFilter(subcategoryFilter === key ? null : key)}
+                >
+                  {icon} {label}
+                </Badge>
+              ))}
+            </div>
+          )}
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -127,14 +155,14 @@ export default function CategoryPage() {
                   </div>
                 ))}
               </div>
-            ) : articles && articles.length > 0 ? (
+            ) : filteredArticles && filteredArticles.length > 0 ? (
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {articles.map((article) => (
+                  {filteredArticles.map((article) => (
                     <ArticleCard key={article.id} article={article} />
                   ))}
                 </div>
-                <CategoryItemListJsonLd articles={articles} category={categoryInfo.label} />
+                <CategoryItemListJsonLd articles={filteredArticles} category={categoryInfo.label} />
 
                 {/* Pagination */}
                 {totalPages > 1 && (

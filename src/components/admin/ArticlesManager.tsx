@@ -5,7 +5,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { useArticles, type Article } from "@/hooks/useArticles";
+import { useArticles, type Article, type ArticleStatus } from "@/hooks/useArticles";
 import { supabase } from "@/integrations/supabase/client";
 import { ArticleFilters } from "./ArticleFilters";
 import { ArticleBulkActions } from "./ArticleBulkActions";
@@ -22,6 +22,7 @@ export function ArticlesManager() {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [editingArticle, setEditingArticle] = useState<Article | null>(null);
   const [rescraping, setRescraping] = useState<string | null>(null);
@@ -35,6 +36,8 @@ export function ArticlesManager() {
     excerpt: "",
     content: "",
     category: "" as CategoryKey,
+    subcategory: "",
+    status: "draft" as ArticleStatus,
     image_url: "",
     video_url: "",
     is_featured: false,
@@ -58,9 +61,10 @@ export function ArticlesManager() {
       const matchesSearch = article.title.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = categoryFilter === "all" || article.category === categoryFilter;
       const matchesSource = sourceFilter === "all" || article.source_id === sourceFilter;
-      return matchesSearch && matchesCategory && matchesSource;
+      const matchesStatus = statusFilter === "all" || article.status === statusFilter;
+      return matchesSearch && matchesCategory && matchesSource && matchesStatus;
     });
-  }, [articles, searchTerm, categoryFilter, sourceFilter]);
+  }, [articles, searchTerm, categoryFilter, sourceFilter, statusFilter]);
 
   const handleSelectAll = (checked: boolean) => {
     if (checked && filteredArticles) {
@@ -87,6 +91,8 @@ export function ArticlesManager() {
       excerpt: article.excerpt || "",
       content: article.content || "",
       category: article.category,
+      subcategory: article.subcategory || "",
+      status: article.status,
       image_url: article.image_url || "",
       video_url: (article as any).video_url || "",
       is_featured: article.is_featured,
@@ -299,6 +305,37 @@ export function ArticlesManager() {
     }
   };
 
+  const handleStatusChange = async (id: string, status: ArticleStatus) => {
+    try {
+      const { error } = await supabase
+        .from("articles")
+        .update({ status, updated_at: new Date().toISOString() })
+        .eq("id", id);
+      if (error) throw error;
+      toast({ title: status === "published" ? "Artigo publicado!" : "Status atualizado" });
+      queryClient.invalidateQueries({ queryKey: ["articles"] });
+    } catch (error: any) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    }
+  };
+
+  const handleBulkStatusChange = async (status: ArticleStatus) => {
+    if (selectedIds.size === 0) return;
+    try {
+      const ids = Array.from(selectedIds);
+      const { error } = await supabase
+        .from("articles")
+        .update({ status, updated_at: new Date().toISOString() })
+        .in("id", ids);
+      if (error) throw error;
+      toast({ title: "Status atualizado", description: `${ids.length} artigo(s) atualizado(s).` });
+      setSelectedIds(new Set());
+      queryClient.invalidateQueries({ queryKey: ["articles"] });
+    } catch (error: any) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    }
+  };
+
   const handleGenerateFaq = async (articleId: string) => {
     setGeneratingFaqId(articleId);
     try {
@@ -340,6 +377,8 @@ export function ArticlesManager() {
         onCategoryChange={setCategoryFilter}
         sourceFilter={sourceFilter}
         onSourceChange={setSourceFilter}
+        statusFilter={statusFilter}
+        onStatusChange={setStatusFilter}
         sources={sources || []}
       />
 
@@ -349,6 +388,7 @@ export function ArticlesManager() {
         onBulkDelete={handleBulkDelete}
         onBulkRescrape={handleBulkRescrape}
         onBulkFeature={handleBulkFeature}
+        onBulkStatusChange={handleBulkStatusChange}
         isDeleting={bulkDeleting}
         isRescraping={bulkRescraping}
       />
@@ -377,6 +417,7 @@ export function ArticlesManager() {
               onEdit={handleEdit}
               onDelete={handleDelete}
               onRescrape={handleRescrape}
+              onStatusChange={handleStatusChange}
               onGenerateFaq={handleGenerateFaq}
               isRescraping={rescraping === article.id}
               isGeneratingFaq={generatingFaqId === article.id}
