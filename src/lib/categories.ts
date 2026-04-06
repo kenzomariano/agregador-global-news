@@ -12,3 +12,18 @@ export const CATEGORIES = {
 } as const;
 
 export type CategoryKey = keyof typeof CATEGORIES;
+
+export const ENTERTAINMENT_SUBCATEGORIES = {
+  anime: { label: 'Anime', icon: '🎌' },
+  streaming: { label: 'Streaming', icon: '📺' },
+  novela: { label: 'Novela', icon: '📖' },
+  serie: { label: 'Série', icon: '🎬' },
+  filme: { label: 'Filme', icon: '🎥' },
+  cinema: { label: 'Cinema', icon: '🍿' },
+  musica: { label: 'Música', icon: '🎵' },
+  celebridades: { label: 'Celebridades', icon: '⭐' },
+  games: { label: 'Games', icon: '🎮' },
+  kdrama: { label: 'K-Drama', icon: '🇰🇷' },
+} as const;
+
+export type EntertainmentSubcategory = keyof typeof ENTERTAINMENT_SUBCATEGORIES;

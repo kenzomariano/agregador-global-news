@@ -2,6 +2,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { CategoryKey } from "@/lib/categories";
 
+export type ArticleStatus = "draft" | "published" | "archived";
+
 export interface Article {
   id: string;
   source_id: string;
@@ -12,6 +14,8 @@ export interface Article {
   image_url: string | null;
   original_url: string;
   category: CategoryKey;
+  subcategory: string | null;
+  status: ArticleStatus;
   views_count: number;
   is_featured: boolean;
   is_translated: boolean;
