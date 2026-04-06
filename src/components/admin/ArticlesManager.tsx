@@ -388,6 +388,7 @@ export function ArticlesManager() {
         onBulkDelete={handleBulkDelete}
         onBulkRescrape={handleBulkRescrape}
         onBulkFeature={handleBulkFeature}
+        onBulkStatusChange={handleBulkStatusChange}
         isDeleting={bulkDeleting}
         isRescraping={bulkRescraping}
       />
