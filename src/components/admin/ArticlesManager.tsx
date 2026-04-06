@@ -377,6 +377,8 @@ export function ArticlesManager() {
         onCategoryChange={setCategoryFilter}
         sourceFilter={sourceFilter}
         onSourceChange={setSourceFilter}
+        statusFilter={statusFilter}
+        onStatusChange={setStatusFilter}
         sources={sources || []}
       />
 
