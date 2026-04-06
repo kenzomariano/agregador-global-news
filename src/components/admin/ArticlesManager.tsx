@@ -5,7 +5,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { useArticles, type Article } from "@/hooks/useArticles";
+import { useArticles, type Article, type ArticleStatus } from "@/hooks/useArticles";
 import { supabase } from "@/integrations/supabase/client";
 import { ArticleFilters } from "./ArticleFilters";
 import { ArticleBulkActions } from "./ArticleBulkActions";
