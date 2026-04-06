@@ -7,7 +7,7 @@ import { SEOHead } from "@/components/seo/SEOHead";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { useArticles, type Article } from "@/hooks/useArticles";
+import { useArticles, type Article, type ArticleStatus } from "@/hooks/useArticles";
 import { supabase } from "@/integrations/supabase/client";
 import { ArticleFilters } from "@/components/admin/ArticleFilters";
 import { ArticleBulkActions } from "@/components/admin/ArticleBulkActions";
@@ -24,6 +24,7 @@ export default function ArticlesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [editingArticle, setEditingArticle] = useState<Article | null>(null);
   const [rescraping, setRescraping] = useState<string | null>(null);
@@ -37,12 +38,13 @@ export default function ArticlesPage() {
     excerpt: "",
     content: "",
     category: "" as CategoryKey,
+    subcategory: "",
+    status: "draft" as ArticleStatus,
     image_url: "",
     video_url: "",
     is_featured: false,
   });
 
-  // Fetch sources for filter
   const { data: sources } = useQuery({
     queryKey: ["news-sources"],
     queryFn: async () => {
@@ -61,14 +63,14 @@ export default function ArticlesPage() {
       const matchesSearch = article.title.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = categoryFilter === "all" || article.category === categoryFilter;
       const matchesSource = sourceFilter === "all" || article.source_id === sourceFilter;
-      return matchesSearch && matchesCategory && matchesSource;
+      const matchesStatus = statusFilter === "all" || article.status === statusFilter;
+      return matchesSearch && matchesCategory && matchesSource && matchesStatus;
     });
-  }, [articles, searchTerm, categoryFilter, sourceFilter]);
+  }, [articles, searchTerm, categoryFilter, sourceFilter, statusFilter]);
 
-  // Get unique source from filtered articles for the source filter
-  const uniqueSources = useMemo(() => {
-    return sources || [];
-  }, [sources]);
+  const draftCount = useMemo(() => {
+    return articles?.filter((a) => a.status === "draft").length || 0;
+  }, [articles]);
 
   const handleSelectAll = (checked: boolean) => {
     if (checked && filteredArticles) {
@@ -80,11 +82,8 @@ export default function ArticlesPage() {
 
   const handleSelect = (id: string, checked: boolean) => {
     const newSelected = new Set(selectedIds);
-    if (checked) {
-      newSelected.add(id);
-    } else {
-      newSelected.delete(id);
-    }
+    if (checked) newSelected.add(id);
+    else newSelected.delete(id);
     setSelectedIds(newSelected);
   };
 
@@ -95,6 +94,8 @@ export default function ArticlesPage() {
       excerpt: article.excerpt || "",
       content: article.content || "",
       category: article.category,
+      subcategory: article.subcategory || "",
+      status: article.status,
       image_url: article.image_url || "",
       video_url: (article as any).video_url || "",
       is_featured: article.is_featured,
@@ -103,7 +104,6 @@ export default function ArticlesPage() {
 
   const handleSaveEdit = async () => {
     if (!editingArticle) return;
-
     try {
       const { error } = await supabase
         .from("articles")
@@ -112,6 +112,8 @@ export default function ArticlesPage() {
           excerpt: editForm.excerpt || null,
           content: editForm.content || null,
           category: editForm.category,
+          subcategory: editForm.subcategory || null,
+          status: editForm.status,
           image_url: editForm.image_url || null,
           video_url: editForm.video_url || null,
           is_featured: editForm.is_featured,
@@ -120,82 +122,73 @@ export default function ArticlesPage() {
         .eq("id", editingArticle.id);
 
       if (error) throw error;
-
-      toast({
-        title: "Artigo atualizado!",
-        description: "As alterações foram salvas com sucesso.",
-      });
-
+      toast({ title: "Artigo atualizado!", description: "As alterações foram salvas com sucesso." });
       setEditingArticle(null);
       queryClient.invalidateQueries({ queryKey: ["articles"] });
     } catch (error: any) {
+      toast({ title: "Erro ao atualizar", description: error.message || "Tente novamente.", variant: "destructive" });
+    }
+  };
+
+  const handleStatusChange = async (id: string, status: ArticleStatus) => {
+    try {
+      const { error } = await supabase
+        .from("articles")
+        .update({ status, updated_at: new Date().toISOString() })
+        .eq("id", id);
+      if (error) throw error;
+      toast({ title: status === "published" ? "Artigo publicado!" : "Status atualizado" });
+      queryClient.invalidateQueries({ queryKey: ["articles"] });
+    } catch (error: any) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    }
+  };
+
+  const handleBulkStatusChange = async (status: ArticleStatus) => {
+    if (selectedIds.size === 0) return;
+    try {
+      const ids = Array.from(selectedIds);
+      const { error } = await supabase
+        .from("articles")
+        .update({ status, updated_at: new Date().toISOString() })
+        .in("id", ids);
+      if (error) throw error;
       toast({
-        title: "Erro ao atualizar",
-        description: error.message || "Tente novamente.",
-        variant: "destructive",
+        title: status === "published" ? "Artigos publicados!" : "Status atualizado",
+        description: `${ids.length} artigo(s) atualizado(s).`,
       });
+      setSelectedIds(new Set());
+      queryClient.invalidateQueries({ queryKey: ["articles"] });
+    } catch (error: any) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
     }
   };
 
   const handleDelete = async (id: string) => {
     try {
-      // Use database function (security definer) to delete article + related tags reliably
-      const { error } = await supabase.rpc("delete_article_with_tags", {
-        article_uuid: id,
-      });
-
+      const { error } = await supabase.rpc("delete_article_with_tags", { article_uuid: id });
       if (error) throw error;
-
-      toast({
-        title: "Artigo removido",
-        description: "O artigo foi excluído com sucesso.",
-      });
-
-      setSelectedIds((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(id);
-        return newSet;
-      });
+      toast({ title: "Artigo removido" });
+      setSelectedIds((prev) => { const s = new Set(prev); s.delete(id); return s; });
       queryClient.invalidateQueries({ queryKey: ["articles"] });
     } catch (error: any) {
-      toast({
-        title: "Erro ao remover",
-        description: error.message || "Tente novamente.",
-        variant: "destructive",
-      });
+      toast({ title: "Erro ao remover", description: error.message, variant: "destructive" });
     }
   };
 
   const handleBulkDelete = async () => {
     if (selectedIds.size === 0) return;
     setBulkDeleting(true);
-
     try {
       const ids = Array.from(selectedIds);
-
-      // Delete one-by-one via security definer function to avoid RLS issues
-      const results = await Promise.all(
-        ids.map((articleId) =>
-          supabase.rpc("delete_article_with_tags", { article_uuid: articleId })
-        )
-      );
-
+      const results = await Promise.all(ids.map((id) => supabase.rpc("delete_article_with_tags", { article_uuid: id })));
       const firstError = results.find((r) => r.error)?.error;
       if (firstError) throw firstError;
-
-      toast({
-        title: "Artigos removidos",
-        description: `${ids.length} artigo(s) excluído(s) com sucesso.`,
-      });
-
+      toast({ title: "Artigos removidos", description: `${ids.length} artigo(s) excluído(s).` });
       setSelectedIds(new Set());
       queryClient.invalidateQueries({ queryKey: ["articles"] });
     } catch (error: any) {
-      toast({
-        title: "Erro ao remover",
-        description: error.message || "Tente novamente.",
-        variant: "destructive",
-      });
+      toast({ title: "Erro ao remover", description: error.message, variant: "destructive" });
     } finally {
       setBulkDeleting(false);
     }
@@ -203,26 +196,15 @@ export default function ArticlesPage() {
 
   const handleRescrape = async (article: Article) => {
     setRescraping(article.id);
-
     try {
-      const { data, error } = await supabase.functions.invoke("rescrape-article", {
+      const { error } = await supabase.functions.invoke("rescrape-article", {
         body: { articleId: article.id, url: article.original_url },
       });
-
       if (error) throw error;
-
-      toast({
-        title: "Artigo atualizado!",
-        description: "O conteúdo foi extraído novamente com sucesso.",
-      });
-
+      toast({ title: "Artigo atualizado!" });
       queryClient.invalidateQueries({ queryKey: ["articles"] });
     } catch (error: any) {
-      toast({
-        title: "Erro no rescrape",
-        description: error.message || "Não foi possível atualizar o artigo.",
-        variant: "destructive",
-      });
+      toast({ title: "Erro no rescrape", description: error.message, variant: "destructive" });
     } finally {
       setRescraping(null);
     }
@@ -231,28 +213,16 @@ export default function ArticlesPage() {
   const handleBulkRescrape = async () => {
     if (selectedIds.size === 0) return;
     setBulkRescraping(true);
-
     try {
       const selected = articles?.filter((a) => selectedIds.has(a.id)) || [];
-      let success = 0;
-      let failed = 0;
-
+      let success = 0, failed = 0;
       for (const article of selected) {
         try {
-          await supabase.functions.invoke("rescrape-article", {
-            body: { articleId: article.id, url: article.original_url },
-          });
+          await supabase.functions.invoke("rescrape-article", { body: { articleId: article.id, url: article.original_url } });
           success++;
-        } catch {
-          failed++;
-        }
+        } catch { failed++; }
       }
-
-      toast({
-        title: "Atualização concluída",
-        description: `${success} artigo(s) atualizado(s)${failed > 0 ? `, ${failed} falha(s)` : ""}.`,
-      });
-
+      toast({ title: "Atualização concluída", description: `${success} atualizado(s)${failed > 0 ? `, ${failed} falha(s)` : ""}.` });
       queryClient.invalidateQueries({ queryKey: ["articles"] });
     } finally {
       setBulkRescraping(false);
@@ -261,68 +231,37 @@ export default function ArticlesPage() {
 
   const handleBulkFeature = async (featured: boolean) => {
     if (selectedIds.size === 0) return;
-
     try {
       const ids = Array.from(selectedIds);
-      const { error } = await supabase
-        .from("articles")
-        .update({ is_featured: featured, updated_at: new Date().toISOString() })
-        .in("id", ids);
-
+      const { error } = await supabase.from("articles").update({ is_featured: featured, updated_at: new Date().toISOString() }).in("id", ids);
       if (error) throw error;
-
-      toast({
-        title: featured ? "Artigos destacados" : "Destaque removido",
-        description: `${ids.length} artigo(s) atualizado(s).`,
-      });
-
+      toast({ title: featured ? "Artigos destacados" : "Destaque removido", description: `${ids.length} artigo(s) atualizado(s).` });
       queryClient.invalidateQueries({ queryKey: ["articles"] });
     } catch (error: any) {
-      toast({
-        title: "Erro ao atualizar",
-        description: error.message || "Tente novamente.",
-        variant: "destructive",
-      });
+      toast({ title: "Erro ao atualizar", description: error.message, variant: "destructive" });
     }
   };
 
   const handleBulkTranslate = async () => {
     setBulkTranslating(true);
     try {
-      // Find articles with English titles (no Portuguese accented chars, has 3+ letter English words)
       const englishArticles = articles?.filter((a) => {
         const hasAccents = /[àáâãçéêíóôõúü]/i.test(a.title);
         if (hasAccents) return false;
         const enWords = a.title.match(/\b[a-zA-Z]{3,}\b/g) || [];
         return enWords.length >= 3;
       }) || [];
-
-      if (englishArticles.length === 0) {
-        toast({ title: "Nenhum artigo em inglês encontrado" });
-        return;
-      }
-
+      if (englishArticles.length === 0) { toast({ title: "Nenhum artigo em inglês encontrado" }); return; }
       setTranslateProgress({ done: 0, total: englishArticles.length });
-      let success = 0;
-      let failed = 0;
-
+      let success = 0, failed = 0;
       for (const article of englishArticles) {
         try {
-          await supabase.functions.invoke("rescrape-article", {
-            body: { articleId: article.id, url: article.original_url },
-          });
+          await supabase.functions.invoke("rescrape-article", { body: { articleId: article.id, url: article.original_url } });
           success++;
-        } catch {
-          failed++;
-        }
+        } catch { failed++; }
         setTranslateProgress({ done: success + failed, total: englishArticles.length });
       }
-
-      toast({
-        title: "Tradução em massa concluída",
-        description: `${success} traduzido(s)${failed > 0 ? `, ${failed} falha(s)` : ""}.`,
-      });
-
+      toast({ title: "Tradução concluída", description: `${success} traduzido(s)${failed > 0 ? `, ${failed} falha(s)` : ""}.` });
       queryClient.invalidateQueries({ queryKey: ["articles"] });
     } finally {
       setBulkTranslating(false);
@@ -339,15 +278,11 @@ export default function ArticlesPage() {
     }).length || 0;
   }, [articles]);
 
-  const allSelected = filteredArticles && filteredArticles.length > 0 && 
-    filteredArticles.every((a) => selectedIds.has(a.id));
+  const allSelected = filteredArticles && filteredArticles.length > 0 && filteredArticles.every((a) => selectedIds.has(a.id));
 
   return (
     <>
-      <SEOHead
-        title="Gerenciar Artigos"
-        description="Gerencie os artigos publicados no DESIGNE."
-      />
+      <SEOHead title="Gerenciar Artigos" description="Gerencie os artigos publicados no DESIGNE." />
 
       <div className="container py-6 max-w-6xl">
         <header className="mb-8">
@@ -355,16 +290,16 @@ export default function ArticlesPage() {
             <div>
               <h1 className="text-3xl font-bold font-serif">Gerenciar Artigos</h1>
               <p className="text-muted-foreground mt-2">
-                Edite, atualize ou remova artigos publicados.
+                Edite, aprove ou remova artigos.
+                {draftCount > 0 && (
+                  <span className="ml-2 text-amber-600 font-medium">
+                    {draftCount} rascunho(s) aguardando aprovação
+                  </span>
+                )}
               </p>
             </div>
             {englishArticleCount > 0 && (
-              <Button
-                onClick={handleBulkTranslate}
-                disabled={bulkTranslating}
-                variant="outline"
-                className="gap-2"
-              >
+              <Button onClick={handleBulkTranslate} disabled={bulkTranslating} variant="outline" className="gap-2">
                 <RefreshCw className={`h-4 w-4 ${bulkTranslating ? "animate-spin" : ""}`} />
                 {bulkTranslating
                   ? `Traduzindo ${translateProgress.done}/${translateProgress.total}...`
@@ -374,7 +309,6 @@ export default function ArticlesPage() {
           </div>
         </header>
 
-        {/* Filters */}
         <ArticleFilters
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
@@ -382,35 +316,31 @@ export default function ArticlesPage() {
           onCategoryChange={setCategoryFilter}
           sourceFilter={sourceFilter}
           onSourceChange={setSourceFilter}
-          sources={uniqueSources}
+          statusFilter={statusFilter}
+          onStatusChange={setStatusFilter}
+          sources={sources || []}
         />
 
-        {/* Bulk Actions */}
         <ArticleBulkActions
           selectedCount={selectedIds.size}
           onClearSelection={() => setSelectedIds(new Set())}
           onBulkDelete={handleBulkDelete}
           onBulkRescrape={handleBulkRescrape}
           onBulkFeature={handleBulkFeature}
+          onBulkStatusChange={handleBulkStatusChange}
           isDeleting={bulkDeleting}
           isRescraping={bulkRescraping}
         />
 
-        {/* Select All */}
         {filteredArticles && filteredArticles.length > 0 && (
           <div className="flex items-center gap-2 mb-4 text-sm">
-            <Checkbox
-              checked={allSelected}
-              onCheckedChange={handleSelectAll}
-              id="select-all"
-            />
+            <Checkbox checked={allSelected} onCheckedChange={handleSelectAll} id="select-all" />
             <label htmlFor="select-all" className="cursor-pointer text-muted-foreground">
               Selecionar todos ({filteredArticles.length})
             </label>
           </div>
         )}
 
-        {/* Articles list */}
         {isLoading ? (
           <div className="space-y-4">
             {Array.from({ length: 5 }).map((_, i) => (
@@ -428,6 +358,7 @@ export default function ArticlesPage() {
                 onEdit={handleEdit}
                 onDelete={handleDelete}
                 onRescrape={handleRescrape}
+                onStatusChange={handleStatusChange}
                 isRescraping={rescraping === article.id}
               />
             ))}
@@ -441,7 +372,6 @@ export default function ArticlesPage() {
         )}
       </div>
 
-      {/* Edit Dialog */}
       <ArticleEditDialog
         article={editingArticle}
         editForm={editForm}
