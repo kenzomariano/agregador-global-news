@@ -1,13 +1,14 @@
 import { useParams, useSearchParams, Link } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { SEOHead } from "@/components/seo/SEOHead";
 import { ArticleCard } from "@/components/news/ArticleCard";
 import { TrendingSidebar } from "@/components/news/TrendingSidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useArticles, type Article } from "@/hooks/useArticles";
 import { StructuredBreadcrumb } from "@/components/seo/StructuredBreadcrumb";
-import { CATEGORIES, type CategoryKey } from "@/lib/categories";
+import { CATEGORIES, ENTERTAINMENT_SUBCATEGORIES, type CategoryKey } from "@/lib/categories";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const PER_PAGE = 20;
