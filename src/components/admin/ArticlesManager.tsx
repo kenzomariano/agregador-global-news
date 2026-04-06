@@ -36,6 +36,8 @@ export function ArticlesManager() {
     excerpt: "",
     content: "",
     category: "" as CategoryKey,
+    subcategory: "",
+    status: "draft" as ArticleStatus,
     image_url: "",
     video_url: "",
     is_featured: false,
