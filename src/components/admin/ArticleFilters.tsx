@@ -7,7 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CATEGORIES, type CategoryKey } from "@/lib/categories";
+import { CATEGORIES } from "@/lib/categories";
 
 interface ArticleFiltersProps {
   searchTerm: string;
@@ -16,6 +16,8 @@ interface ArticleFiltersProps {
   onCategoryChange: (value: string) => void;
   sourceFilter: string;
   onSourceChange: (value: string) => void;
+  statusFilter: string;
+  onStatusChange: (value: string) => void;
   sources: { id: string; name: string }[];
 }
 
@@ -26,6 +28,8 @@ export function ArticleFilters({
   onCategoryChange,
   sourceFilter,
   onSourceChange,
+  statusFilter,
+  onStatusChange,
   sources,
 }: ArticleFiltersProps) {
   return (
@@ -39,6 +43,17 @@ export function ArticleFilters({
           className="pl-10"
         />
       </div>
+      <Select value={statusFilter} onValueChange={onStatusChange}>
+        <SelectTrigger className="w-full sm:w-40">
+          <SelectValue placeholder="Status" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">Todos os status</SelectItem>
+          <SelectItem value="draft">🟡 Rascunho</SelectItem>
+          <SelectItem value="published">🟢 Publicado</SelectItem>
+          <SelectItem value="archived">⚫ Arquivado</SelectItem>
+        </SelectContent>
+      </Select>
       <Select value={categoryFilter} onValueChange={onCategoryChange}>
         <SelectTrigger className="w-full sm:w-48">
           <SelectValue placeholder="Categoria" />
