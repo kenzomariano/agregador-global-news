@@ -305,6 +305,37 @@ export function ArticlesManager() {
     }
   };
 
+  const handleStatusChange = async (id: string, status: ArticleStatus) => {
+    try {
+      const { error } = await supabase
+        .from("articles")
+        .update({ status, updated_at: new Date().toISOString() })
+        .eq("id", id);
+      if (error) throw error;
+      toast({ title: status === "published" ? "Artigo publicado!" : "Status atualizado" });
+      queryClient.invalidateQueries({ queryKey: ["articles"] });
+    } catch (error: any) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    }
+  };
+
+  const handleBulkStatusChange = async (status: ArticleStatus) => {
+    if (selectedIds.size === 0) return;
+    try {
+      const ids = Array.from(selectedIds);
+      const { error } = await supabase
+        .from("articles")
+        .update({ status, updated_at: new Date().toISOString() })
+        .in("id", ids);
+      if (error) throw error;
+      toast({ title: "Status atualizado", description: `${ids.length} artigo(s) atualizado(s).` });
+      setSelectedIds(new Set());
+      queryClient.invalidateQueries({ queryKey: ["articles"] });
+    } catch (error: any) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    }
+  };
+
   const handleGenerateFaq = async (articleId: string) => {
     setGeneratingFaqId(articleId);
     try {
