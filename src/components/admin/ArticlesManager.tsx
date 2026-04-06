@@ -61,9 +61,10 @@ export function ArticlesManager() {
       const matchesSearch = article.title.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = categoryFilter === "all" || article.category === categoryFilter;
       const matchesSource = sourceFilter === "all" || article.source_id === sourceFilter;
-      return matchesSearch && matchesCategory && matchesSource;
+      const matchesStatus = statusFilter === "all" || article.status === statusFilter;
+      return matchesSearch && matchesCategory && matchesSource && matchesStatus;
     });
-  }, [articles, searchTerm, categoryFilter, sourceFilter]);
+  }, [articles, searchTerm, categoryFilter, sourceFilter, statusFilter]);
 
   const handleSelectAll = (checked: boolean) => {
     if (checked && filteredArticles) {
