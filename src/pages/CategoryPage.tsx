@@ -155,14 +155,14 @@ export default function CategoryPage() {
                   </div>
                 ))}
               </div>
-            ) : articles && articles.length > 0 ? (
+            ) : filteredArticles && filteredArticles.length > 0 ? (
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {articles.map((article) => (
+                  {filteredArticles.map((article) => (
                     <ArticleCard key={article.id} article={article} />
                   ))}
                 </div>
-                <CategoryItemListJsonLd articles={articles} category={categoryInfo.label} />
+                <CategoryItemListJsonLd articles={filteredArticles} category={categoryInfo.label} />
 
                 {/* Pagination */}
                 {totalPages > 1 && (
