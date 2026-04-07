@@ -35,8 +35,10 @@ interface ArticleListItemProps {
   onRescrape: (article: Article) => void;
   onStatusChange: (id: string, status: ArticleStatus) => void;
   onGenerateFaq?: (articleId: string) => void;
+  onTranslate?: (articleId: string) => void;
   isRescraping: boolean;
   isGeneratingFaq?: boolean;
+  isTranslating?: boolean;
 }
 
 export function ArticleListItem({
