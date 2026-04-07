@@ -256,7 +256,7 @@ export default function ArticlesPage() {
       let success = 0, failed = 0;
       for (const article of englishArticles) {
         try {
-          await supabase.functions.invoke("rescrape-article", { body: { articleId: article.id, url: article.original_url } });
+          await supabase.functions.invoke("translate-article", { body: { articleId: article.id } });
           success++;
         } catch { failed++; }
         setTranslateProgress({ done: success + failed, total: englishArticles.length });
