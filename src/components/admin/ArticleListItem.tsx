@@ -159,6 +159,17 @@ export function ArticleListItem({
                 <Button
                   variant="ghost"
                   size="icon"
+                  onClick={() => onTranslate?.(article.id)}
+                  disabled={isTranslating}
+                  title="Traduzir com IA"
+                  className="h-8 w-8"
+                >
+                  <Languages className={`h-4 w-4 ${isTranslating ? "animate-spin" : ""}`} />
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={() => onGenerateFaq?.(article.id)}
                   disabled={isGeneratingFaq}
                   title="Gerar FAQ com IA"
