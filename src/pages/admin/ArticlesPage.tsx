@@ -374,7 +374,9 @@ export default function ArticlesPage() {
                 onDelete={handleDelete}
                 onRescrape={handleRescrape}
                 onStatusChange={handleStatusChange}
+                onTranslate={handleTranslateOne}
                 isRescraping={rescraping === article.id}
+                isTranslating={translatingId === article.id}
               />
             ))}
           </div>
