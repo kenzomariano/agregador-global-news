@@ -50,8 +50,10 @@ export function ArticleListItem({
   onRescrape,
   onStatusChange,
   onGenerateFaq,
+  onTranslate,
   isRescraping,
   isGeneratingFaq,
+  isTranslating,
 }: ArticleListItemProps) {
   const category = CATEGORIES[article.category as CategoryKey];
   const statusInfo = STATUS_CONFIG[article.status] || STATUS_CONFIG.draft;
