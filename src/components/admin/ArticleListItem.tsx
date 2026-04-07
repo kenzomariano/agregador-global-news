@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Trash2, RefreshCw, Pencil, ExternalLink, Eye, MessageCircleQuestion, CheckCircle, Archive } from "lucide-react";
+import { Trash2, RefreshCw, Pencil, ExternalLink, Eye, MessageCircleQuestion, CheckCircle, Archive, Languages } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -35,8 +35,10 @@ interface ArticleListItemProps {
   onRescrape: (article: Article) => void;
   onStatusChange: (id: string, status: ArticleStatus) => void;
   onGenerateFaq?: (articleId: string) => void;
+  onTranslate?: (articleId: string) => void;
   isRescraping: boolean;
   isGeneratingFaq?: boolean;
+  isTranslating?: boolean;
 }
 
 export function ArticleListItem({
@@ -48,8 +50,10 @@ export function ArticleListItem({
   onRescrape,
   onStatusChange,
   onGenerateFaq,
+  onTranslate,
   isRescraping,
   isGeneratingFaq,
+  isTranslating,
 }: ArticleListItemProps) {
   const category = CATEGORIES[article.category as CategoryKey];
   const statusInfo = STATUS_CONFIG[article.status] || STATUS_CONFIG.draft;
@@ -150,6 +154,17 @@ export function ArticleListItem({
                   className="h-8 w-8"
                 >
                   <RefreshCw className={`h-4 w-4 ${isRescraping ? "animate-spin" : ""}`} />
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => onTranslate?.(article.id)}
+                  disabled={isTranslating}
+                  title="Traduzir com IA"
+                  className="h-8 w-8"
+                >
+                  <Languages className={`h-4 w-4 ${isTranslating ? "animate-spin" : ""}`} />
                 </Button>
 
                 <Button

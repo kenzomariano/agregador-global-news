@@ -28,6 +28,7 @@ export default function ArticlesPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [editingArticle, setEditingArticle] = useState<Article | null>(null);
   const [rescraping, setRescraping] = useState<string | null>(null);
+  const [translatingId, setTranslatingId] = useState<string | null>(null);
   const [bulkRescraping, setBulkRescraping] = useState(false);
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [bulkTranslating, setBulkTranslating] = useState(false);
@@ -242,6 +243,20 @@ export default function ArticlesPage() {
     }
   };
 
+  const handleTranslateOne = async (articleId: string) => {
+    setTranslatingId(articleId);
+    try {
+      const { error } = await supabase.functions.invoke("translate-article", { body: { articleId } });
+      if (error) throw error;
+      toast({ title: "Artigo traduzido!" });
+      queryClient.invalidateQueries({ queryKey: ["articles"] });
+    } catch (error: any) {
+      toast({ title: "Erro na tradução", description: error.message, variant: "destructive" });
+    } finally {
+      setTranslatingId(null);
+    }
+  };
+
   const handleBulkTranslate = async () => {
     setBulkTranslating(true);
     try {
@@ -359,7 +374,9 @@ export default function ArticlesPage() {
                 onDelete={handleDelete}
                 onRescrape={handleRescrape}
                 onStatusChange={handleStatusChange}
+                onTranslate={handleTranslateOne}
                 isRescraping={rescraping === article.id}
+                isTranslating={translatingId === article.id}
               />
             ))}
           </div>
