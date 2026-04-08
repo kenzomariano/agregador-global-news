@@ -29,6 +29,7 @@ export function ArticlesManager() {
   const [bulkRescraping, setBulkRescraping] = useState(false);
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [generatingFaqId, setGeneratingFaqId] = useState<string | null>(null);
+  const [translatingId, setTranslatingId] = useState<string | null>(null);
   const generateFaq = useGenerateArticleFaqs();
 
   const [editForm, setEditForm] = useState({
@@ -340,18 +341,25 @@ export function ArticlesManager() {
     setGeneratingFaqId(articleId);
     try {
       await generateFaq.mutateAsync(articleId);
-      toast({
-        title: "FAQ gerado!",
-        description: "Perguntas frequentes criadas com sucesso.",
-      });
+      toast({ title: "FAQ gerado!", description: "Perguntas frequentes criadas com sucesso." });
     } catch (error: any) {
-      toast({
-        title: "Erro ao gerar FAQ",
-        description: error.message || "Tente novamente.",
-        variant: "destructive",
-      });
+      toast({ title: "Erro ao gerar FAQ", description: error.message || "Tente novamente.", variant: "destructive" });
     } finally {
       setGeneratingFaqId(null);
+    }
+  };
+
+  const handleTranslateOne = async (articleId: string) => {
+    setTranslatingId(articleId);
+    try {
+      const { error } = await supabase.functions.invoke("translate-article", { body: { articleId } });
+      if (error) throw error;
+      toast({ title: "Artigo traduzido!" });
+      queryClient.invalidateQueries({ queryKey: ["articles"] });
+    } catch (error: any) {
+      toast({ title: "Erro na tradução", description: error.message, variant: "destructive" });
+    } finally {
+      setTranslatingId(null);
     }
   };
 
@@ -419,8 +427,10 @@ export function ArticlesManager() {
               onRescrape={handleRescrape}
               onStatusChange={handleStatusChange}
               onGenerateFaq={handleGenerateFaq}
+              onTranslate={handleTranslateOne}
               isRescraping={rescraping === article.id}
               isGeneratingFaq={generatingFaqId === article.id}
+              isTranslating={translatingId === article.id}
             />
           ))}
         </div>
