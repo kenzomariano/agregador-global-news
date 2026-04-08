@@ -47,6 +47,35 @@ export default function ArticlePage() {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxSrc, setLightboxSrc] = useState("");
   const [lightboxAlt, setLightboxAlt] = useState("");
+  const [morePages, setMorePages] = useState(0);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+
+  // Load more articles for infinite scroll
+  const { data: moreArticlesData, isLoading: isLoadingMore } = useArticles(
+    undefined,
+    8,
+    morePages > 0 ? 1 : 0
+  );
+
+  // Reset more pages when article changes
+  useEffect(() => {
+    setMorePages(0);
+  }, [article?.id]);
+
+  // Infinite scroll observer
+  useEffect(() => {
+    if (!loadMoreRef.current) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && morePages === 0) {
+          setMorePages(1);
+        }
+      },
+      { threshold: 0.1 }
+    );
+    observer.observe(loadMoreRef.current);
+    return () => observer.disconnect();
+  }, [morePages, article?.id]);
   
   const { data: tmdbMentions } = useArticleTMDBMentions(
     article?.content || null,
