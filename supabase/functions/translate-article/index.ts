@@ -6,6 +6,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const VALID_SUBCATEGORIES = ["anime", "streaming", "novela", "serie", "filme", "cinema", "musica", "celebridades", "games", "kdrama"];
+
 const TRANSLATION_SYSTEM_PROMPT = `Traduza o título e resumo abaixo para Português do Brasil.
 
 REGRAS DE TRADUÇÃO DE NOMES:
@@ -29,7 +31,20 @@ REGRAS DE TRADUÇÃO DE NOMES:
 - Se não souber o nome oficial no Brasil, traduza literalmente
 - Mantenha nomes de pessoas, empresas e marcas em inglês
 
-Responda SOMENTE com JSON válido: {"title": "...", "excerpt": "..."}`;
+CLASSIFICAÇÃO DE SUBCATEGORIA:
+Analise o conteúdo e classifique em UMA das subcategorias abaixo (ou null se não se aplicar):
+- "anime" → Anime japonês, mangá, light novel
+- "kdrama" → Doramas coreanos, K-drama
+- "serie" → Séries de TV em geral (exceto anime e kdrama)
+- "filme" → Filmes específicos, lançamentos, reviews
+- "cinema" → Indústria cinematográfica, bilheteria, festivais
+- "streaming" → Notícias sobre plataformas de streaming (Netflix, Disney+, etc)
+- "novela" → Telenovelas brasileiras
+- "musica" → Música, shows, álbuns, artistas
+- "celebridades" → Fofocas, vida de celebridades
+- "games" → Videogames, jogos, consoles
+
+Responda SOMENTE com JSON válido: {"title": "...", "excerpt": "...", "subcategory": "..." ou null}`;
 
 const CONTENT_TRANSLATION_PROMPT = `Você é um tradutor profissional de notícias para Português do Brasil.
 
