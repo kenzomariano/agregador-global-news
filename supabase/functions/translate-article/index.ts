@@ -147,6 +147,10 @@ serve(async (req) => {
           if (parsed.excerpt && parsed.excerpt.length > 5) {
             updateData.excerpt = parsed.excerpt;
           }
+          if (parsed.subcategory && VALID_SUBCATEGORIES.includes(parsed.subcategory)) {
+            updateData.subcategory = parsed.subcategory;
+            console.log(`Subcategory classified: "${parsed.subcategory}"`);
+          }
         }
       }
     } catch (e) {
