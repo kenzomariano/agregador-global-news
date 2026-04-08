@@ -28,12 +28,19 @@ const MAIN_CATEGORIES: CategoryKey[] = [
 ];
 
 export default function Index() {
+  const ITEMS_PER_PAGE = 12;
+  const [newsPage, setNewsPage] = useState(1);
   const { data, isLoading } = useArticles(undefined, 50);
   const allArticles = data?.articles;
 
-  // First 5 for banner, rest for cards
+  // First 5 for banner, rest for paginated cards
   const bannerArticles = allArticles?.slice(0, 5) || [];
-  const remainingArticles = allArticles?.slice(5) || [];
+  const allRemaining = allArticles?.slice(5) || [];
+  const totalPages = Math.ceil(allRemaining.length / ITEMS_PER_PAGE);
+  const remainingArticles = allRemaining.slice(
+    (newsPage - 1) * ITEMS_PER_PAGE,
+    newsPage * ITEMS_PER_PAGE
+  );
 
   return (
     <>
