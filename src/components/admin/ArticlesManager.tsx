@@ -341,18 +341,25 @@ export function ArticlesManager() {
     setGeneratingFaqId(articleId);
     try {
       await generateFaq.mutateAsync(articleId);
-      toast({
-        title: "FAQ gerado!",
-        description: "Perguntas frequentes criadas com sucesso.",
-      });
+      toast({ title: "FAQ gerado!", description: "Perguntas frequentes criadas com sucesso." });
     } catch (error: any) {
-      toast({
-        title: "Erro ao gerar FAQ",
-        description: error.message || "Tente novamente.",
-        variant: "destructive",
-      });
+      toast({ title: "Erro ao gerar FAQ", description: error.message || "Tente novamente.", variant: "destructive" });
     } finally {
       setGeneratingFaqId(null);
+    }
+  };
+
+  const handleTranslateOne = async (articleId: string) => {
+    setTranslatingId(articleId);
+    try {
+      const { error } = await supabase.functions.invoke("translate-article", { body: { articleId } });
+      if (error) throw error;
+      toast({ title: "Artigo traduzido!" });
+      queryClient.invalidateQueries({ queryKey: ["articles"] });
+    } catch (error: any) {
+      toast({ title: "Erro na tradução", description: error.message, variant: "destructive" });
+    } finally {
+      setTranslatingId(null);
     }
   };
 
