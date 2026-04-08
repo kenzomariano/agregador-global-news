@@ -427,8 +427,10 @@ export function ArticlesManager() {
               onRescrape={handleRescrape}
               onStatusChange={handleStatusChange}
               onGenerateFaq={handleGenerateFaq}
+              onTranslate={handleTranslateOne}
               isRescraping={rescraping === article.id}
               isGeneratingFaq={generatingFaqId === article.id}
+              isTranslating={translatingId === article.id}
             />
           ))}
         </div>
