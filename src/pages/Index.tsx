@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { SEOHead } from "@/components/seo/SEOHead";
 import { HeroBanner } from "@/components/news/HeroBanner";
 import { CategorySection } from "@/components/news/CategorySection";
@@ -12,6 +13,8 @@ import { DailySummary } from "@/components/news/DailySummary";
 import { NewsletterWidget } from "@/components/news/NewsletterWidget";
 import { HorizontalAd, SidebarAd } from "@/components/ads/AdBanner";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useArticles } from "@/hooks/useArticles";
 import type { CategoryKey } from "@/lib/categories";
 
