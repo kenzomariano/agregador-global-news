@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { formatDistanceToNow, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -23,7 +23,8 @@ import { ImageLightbox } from "@/components/ui/ImageLightbox";
 import { SidebarAd, HorizontalAd, InArticleAd } from "@/components/ads/AdBanner";
 import { SidebarProducts } from "@/components/products/SidebarProducts";
 import { ArticleFAQ } from "@/components/news/ArticleFAQ";
-import { useArticleBySlug, useRelatedArticles, useIncrementViews } from "@/hooks/useArticles";
+import { useArticleBySlug, useRelatedArticles, useIncrementViews, useArticles } from "@/hooks/useArticles";
+import { ArticleNavigation } from "@/components/news/ArticleNavigation";
 import { supabase } from "@/integrations/supabase/client";
 import { useArticleTMDBMentions } from "@/hooks/useArticleTMDBMentions";
 import { CATEGORIES, type CategoryKey } from "@/lib/categories";
@@ -46,6 +47,35 @@ export default function ArticlePage() {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxSrc, setLightboxSrc] = useState("");
   const [lightboxAlt, setLightboxAlt] = useState("");
+  const [morePages, setMorePages] = useState(0);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+
+  // Load more articles for infinite scroll
+  const { data: moreArticlesData, isLoading: isLoadingMore } = useArticles(
+    undefined,
+    8,
+    morePages > 0 ? 1 : 0
+  );
+
+  // Reset more pages when article changes
+  useEffect(() => {
+    setMorePages(0);
+  }, [article?.id]);
+
+  // Infinite scroll observer
+  useEffect(() => {
+    if (!loadMoreRef.current) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && morePages === 0) {
+          setMorePages(1);
+        }
+      },
+      { threshold: 0.1 }
+    );
+    observer.observe(loadMoreRef.current);
+    return () => observer.disconnect();
+  }, [morePages, article?.id]);
   
   const { data: tmdbMentions } = useArticleTMDBMentions(
     article?.content || null,
@@ -270,6 +300,9 @@ export default function ArticlePage() {
             {/* FAQ Section with JSON-LD */}
             <ArticleFAQ articleId={article.id} articleTitle={article.title} />
 
+            {/* Prev/Next Navigation */}
+            <ArticleNavigation publishedAt={article.published_at} articleId={article.id} />
+
             {/* Related articles */}
             {relatedArticles && relatedArticles.length > 0 && (
               <section className="border-t pt-8 mt-8">
@@ -283,6 +316,29 @@ export default function ArticlePage() {
                   ))}
                 </div>
               </section>
+            )}
+
+            {/* Infinite scroll - more articles */}
+            <div ref={loadMoreRef} />
+            {morePages > 0 && moreArticlesData?.articles && (
+              <section className="border-t pt-8 mt-4">
+                <h2 className="text-xl font-bold font-serif mb-6 flex items-center gap-2">
+                  <span className="w-1 h-6 rounded-full bg-primary" />
+                  Mais Notícias
+                </h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {moreArticlesData.articles
+                    .filter((a) => a.id !== article.id)
+                    .map((a) => (
+                      <ArticleCard key={a.id} article={a} />
+                    ))}
+                </div>
+              </section>
+            )}
+            {isLoadingMore && (
+              <div className="flex justify-center py-8">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+              </div>
             )}
           </div>
 

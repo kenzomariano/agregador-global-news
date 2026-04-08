@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { SEOHead } from "@/components/seo/SEOHead";
 import { HeroBanner } from "@/components/news/HeroBanner";
 import { CategorySection } from "@/components/news/CategorySection";
@@ -12,6 +13,8 @@ import { DailySummary } from "@/components/news/DailySummary";
 import { NewsletterWidget } from "@/components/news/NewsletterWidget";
 import { HorizontalAd, SidebarAd } from "@/components/ads/AdBanner";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useArticles } from "@/hooks/useArticles";
 import type { CategoryKey } from "@/lib/categories";
 
@@ -25,12 +28,19 @@ const MAIN_CATEGORIES: CategoryKey[] = [
 ];
 
 export default function Index() {
+  const ITEMS_PER_PAGE = 12;
+  const [newsPage, setNewsPage] = useState(1);
   const { data, isLoading } = useArticles(undefined, 50);
   const allArticles = data?.articles;
 
-  // First 5 for banner, rest for cards
+  // First 5 for banner, rest for paginated cards
   const bannerArticles = allArticles?.slice(0, 5) || [];
-  const remainingArticles = allArticles?.slice(5) || [];
+  const allRemaining = allArticles?.slice(5) || [];
+  const totalPages = Math.ceil(allRemaining.length / ITEMS_PER_PAGE);
+  const remainingArticles = allRemaining.slice(
+    (newsPage - 1) * ITEMS_PER_PAGE,
+    newsPage * ITEMS_PER_PAGE
+  );
 
   return (
     <>
@@ -77,6 +87,42 @@ export default function Index() {
                     <ArticleCard key={article.id} article={article} />
                   ))}
                 </div>
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-center gap-2 mt-6">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setNewsPage((p) => Math.max(1, p - 1))}
+                      disabled={newsPage === 1}
+                    >
+                      <ChevronLeft className="h-4 w-4 mr-1" />
+                      Anterior
+                    </Button>
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                        <Button
+                          key={p}
+                          variant={p === newsPage ? "default" : "outline"}
+                          size="icon"
+                          className="h-8 w-8 text-xs"
+                          onClick={() => setNewsPage(p)}
+                        >
+                          {p}
+                        </Button>
+                      ))}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setNewsPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={newsPage === totalPages}
+                    >
+                      Próximo
+                      <ChevronRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  </div>
+                )}
               </section>
             )}
 
