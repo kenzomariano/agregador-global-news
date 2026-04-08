@@ -300,6 +300,9 @@ export default function ArticlePage() {
             {/* FAQ Section with JSON-LD */}
             <ArticleFAQ articleId={article.id} articleTitle={article.title} />
 
+            {/* Prev/Next Navigation */}
+            <ArticleNavigation publishedAt={article.published_at} articleId={article.id} />
+
             {/* Related articles */}
             {relatedArticles && relatedArticles.length > 0 && (
               <section className="border-t pt-8 mt-8">
@@ -313,6 +316,29 @@ export default function ArticlePage() {
                   ))}
                 </div>
               </section>
+            )}
+
+            {/* Infinite scroll - more articles */}
+            <div ref={loadMoreRef} />
+            {morePages > 0 && moreArticlesData?.articles && (
+              <section className="border-t pt-8 mt-4">
+                <h2 className="text-xl font-bold font-serif mb-6 flex items-center gap-2">
+                  <span className="w-1 h-6 rounded-full bg-primary" />
+                  Mais Notícias
+                </h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {moreArticlesData.articles
+                    .filter((a) => a.id !== article.id)
+                    .map((a) => (
+                      <ArticleCard key={a.id} article={a} />
+                    ))}
+                </div>
+              </section>
+            )}
+            {isLoadingMore && (
+              <div className="flex justify-center py-8">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+              </div>
             )}
           </div>
 
