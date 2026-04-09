@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { addHeadingIds } from "./ArticleTableOfContents";
 
 interface ArticleContentProps {
   content: string;
@@ -98,7 +99,7 @@ export function ArticleContent({ content, className = "" }: ArticleContentProps)
 
     // Determine content type and render accordingly
     if (isHtml(content)) {
-      const enhanced = enhanceHtmlContent(content);
+      const enhanced = addHeadingIds(enhanceHtmlContent(content));
       return (
         <div
           className={`article-content ${className}`}
