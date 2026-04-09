@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import { CATEGORIES, ENTERTAINMENT_SUBCATEGORIES, type CategoryKey } from "@/lib/categories";
 import { ArticleTagsManager } from "./ArticleTagsManager";
+import { ArticleTMDBEditor } from "./ArticleTMDBEditor";
 import type { Article, ArticleStatus } from "@/hooks/useArticles";
 
 interface EditFormData {
@@ -194,10 +195,14 @@ export function ArticleEditDialog({
           <Separator className="my-4" />
 
           {article && (
-            <ArticleTagsManager
-              articleId={article.id}
-              articleTitle={article.title}
-            />
+            <>
+              <ArticleTagsManager
+                articleId={article.id}
+                articleTitle={article.title}
+              />
+              <Separator className="my-4" />
+              <ArticleTMDBEditor articleId={article.id} />
+            </>
           )}
         </div>
 

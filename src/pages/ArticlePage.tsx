@@ -23,6 +23,7 @@ export default function ArticlePage() {
   const [extraArticles, setExtraArticles] = useState<Article[]>([]);
   const [isLoadingNext, setIsLoadingNext] = useState(false);
   const [noMoreArticles, setNoMoreArticles] = useState(false);
+  const [visibleSlug, setVisibleSlug] = useState(slug);
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const currentSlugRef = useRef(slug);
 
@@ -30,6 +31,7 @@ export default function ArticlePage() {
   useEffect(() => {
     if (slug !== currentSlugRef.current) {
       currentSlugRef.current = slug;
+      setVisibleSlug(slug);
       setExtraArticles([]);
       setNoMoreArticles(false);
       window.scrollTo({ top: 0 });
@@ -103,17 +105,20 @@ export default function ArticlePage() {
     return () => observer.disconnect();
   }, [loadNextArticle]);
 
-  // Update URL when scrolling to a different article's title
+  // Update URL and SEO when scrolling to a different article's title
   const handleTitleVisible = useCallback(
-    (visibleSlug: string) => {
-      if (visibleSlug !== currentSlugRef.current) {
-        // Only use replaceState to avoid polluting history
-        window.history.replaceState(null, "", `/noticia/${visibleSlug}`);
-        currentSlugRef.current = visibleSlug;
+    (slug: string) => {
+      if (slug !== currentSlugRef.current) {
+        window.history.replaceState(null, "", `/noticia/${slug}`);
+        currentSlugRef.current = slug;
+        setVisibleSlug(slug);
       }
     },
     []
   );
+
+  // Determine which article to use for SEO
+  const seoArticle = allArticles.find((a) => a.slug === visibleSlug) || article;
 
   // Related articles for the primary article
   const { data: relatedArticles } = useRelatedArticles(
@@ -153,18 +158,19 @@ export default function ArticlePage() {
   }
 
   const category = CATEGORIES[article.category as CategoryKey];
+  const seoCategory = seoArticle ? CATEGORIES[seoArticle.category as CategoryKey] : category;
 
   return (
     <>
       <SEOHead
-        title={article.title}
-        description={article.excerpt || article.title}
-        image={article.image_url || undefined}
+        title={seoArticle?.title || article.title}
+        description={seoArticle?.excerpt || seoArticle?.title || article.title}
+        image={seoArticle?.image_url || undefined}
         type="article"
-        publishedTime={article.published_at || undefined}
-        author={article.news_sources?.name}
+        publishedTime={seoArticle?.published_at || undefined}
+        author={seoArticle?.news_sources?.name}
         keywords={[
-          category?.label.toLowerCase() || article.category,
+          seoCategory?.label.toLowerCase() || seoArticle?.category || article.category,
           "notícias",
           "brasil",
         ]}
