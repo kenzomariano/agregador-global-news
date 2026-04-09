@@ -114,25 +114,26 @@ export function ArticleContent({ content, className = "" }: ArticleContentProps)
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             components={{
-              h1: ({ children }) => (
-                <h2 className="text-2xl font-bold font-serif mt-8 mb-4 text-foreground">
-                  {children}
-                </h2>
-              ),
-              h2: ({ children }) => (
-                <h2 className="text-2xl font-bold font-serif mt-8 mb-4 text-foreground">
-                  {children}
-                </h2>
-              ),
-              h3: ({ children }) => (
-                <h3 className="text-xl font-semibold font-serif mt-6 mb-3 text-foreground">
-                  {children}
-                </h3>
-              ),
-              h4: ({ children }) => (
-                <h4 className="text-lg font-semibold mt-4 mb-2 text-foreground">
-                  {children}
-                </h4>
+              h1: ({ children }) => {
+                const text = typeof children === "string" ? children : String(children);
+                const id = text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+                return <h2 id={id} className="text-2xl font-bold font-serif mt-8 mb-4 text-foreground">{children}</h2>;
+              },
+              h2: ({ children }) => {
+                const text = typeof children === "string" ? children : String(children);
+                const id = text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+                return <h2 id={id} className="text-2xl font-bold font-serif mt-8 mb-4 text-foreground">{children}</h2>;
+              },
+              h3: ({ children }) => {
+                const text = typeof children === "string" ? children : String(children);
+                const id = text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+                return <h3 id={id} className="text-xl font-semibold font-serif mt-6 mb-3 text-foreground">{children}</h3>;
+              },
+              h4: ({ children }) => {
+                const text = typeof children === "string" ? children : String(children);
+                const id = text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+                return <h4 id={id} className="text-lg font-semibold mt-4 mb-2 text-foreground">{children}</h4>;
+              },
               ),
               p: ({ children }) => (
                 <p className="mb-4 text-foreground/90 leading-relaxed">{children}</p>
