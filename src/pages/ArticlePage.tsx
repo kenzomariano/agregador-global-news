@@ -117,7 +117,6 @@ export default function ArticlePage() {
   );
 
   // Determine which article to use for SEO
-  const allArticles = article ? [article, ...extraArticles] : [];
   const seoArticle = allArticles.find((a) => a.slug === visibleSlug) || article;
 
   // Related articles for the primary article
