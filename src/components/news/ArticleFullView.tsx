@@ -39,11 +39,44 @@ export function ArticleFullView({ article, isFirst = false, onTitleVisible }: Ar
   const [lightboxSrc, setLightboxSrc] = useState("");
   const [lightboxAlt, setLightboxAlt] = useState("");
 
-  const { data: tmdbMentions } = useArticleTMDBMentions(
+  const { data: autoTmdbMentions } = useArticleTMDBMentions(
     article.content || null,
     article.title,
     article.category
   );
+
+  // Load saved/curated TMDB mentions from DB (admin-edited)
+  const { data: savedTmdbMentions } = useQuery({
+    queryKey: ["article-tmdb-mentions", article.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("article_tmdb_mentions")
+        .select("*")
+        .eq("article_id", article.id)
+        .order("created_at");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Use saved mentions if available, otherwise auto-detected
+  const tmdbMentions = savedTmdbMentions && savedTmdbMentions.length > 0
+    ? savedTmdbMentions.map((m: any) => ({
+        id: m.id,
+        tmdb_id: m.tmdb_id,
+        media_type: m.media_type,
+        title: m.title,
+        original_title: m.original_title,
+        poster_path: m.poster_path,
+        backdrop_path: m.backdrop_path,
+        overview: m.overview,
+        release_date: m.release_date,
+        vote_average: m.vote_average ? Number(m.vote_average) : null,
+        popularity: m.popularity ? Number(m.popularity) : null,
+        genre_ids: m.genre_ids,
+        is_trending: false,
+      }))
+    : autoTmdbMentions;
 
   // Increment views
   useEffect(() => {
@@ -171,6 +204,9 @@ export function ArticleFullView({ article, isFirst = false, onTitleVisible }: Ar
         {tmdbMentions && tmdbMentions.length > 0 && (
           <TMDBMentions mentions={tmdbMentions} />
         )}
+
+        {/* Table of Contents */}
+        <ArticleTableOfContents content={article.content} />
 
         <HorizontalAd className="mb-6" />
 
