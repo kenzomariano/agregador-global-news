@@ -216,6 +216,65 @@ export type Database = {
           },
         ]
       }
+      article_tmdb_mentions: {
+        Row: {
+          article_id: string
+          backdrop_path: string | null
+          created_at: string | null
+          genre_ids: number[] | null
+          id: string
+          media_type: string
+          original_title: string | null
+          overview: string | null
+          popularity: number | null
+          poster_path: string | null
+          release_date: string | null
+          title: string
+          tmdb_id: number
+          vote_average: number | null
+        }
+        Insert: {
+          article_id: string
+          backdrop_path?: string | null
+          created_at?: string | null
+          genre_ids?: number[] | null
+          id?: string
+          media_type: string
+          original_title?: string | null
+          overview?: string | null
+          popularity?: number | null
+          poster_path?: string | null
+          release_date?: string | null
+          title: string
+          tmdb_id: number
+          vote_average?: number | null
+        }
+        Update: {
+          article_id?: string
+          backdrop_path?: string | null
+          created_at?: string | null
+          genre_ids?: number[] | null
+          id?: string
+          media_type?: string
+          original_title?: string | null
+          overview?: string | null
+          popularity?: number | null
+          poster_path?: string | null
+          release_date?: string | null
+          title?: string
+          tmdb_id?: number
+          vote_average?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "article_tmdb_mentions_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "articles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       articles: {
         Row: {
           category: Database["public"]["Enums"]["news_category"]
