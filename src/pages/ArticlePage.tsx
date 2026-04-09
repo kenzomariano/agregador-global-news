@@ -157,18 +157,19 @@ export default function ArticlePage() {
   }
 
   const category = CATEGORIES[article.category as CategoryKey];
+  const seoCategory = seoArticle ? CATEGORIES[seoArticle.category as CategoryKey] : category;
 
   return (
     <>
       <SEOHead
-        title={article.title}
-        description={article.excerpt || article.title}
-        image={article.image_url || undefined}
+        title={seoArticle?.title || article.title}
+        description={seoArticle?.excerpt || seoArticle?.title || article.title}
+        image={seoArticle?.image_url || undefined}
         type="article"
-        publishedTime={article.published_at || undefined}
-        author={article.news_sources?.name}
+        publishedTime={seoArticle?.published_at || undefined}
+        author={seoArticle?.news_sources?.name}
         keywords={[
-          category?.label.toLowerCase() || article.category,
+          seoCategory?.label.toLowerCase() || seoArticle?.category || article.category,
           "notícias",
           "brasil",
         ]}
