@@ -17,8 +17,11 @@ import { TMDBMentions } from "@/components/entertainment/TMDBMention";
 import { ImageLightbox } from "@/components/ui/ImageLightbox";
 import { HorizontalAd, InArticleAd } from "@/components/ads/AdBanner";
 import { ArticleFAQ } from "@/components/news/ArticleFAQ";
+import { ArticleTableOfContents } from "@/components/news/ArticleTableOfContents";
 import { useIncrementViews } from "@/hooks/useArticles";
 import { useArticleTMDBMentions } from "@/hooks/useArticleTMDBMentions";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { CATEGORIES, type CategoryKey } from "@/lib/categories";
 import type { Article } from "@/hooks/useArticles";
 
