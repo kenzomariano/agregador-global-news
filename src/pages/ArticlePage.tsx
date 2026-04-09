@@ -23,6 +23,7 @@ export default function ArticlePage() {
   const [extraArticles, setExtraArticles] = useState<Article[]>([]);
   const [isLoadingNext, setIsLoadingNext] = useState(false);
   const [noMoreArticles, setNoMoreArticles] = useState(false);
+  const [visibleSlug, setVisibleSlug] = useState(slug);
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const currentSlugRef = useRef(slug);
 
@@ -103,17 +104,21 @@ export default function ArticlePage() {
     return () => observer.disconnect();
   }, [loadNextArticle]);
 
-  // Update URL when scrolling to a different article's title
+  // Update URL and SEO when scrolling to a different article's title
   const handleTitleVisible = useCallback(
-    (visibleSlug: string) => {
-      if (visibleSlug !== currentSlugRef.current) {
-        // Only use replaceState to avoid polluting history
-        window.history.replaceState(null, "", `/noticia/${visibleSlug}`);
-        currentSlugRef.current = visibleSlug;
+    (slug: string) => {
+      if (slug !== currentSlugRef.current) {
+        window.history.replaceState(null, "", `/noticia/${slug}`);
+        currentSlugRef.current = slug;
+        setVisibleSlug(slug);
       }
     },
     []
   );
+
+  // Determine which article to use for SEO
+  const allArticles = article ? [article, ...extraArticles] : [];
+  const seoArticle = allArticles.find((a) => a.slug === visibleSlug) || article;
 
   // Related articles for the primary article
   const { data: relatedArticles } = useRelatedArticles(
