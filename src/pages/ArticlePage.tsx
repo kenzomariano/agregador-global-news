@@ -31,6 +31,7 @@ export default function ArticlePage() {
   useEffect(() => {
     if (slug !== currentSlugRef.current) {
       currentSlugRef.current = slug;
+      setVisibleSlug(slug);
       setExtraArticles([]);
       setNoMoreArticles(false);
       window.scrollTo({ top: 0 });
