@@ -134,7 +134,6 @@ export function ArticleContent({ content, className = "" }: ArticleContentProps)
                 const id = text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
                 return <h4 id={id} className="text-lg font-semibold mt-4 mb-2 text-foreground">{children}</h4>;
               },
-              ),
               p: ({ children }) => (
                 <p className="mb-4 text-foreground/90 leading-relaxed">{children}</p>
               ),
