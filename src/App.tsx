@@ -21,6 +21,8 @@ import GuidePage from "./pages/GuidePage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AccountPage from "./pages/AccountPage";
 import NotFound from "./pages/NotFound";
+import TitlePage from "./pages/TitlePage";
+import PersonPage from "./pages/PersonPage";
 
 const queryClient = new QueryClient();
 
@@ -44,6 +46,8 @@ const App = () => (
               <Route path="/guias" element={<GuidesListPage />} />
               <Route path="/guia/:slug" element={<GuidePage />} />
               <Route path="/newsletter" element={<NewsletterPage />} />
+              <Route path="/titulo/:mediaType/:tmdbId" element={<TitlePage />} />
+              <Route path="/pessoa/:tmdbId" element={<PersonPage />} />
               <Route path="/conta" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
               <Route
                 path="/admin/*"
