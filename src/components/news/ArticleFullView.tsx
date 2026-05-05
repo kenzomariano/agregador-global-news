@@ -18,6 +18,7 @@ import { ImageLightbox } from "@/components/ui/ImageLightbox";
 import { HorizontalAd, InArticleAd } from "@/components/ads/AdBanner";
 import { ArticleFAQ } from "@/components/news/ArticleFAQ";
 import { ArticleTableOfContents } from "@/components/news/ArticleTableOfContents";
+import { AdminArticleBar } from "@/components/news/AdminArticleBar";
 import { useIncrementViews } from "@/hooks/useArticles";
 import { useArticleTMDBMentions } from "@/hooks/useArticleTMDBMentions";
 import { useQuery } from "@tanstack/react-query";
@@ -120,6 +121,7 @@ export function ArticleFullView({ article, isFirst = false, onTitleVisible }: Ar
   return (
     <>
       <div className={!isFirst ? "border-t-4 border-primary/20 pt-8 mt-8" : ""}>
+        <AdminArticleBar article={article} />
         {/* Article header */}
         <header className="mb-6">
           <Badge variant="outline" className="mb-4">
