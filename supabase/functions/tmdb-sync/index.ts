@@ -238,6 +238,92 @@ serve(async (req) => {
       );
     }
 
+    if (action === "get_title_full") {
+      if (!tmdb_id || !media_type) {
+        return new Response(JSON.stringify({ error: "tmdb_id and media_type required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+      const [detailsRes, creditsRes, providersRes, videosRes] = await Promise.all([
+        fetch(`${TMDB_BASE_URL}/${media_type}/${tmdb_id}?api_key=${TMDB_API_KEY}&language=pt-BR`),
+        fetch(`${TMDB_BASE_URL}/${media_type}/${tmdb_id}/credits?api_key=${TMDB_API_KEY}&language=pt-BR`),
+        fetch(`${TMDB_BASE_URL}/${media_type}/${tmdb_id}/watch/providers?api_key=${TMDB_API_KEY}`),
+        fetch(`${TMDB_BASE_URL}/${media_type}/${tmdb_id}/videos?api_key=${TMDB_API_KEY}&language=pt-BR`),
+      ]);
+      const details = await detailsRes.json();
+      const credits = await creditsRes.json();
+      const providers = await providersRes.json();
+      const videos = await videosRes.json();
+      const result = {
+        tmdb_id: details.id,
+        media_type,
+        title: details.title || details.name,
+        original_title: details.original_title || details.original_name,
+        overview: details.overview,
+        poster_path: details.poster_path,
+        backdrop_path: details.backdrop_path,
+        release_date: details.release_date || details.first_air_date,
+        vote_average: details.vote_average,
+        runtime: details.runtime || (details.episode_run_time?.[0] || null),
+        genres: details.genres || [],
+        tagline: details.tagline || null,
+        watch_providers: providers.results?.BR || null,
+        cast: (credits.cast || []).slice(0, 15).map((c: any) => ({
+          id: c.id, name: c.name, character: c.character, profile_path: c.profile_path,
+        })),
+        crew: (credits.crew || []).filter((c: any) =>
+          ["Director", "Creator", "Writer", "Screenplay"].includes(c.job)
+        ).slice(0, 8).map((c: any) => ({
+          id: c.id, name: c.name, job: c.job, profile_path: c.profile_path,
+        })),
+        trailers: (videos.results || []).filter((v: any) =>
+          v.site === "YouTube" && (v.type === "Trailer" || v.type === "Teaser")
+        ).slice(0, 3),
+      };
+      return new Response(JSON.stringify({ success: true, data: result }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+
+    if (action === "get_person") {
+      if (!tmdb_id) {
+        return new Response(JSON.stringify({ error: "tmdb_id required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+      const [detailsRes, creditsRes] = await Promise.all([
+        fetch(`${TMDB_BASE_URL}/person/${tmdb_id}?api_key=${TMDB_API_KEY}&language=pt-BR`),
+        fetch(`${TMDB_BASE_URL}/person/${tmdb_id}/combined_credits?api_key=${TMDB_API_KEY}&language=pt-BR`),
+      ]);
+      const details = await detailsRes.json();
+      const credits = await creditsRes.json();
+      const result = {
+        tmdb_id: details.id,
+        name: details.name,
+        biography: details.biography,
+        birthday: details.birthday,
+        deathday: details.deathday,
+        place_of_birth: details.place_of_birth,
+        known_for_department: details.known_for_department,
+        profile_path: details.profile_path,
+        homepage: details.homepage,
+        cast: (credits.cast || [])
+          .sort((a: any, b: any) => (b.popularity || 0) - (a.popularity || 0))
+          .slice(0, 24)
+          .map((c: any) => ({
+            tmdb_id: c.id,
+            media_type: c.media_type,
+            title: c.title || c.name,
+            character: c.character,
+            poster_path: c.poster_path,
+            release_date: c.release_date || c.first_air_date,
+          })),
+      };
+      return new Response(JSON.stringify({ success: true, data: result }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+
     if (action === "search") {
       const searchType = type || "multi";
       const searchResponse = await fetch(
