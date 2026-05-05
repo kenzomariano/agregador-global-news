@@ -57,7 +57,7 @@ export default function PersonPage() {
         title={`${data.name} - Biografia, Filmografia e Notícias`}
         description={data.biography?.slice(0, 160) || `Tudo sobre ${data.name}: biografia, filmografia e últimas notícias.`}
         image={profileUrl || undefined}
-        type="profile"
+        type="article"
       />
 
       <article className="container py-6 max-w-5xl">
