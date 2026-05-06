@@ -110,7 +110,7 @@ export function SEOHead({
       canonical.rel = "canonical";
       document.head.appendChild(canonical);
     }
-    canonical.href = currentUrl;
+    canonical.href = canonicalUrl;
 
     // JSON-LD structured data
     const jsonLdId = "seohead-jsonld";
