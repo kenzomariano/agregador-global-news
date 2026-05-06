@@ -228,6 +228,13 @@ export function MovieDetailModal({ item, open, onOpenChange }: MovieDetailModalP
                 )}
               </div>
 
+              {/* Link to full page */}
+              <Button asChild variant="default" size="sm" className="mb-4" onClick={() => onOpenChange(false)}>
+                <Link to={`/titulo/${item.media_type}/${item.tmdb_id}`}>
+                  Ver página completa <ArrowRight className="h-4 w-4 ml-1" />
+                </Link>
+              </Button>
+
               {/* Genres */}
               {details?.genres && details.genres.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-4">
