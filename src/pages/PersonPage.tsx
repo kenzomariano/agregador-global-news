@@ -25,21 +25,6 @@ export default function PersonPage() {
     enabled: !!tmdbId,
   });
 
-  const { data: relatedArticles } = useQuery({
-    queryKey: ["person-articles", tmdbId, data?.name],
-    queryFn: async () => {
-      if (!data?.name) return [];
-      const { data: arts } = await supabase
-        .from("articles")
-        .select("*, news_sources(name, logo_url)")
-        .eq("status", "published")
-        .or(`title.ilike.%${data.name}%,content.ilike.%${data.name}%`)
-        .order("published_at", { ascending: false })
-        .limit(12);
-      return arts || [];
-    },
-    enabled: !!data?.name,
-  });
 
   if (isLoading || !data) {
     return (
