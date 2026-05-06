@@ -130,6 +130,22 @@ Deno.serve(async (req) => {
       }
     }
 
+    // TMDB Title pages (dedupe across mentions and cache)
+    const titleSeen = new Set<string>();
+    const allTitles = [...(tmdbMentions || []), ...(tmdbCache || [])];
+    for (const t of allTitles) {
+      const key = `${t.media_type}-${t.tmdb_id}`;
+      if (titleSeen.has(key)) continue;
+      titleSeen.add(key);
+      xml += `
+  <url>
+    <loc>${baseUrl}/titulo/${t.media_type}/${t.tmdb_id}</loc>
+    <lastmod>${(t as any).updated_at || now.toISOString()}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>`;
+    }
+
     xml += `\n</urlset>`;
 
     return new Response(xml, {
