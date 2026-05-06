@@ -32,6 +32,18 @@ Deno.serve(async (req) => {
       .order("created_at", { ascending: false })
       .limit(500);
 
+    // Fetch TMDB title mentions
+    const { data: tmdbMentions } = await supabase
+      .from("article_tmdb_mentions")
+      .select("tmdb_id, media_type, updated_at:created_at")
+      .limit(2000);
+
+    // Fetch TMDB cache (titles)
+    const { data: tmdbCache } = await supabase
+      .from("tmdb_cache")
+      .select("tmdb_id, media_type, updated_at")
+      .limit(2000);
+
     const categories = [
       "politica", "economia", "tecnologia", "esportes",
       "entretenimento", "saude", "ciencia", "mundo", "brasil", "cultura",
