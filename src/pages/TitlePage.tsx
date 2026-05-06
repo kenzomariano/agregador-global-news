@@ -36,34 +36,15 @@ export default function TitlePage() {
     enabled: !!tmdbId && !!mediaType,
   });
 
-  const { data: relatedArticles } = useQuery({
-    queryKey: ["title-articles", tmdbId, mediaType],
+  const { data: mentionIds = [] } = useQuery({
+    queryKey: ["title-mention-ids", tmdbId, mediaType],
     queryFn: async () => {
       const { data: mentions } = await supabase
         .from("article_tmdb_mentions")
         .select("article_id")
         .eq("tmdb_id", Number(tmdbId))
         .eq("media_type", mediaType);
-      const ids = (mentions || []).map((m) => m.article_id);
-      if (ids.length === 0 && data?.title) {
-        // Fallback: search by title in articles content/title
-        const { data: arts } = await supabase
-          .from("articles")
-          .select("*, news_sources(name, logo_url)")
-          .eq("status", "published")
-          .or(`title.ilike.%${data.title}%,content.ilike.%${data.title}%`)
-          .order("published_at", { ascending: false })
-          .limit(12);
-        return arts || [];
-      }
-      if (ids.length === 0) return [];
-      const { data: arts } = await supabase
-        .from("articles")
-        .select("*, news_sources(name, logo_url)")
-        .in("id", ids)
-        .eq("status", "published")
-        .order("published_at", { ascending: false });
-      return arts || [];
+      return (mentions || []).map((m) => m.article_id);
     },
     enabled: !!tmdbId,
   });
