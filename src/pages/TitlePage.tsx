@@ -90,6 +90,7 @@ export default function TitlePage() {
         description={data.overview?.slice(0, 160) || `Tudo sobre ${data.title}: sinopse, elenco, trailers e últimas notícias.`}
         image={backdropUrl || posterUrl || undefined}
         type="article"
+        canonical={`https://agregador-global-news.lovable.app/titulo/${mediaType}/${tmdbId}`}
       />
 
       <article className="container py-6 max-w-5xl">
