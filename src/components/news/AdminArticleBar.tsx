@@ -1,5 +1,17 @@
 import { useState } from "react";
-import { Pencil, RefreshCw, Languages, Settings2 } from "lucide-react";
+import { Pencil, RefreshCw, Languages, Settings2, CheckCircle2, EyeOff, Trash2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
@@ -17,8 +29,9 @@ export function AdminArticleBar({ article }: AdminArticleBarProps) {
   const { isAdmin } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [editing, setEditing] = useState(false);
-  const [busy, setBusy] = useState<"rescrape" | "translate" | null>(null);
+  const [busy, setBusy] = useState<"rescrape" | "translate" | "publish" | "delete" | null>(null);
 
   const [editForm, setEditForm] = useState({
     title: article.title,
@@ -118,6 +131,45 @@ export function AdminArticleBar({ article }: AdminArticleBarProps) {
     }
   };
 
+  const handleTogglePublish = async () => {
+    setBusy("publish");
+    const newStatus: ArticleStatus = article.status === "published" ? "draft" : "published";
+    try {
+      const { error } = await supabase
+        .from("articles")
+        .update({
+          status: newStatus,
+          published_at: newStatus === "published" && !article.published_at ? new Date().toISOString() : article.published_at,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", article.id);
+      if (error) throw error;
+      toast({ title: newStatus === "published" ? "Artigo publicado!" : "Artigo despublicado" });
+      queryClient.invalidateQueries({ queryKey: ["article"] });
+      queryClient.invalidateQueries({ queryKey: ["articles"] });
+    } catch (e: any) {
+      toast({ title: "Erro", description: e.message, variant: "destructive" });
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const handleDelete = async () => {
+    setBusy("delete");
+    try {
+      const { error } = await supabase.rpc("delete_article_with_tags", { article_uuid: article.id });
+      if (error) throw error;
+      toast({ title: "Artigo apagado" });
+      queryClient.invalidateQueries({ queryKey: ["articles"] });
+      navigate("/");
+    } catch (e: any) {
+      toast({ title: "Erro ao apagar", description: e.message, variant: "destructive" });
+      setBusy(null);
+    }
+  };
+
+  const isPublished = article.status === "published";
+
   return (
     <>
       <div className="mb-4 flex flex-wrap items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
@@ -135,6 +187,39 @@ export function AdminArticleBar({ article }: AdminArticleBarProps) {
           <Languages className={`h-3.5 w-3.5 mr-1.5 ${busy === "translate" ? "animate-pulse" : ""}`} />
           Traduzir
         </Button>
+        <Button
+          size="sm"
+          variant={isPublished ? "outline" : "default"}
+          onClick={handleTogglePublish}
+          disabled={busy !== null}
+        >
+          {isPublished ? (
+            <><EyeOff className="h-3.5 w-3.5 mr-1.5" /> Despublicar</>
+          ) : (
+            <><CheckCircle2 className="h-3.5 w-3.5 mr-1.5" /> Publicar</>
+          )}
+        </Button>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button size="sm" variant="destructive" disabled={busy !== null}>
+              <Trash2 className="h-3.5 w-3.5 mr-1.5" /> Apagar
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Apagar este artigo?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta ação é permanente. O artigo "{article.title}" será removido junto com tags associadas.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Apagar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
 
       <ArticleEditDialog

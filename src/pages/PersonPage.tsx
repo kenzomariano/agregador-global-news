@@ -5,6 +5,7 @@ import { StructuredBreadcrumb } from "@/components/seo/StructuredBreadcrumb";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArticleCard } from "@/components/news/ArticleCard";
+import { RelatedNewsSection } from "@/components/news/RelatedNewsSection";
 import { supabase } from "@/integrations/supabase/client";
 import { getTMDBImageUrl } from "@/hooks/useTMDB";
 import { useQuery } from "@tanstack/react-query";
@@ -24,21 +25,6 @@ export default function PersonPage() {
     enabled: !!tmdbId,
   });
 
-  const { data: relatedArticles } = useQuery({
-    queryKey: ["person-articles", tmdbId, data?.name],
-    queryFn: async () => {
-      if (!data?.name) return [];
-      const { data: arts } = await supabase
-        .from("articles")
-        .select("*, news_sources(name, logo_url)")
-        .eq("status", "published")
-        .or(`title.ilike.%${data.name}%,content.ilike.%${data.name}%`)
-        .order("published_at", { ascending: false })
-        .limit(12);
-      return arts || [];
-    },
-    enabled: !!data?.name,
-  });
 
   if (isLoading || !data) {
     return (
@@ -58,6 +44,7 @@ export default function PersonPage() {
         description={data.biography?.slice(0, 160) || `Tudo sobre ${data.name}: biografia, filmografia e últimas notícias.`}
         image={profileUrl || undefined}
         type="article"
+        canonical={`https://agregador-global-news.lovable.app/pessoa/${tmdbId}`}
       />
 
       <article className="container py-6 max-w-5xl">
@@ -132,21 +119,10 @@ export default function PersonPage() {
           </section>
         )}
 
-        {/* Notícias */}
-        <section className="mb-8">
-          <h2 className="text-2xl font-bold font-serif mb-4">Notícias sobre {data.name}</h2>
-          {relatedArticles && relatedArticles.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {relatedArticles.map((a: any) => (
-                <ArticleCard key={a.id} article={a} variant="compact" />
-              ))}
-            </div>
-          ) : (
-            <Card><CardContent className="py-8 text-center text-muted-foreground">
-              Nenhuma notícia encontrada sobre esta pessoa ainda.
-            </CardContent></Card>
-          )}
-        </section>
+        <RelatedNewsSection
+          heading={`Notícias sobre ${data.name}`}
+          searchTerm={data.name}
+        />
       </article>
     </>
   );

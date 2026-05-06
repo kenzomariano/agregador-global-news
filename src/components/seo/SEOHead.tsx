@@ -5,6 +5,7 @@ interface SEOHeadProps {
   description: string;
   image?: string;
   url?: string;
+  canonical?: string;
   type?: "website" | "article";
   publishedTime?: string;
   author?: string;
@@ -16,6 +17,7 @@ export function SEOHead({
   description,
   image,
   url,
+  canonical,
   type = "website",
   publishedTime,
   author,
@@ -23,6 +25,7 @@ export function SEOHead({
 }: SEOHeadProps) {
   const fullTitle = `${title} | DESIGNE`;
   const currentUrl = url || window.location.href;
+  const canonicalUrl = canonical || currentUrl.split("?")[0].split("#")[0];
 
   useEffect(() => {
     // Update document title
@@ -107,7 +110,7 @@ export function SEOHead({
       canonical.rel = "canonical";
       document.head.appendChild(canonical);
     }
-    canonical.href = currentUrl;
+    canonical.href = canonicalUrl;
 
     // JSON-LD structured data
     const jsonLdId = "seohead-jsonld";
@@ -168,7 +171,7 @@ export function SEOHead({
         el.parentNode.removeChild(el);
       }
     };
-  }, [title, description, image, currentUrl, type, publishedTime, author, keywords, fullTitle]);
+  }, [title, description, image, currentUrl, canonicalUrl, type, publishedTime, author, keywords, fullTitle]);
 
   return null;
 }

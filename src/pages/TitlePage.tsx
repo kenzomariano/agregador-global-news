@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArticleCard } from "@/components/news/ArticleCard";
+import { RelatedNewsSection } from "@/components/news/RelatedNewsSection";
 import { supabase } from "@/integrations/supabase/client";
 import { getTMDBImageUrl, getYouTubeEmbedUrl } from "@/hooks/useTMDB";
 import { useQuery } from "@tanstack/react-query";
@@ -35,34 +36,15 @@ export default function TitlePage() {
     enabled: !!tmdbId && !!mediaType,
   });
 
-  const { data: relatedArticles } = useQuery({
-    queryKey: ["title-articles", tmdbId, mediaType],
+  const { data: mentionIds = [] } = useQuery({
+    queryKey: ["title-mention-ids", tmdbId, mediaType],
     queryFn: async () => {
       const { data: mentions } = await supabase
         .from("article_tmdb_mentions")
         .select("article_id")
         .eq("tmdb_id", Number(tmdbId))
         .eq("media_type", mediaType);
-      const ids = (mentions || []).map((m) => m.article_id);
-      if (ids.length === 0 && data?.title) {
-        // Fallback: search by title in articles content/title
-        const { data: arts } = await supabase
-          .from("articles")
-          .select("*, news_sources(name, logo_url)")
-          .eq("status", "published")
-          .or(`title.ilike.%${data.title}%,content.ilike.%${data.title}%`)
-          .order("published_at", { ascending: false })
-          .limit(12);
-        return arts || [];
-      }
-      if (ids.length === 0) return [];
-      const { data: arts } = await supabase
-        .from("articles")
-        .select("*, news_sources(name, logo_url)")
-        .in("id", ids)
-        .eq("status", "published")
-        .order("published_at", { ascending: false });
-      return arts || [];
+      return (mentions || []).map((m) => m.article_id);
     },
     enabled: !!tmdbId,
   });
@@ -90,6 +72,7 @@ export default function TitlePage() {
         description={data.overview?.slice(0, 160) || `Tudo sobre ${data.title}: sinopse, elenco, trailers e últimas notícias.`}
         image={backdropUrl || posterUrl || undefined}
         type="article"
+        canonical={`https://agregador-global-news.lovable.app/titulo/${mediaType}/${tmdbId}`}
       />
 
       <article className="container py-6 max-w-5xl">
@@ -257,21 +240,11 @@ export default function TitlePage() {
           </section>
         )}
 
-        {/* Notícias relacionadas */}
-        <section className="mb-8">
-          <h2 className="text-2xl font-bold font-serif mb-4">Notícias sobre {data.title}</h2>
-          {relatedArticles && relatedArticles.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {relatedArticles.map((a: any) => (
-                <ArticleCard key={a.id} article={a} variant="compact" />
-              ))}
-            </div>
-          ) : (
-            <Card><CardContent className="py-8 text-center text-muted-foreground">
-              Nenhuma notícia encontrada sobre este título ainda.
-            </CardContent></Card>
-          )}
-        </section>
+        <RelatedNewsSection
+          heading={`Notícias sobre ${data.title}`}
+          articleIds={mentionIds.length > 0 ? mentionIds : undefined}
+          searchTerm={mentionIds.length === 0 ? data.title : undefined}
+        />
       </article>
     </>
   );
