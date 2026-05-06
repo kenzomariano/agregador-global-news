@@ -171,7 +171,7 @@ export function SEOHead({
         el.parentNode.removeChild(el);
       }
     };
-  }, [title, description, image, currentUrl, type, publishedTime, author, keywords, fullTitle]);
+  }, [title, description, image, currentUrl, canonicalUrl, type, publishedTime, author, keywords, fullTitle]);
 
   return null;
 }
