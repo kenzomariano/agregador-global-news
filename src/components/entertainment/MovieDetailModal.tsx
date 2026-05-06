@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Film, Tv, Star, Calendar, Clock, ExternalLink, Play, X } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Film, Tv, Star, Calendar, Clock, ExternalLink, Play, X, ArrowRight } from "lucide-react";
 import {
   Dialog,
   DialogContent,
