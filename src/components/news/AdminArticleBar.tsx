@@ -29,8 +29,9 @@ export function AdminArticleBar({ article }: AdminArticleBarProps) {
   const { isAdmin } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [editing, setEditing] = useState(false);
-  const [busy, setBusy] = useState<"rescrape" | "translate" | null>(null);
+  const [busy, setBusy] = useState<"rescrape" | "translate" | "publish" | "delete" | null>(null);
 
   const [editForm, setEditForm] = useState({
     title: article.title,
