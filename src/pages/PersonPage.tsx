@@ -58,6 +58,7 @@ export default function PersonPage() {
         description={data.biography?.slice(0, 160) || `Tudo sobre ${data.name}: biografia, filmografia e últimas notícias.`}
         image={profileUrl || undefined}
         type="article"
+        canonical={`https://agregador-global-news.lovable.app/pessoa/${tmdbId}`}
       />
 
       <article className="container py-6 max-w-5xl">
