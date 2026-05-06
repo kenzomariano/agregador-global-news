@@ -5,6 +5,7 @@ import { StructuredBreadcrumb } from "@/components/seo/StructuredBreadcrumb";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArticleCard } from "@/components/news/ArticleCard";
+import { RelatedNewsSection } from "@/components/news/RelatedNewsSection";
 import { supabase } from "@/integrations/supabase/client";
 import { getTMDBImageUrl } from "@/hooks/useTMDB";
 import { useQuery } from "@tanstack/react-query";
