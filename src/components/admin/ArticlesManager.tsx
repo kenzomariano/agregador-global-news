@@ -11,6 +11,7 @@ import { ArticleFilters } from "./ArticleFilters";
 import { ArticleBulkActions } from "./ArticleBulkActions";
 import { ArticleListItem } from "./ArticleListItem";
 import { ArticleEditDialog } from "./ArticleEditDialog";
+import { CreateArticleDialog } from "./CreateArticleDialog";
 import type { CategoryKey } from "@/lib/categories";
 
 export function ArticlesManager() {
@@ -378,6 +379,10 @@ export function ArticlesManager() {
 
   return (
     <div className="space-y-4">
+      <div className="flex justify-end">
+        <CreateArticleDialog />
+      </div>
+
       <ArticleFilters
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}

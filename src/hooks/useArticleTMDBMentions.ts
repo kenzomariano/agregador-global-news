@@ -104,28 +104,9 @@ function isCommonPhrase(text: string): boolean {
   return commonPhrases.some(phrase => lower === phrase || lower.startsWith(phrase + " ")) || text.length < 3;
 }
 
-// Check if article content is likely about entertainment
-function isEntertainmentContent(text: string, category: string): boolean {
-  if (category === "entretenimento" || category === "cultura") {
-    return true;
-  }
-  
-  const entertainmentKeywords = [
-    "filme", "filmes", "longa", "longa-metragem",
-    "série", "séries", "seriado", "temporada",
-    "cinema", "estreia", "estreou", "lançamento",
-    "ator", "atriz", "diretor", "diretora", "roteirista",
-    "oscar", "globo de ouro", "emmy", "golden globe",
-    "netflix", "prime video", "disney+", "hbo", "max", "streaming",
-    "marvel", "dc", "star wars", "pixar", "dreamworks",
-    "hollywood", "blockbuster", "bilheteria", "trailer",
-    "piratas do caribe", "capitão jack", "johnny depp",
-    "personagem", "protagonista", "elenco", "produção cinematográfica"
-  ];
-  
-  const lowerText = text.toLowerCase();
-  const keywordCount = entertainmentKeywords.filter(kw => lowerText.includes(kw)).length;
-  return keywordCount >= 2;
+// Auto-detection of TMDB titles is restricted to the "entretenimento" category only
+function isEntertainmentContent(_text: string, category: string): boolean {
+  return category === "entretenimento";
 }
 
 export function useArticleTMDBMentions(
