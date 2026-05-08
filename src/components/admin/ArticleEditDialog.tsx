@@ -21,6 +21,7 @@ import {
 import { CATEGORIES, ENTERTAINMENT_SUBCATEGORIES, type CategoryKey } from "@/lib/categories";
 import { ArticleTagsManager } from "./ArticleTagsManager";
 import { ArticleTMDBEditor } from "./ArticleTMDBEditor";
+import { RichContentEditor } from "./RichContentEditor";
 import type { Article, ArticleStatus } from "@/hooks/useArticles";
 
 interface EditFormData {
