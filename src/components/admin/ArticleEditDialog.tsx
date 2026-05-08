@@ -84,12 +84,9 @@ export function ArticleEditDialog({
 
           <div className="space-y-2">
             <Label htmlFor="edit-content">Conteúdo</Label>
-            <Textarea
-              id="edit-content"
-              rows={10}
+            <RichContentEditor
               value={editForm.content}
-              onChange={(e) => onFormChange({ ...editForm, content: e.target.value })}
-              className="font-mono text-sm"
+              onChange={(v) => onFormChange({ ...editForm, content: v })}
             />
           </div>
 
