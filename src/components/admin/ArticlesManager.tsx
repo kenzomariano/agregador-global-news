@@ -379,6 +379,10 @@ export function ArticlesManager() {
 
   return (
     <div className="space-y-4">
+      <div className="flex justify-end">
+        <CreateArticleDialog />
+      </div>
+
       <ArticleFilters
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}
