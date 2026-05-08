@@ -11,6 +11,7 @@ import { ArticleFilters } from "./ArticleFilters";
 import { ArticleBulkActions } from "./ArticleBulkActions";
 import { ArticleListItem } from "./ArticleListItem";
 import { ArticleEditDialog } from "./ArticleEditDialog";
+import { CreateArticleDialog } from "./CreateArticleDialog";
 import type { CategoryKey } from "@/lib/categories";
 
 export function ArticlesManager() {
