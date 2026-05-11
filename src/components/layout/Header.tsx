@@ -14,7 +14,7 @@ import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
-import { useCategoriesWithArticles, useHasProducts } from "@/hooks/useMenuVisibility";
+import { useCategoriesWithArticles, useHasProducts, useHasGuides, useMenuConfig } from "@/hooks/useMenuVisibility";
 
 const PRIMARY_CATEGORIES = ["politica", "economia", "tecnologia", "esportes", "entretenimento"];
 const SECONDARY_CATEGORIES = ["saude", "ciencia", "mundo", "brasil", "cultura"];
@@ -41,6 +41,8 @@ export function Header() {
   const navigate = useNavigate();
   const { data: categoriesWithArticles } = useCategoriesWithArticles();
   const { data: hasProducts } = useHasProducts();
+  const { data: hasGuides } = useHasGuides();
+  const { data: menuConfig } = useMenuConfig();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,12 +62,17 @@ export function Header() {
     }
   };
 
+  const hidden = new Set(menuConfig?.hiddenCategories || []);
   const visiblePrimary = PRIMARY_CATEGORIES.filter(
-    (key) => !categoriesWithArticles || categoriesWithArticles.has(key as any)
+    (key) => !hidden.has(key) && (!categoriesWithArticles || categoriesWithArticles.has(key as any))
   );
   const visibleSecondary = SECONDARY_CATEGORIES.filter(
-    (key) => !categoriesWithArticles || categoriesWithArticles.has(key as any)
+    (key) => !hidden.has(key) && (!categoriesWithArticles || categoriesWithArticles.has(key as any))
   );
+  const showProducts = (menuConfig?.showProducts ?? true) && hasProducts !== false;
+  const showGuides = (menuConfig?.showGuides ?? true) && hasGuides !== false;
+  const showTrending = menuConfig?.showTrending ?? true;
+  const customLinks = menuConfig?.customLinks || [];
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
