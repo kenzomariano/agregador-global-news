@@ -14,7 +14,7 @@ import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
-import { useCategoriesWithArticles, useHasProducts } from "@/hooks/useMenuVisibility";
+import { useCategoriesWithArticles, useHasProducts, useHasGuides, useMenuConfig } from "@/hooks/useMenuVisibility";
 
 const PRIMARY_CATEGORIES = ["politica", "economia", "tecnologia", "esportes", "entretenimento"];
 const SECONDARY_CATEGORIES = ["saude", "ciencia", "mundo", "brasil", "cultura"];
@@ -41,6 +41,8 @@ export function Header() {
   const navigate = useNavigate();
   const { data: categoriesWithArticles } = useCategoriesWithArticles();
   const { data: hasProducts } = useHasProducts();
+  const { data: hasGuides } = useHasGuides();
+  const { data: menuConfig } = useMenuConfig();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,12 +62,17 @@ export function Header() {
     }
   };
 
+  const hidden = new Set(menuConfig?.hiddenCategories || []);
   const visiblePrimary = PRIMARY_CATEGORIES.filter(
-    (key) => !categoriesWithArticles || categoriesWithArticles.has(key as any)
+    (key) => !hidden.has(key) && (!categoriesWithArticles || categoriesWithArticles.has(key as any))
   );
   const visibleSecondary = SECONDARY_CATEGORIES.filter(
-    (key) => !categoriesWithArticles || categoriesWithArticles.has(key as any)
+    (key) => !hidden.has(key) && (!categoriesWithArticles || categoriesWithArticles.has(key as any))
   );
+  const showProducts = (menuConfig?.showProducts ?? true) && hasProducts !== false;
+  const showGuides = (menuConfig?.showGuides ?? true) && hasGuides !== false;
+  const showTrending = menuConfig?.showTrending ?? true;
+  const customLinks = menuConfig?.customLinks || [];
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
@@ -153,14 +160,16 @@ export function Header() {
                 Início
               </Link>
 
-              <Link
-                to="/mais-lidas"
-                onClick={() => setSheetOpen(false)}
-                className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-primary hover:bg-primary/10 transition-colors"
-              >
-                <Flame className="h-4 w-4" />
-                Mais Lidas
-              </Link>
+              {showTrending && (
+                <Link
+                  to="/mais-lidas"
+                  onClick={() => setSheetOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-primary hover:bg-primary/10 transition-colors"
+                >
+                  <Flame className="h-4 w-4" />
+                  Mais Lidas
+                </Link>
+              )}
 
               {/* Primary categories */}
               {visiblePrimary.length > 0 && (
@@ -209,26 +218,50 @@ export function Header() {
               )}
 
               {/* Extra links */}
-              <div className="mt-2 border-t pt-2">
-                {hasProducts !== false && (
-                  <Link
-                    to="/produtos"
-                    onClick={() => setSheetOpen(false)}
-                    className="flex items-center gap-3 px-4 py-3 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                  >
-                    <span className="text-base leading-none">🛒</span>
-                    Produtos
-                  </Link>
-                )}
-                <Link
-                  to="/guias"
-                  onClick={() => setSheetOpen(false)}
-                  className="flex items-center gap-3 px-4 py-3 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                >
-                  <span className="text-base leading-none">📖</span>
-                  Guias
-                </Link>
-              </div>
+              {(showProducts || showGuides || customLinks.length > 0) && (
+                <div className="mt-2 border-t pt-2">
+                  {showProducts && (
+                    <Link
+                      to="/produtos"
+                      onClick={() => setSheetOpen(false)}
+                      className="flex items-center gap-3 px-4 py-3 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                    >
+                      <span className="text-base leading-none">🛒</span>
+                      Produtos
+                    </Link>
+                  )}
+                  {showGuides && (
+                    <Link
+                      to="/guias"
+                      onClick={() => setSheetOpen(false)}
+                      className="flex items-center gap-3 px-4 py-3 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                    >
+                      <span className="text-base leading-none">📖</span>
+                      Guias
+                    </Link>
+                  )}
+                  {customLinks.map((link, i) => {
+                    const external = /^https?:\/\//i.test(link.url);
+                    const props = external
+                      ? { href: link.url, target: "_blank", rel: "noopener noreferrer" }
+                      : {};
+                    const Comp: any = external ? "a" : Link;
+                    const linkProp = external ? {} : { to: link.url };
+                    return (
+                      <Comp
+                        key={i}
+                        {...props}
+                        {...linkProp}
+                        onClick={() => setSheetOpen(false)}
+                        className="flex items-center gap-3 px-4 py-3 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                      >
+                        <span className="text-base leading-none">{link.emoji || "🔗"}</span>
+                        {link.label}
+                      </Comp>
+                    );
+                  })}
+                </div>
+              )}
 
               {/* Admin */}
               {isAdmin && (
@@ -357,26 +390,54 @@ export function Header() {
                 </DropdownMenu>
               </li>
             )}
-            <li>
-              <Link
-                to="/mais-lidas"
-                className="px-3 py-1.5 text-sm font-medium rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-              >
-                🔥 Mais Lidas
-              </Link>
-            </li>
-            {hasProducts !== false && (
+            {showTrending && (
+              <li>
+                <Link
+                  to="/mais-lidas"
+                  className="px-3 py-1.5 text-sm font-medium rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                >
+                  🔥 Mais Lidas
+                </Link>
+              </li>
+            )}
+            {showProducts && (
               <li>
                 <Link to="/produtos" className="px-3 py-1.5 text-sm font-medium rounded-md hover:bg-accent transition-colors">
                   🛒 Produtos
                 </Link>
               </li>
             )}
-            <li>
-              <Link to="/guias" className="px-3 py-1.5 text-sm font-medium rounded-md hover:bg-accent transition-colors">
-                📖 Guias
-              </Link>
-            </li>
+            {showGuides && (
+              <li>
+                <Link to="/guias" className="px-3 py-1.5 text-sm font-medium rounded-md hover:bg-accent transition-colors">
+                  📖 Guias
+                </Link>
+              </li>
+            )}
+            {customLinks.map((link, i) => {
+              const external = /^https?:\/\//i.test(link.url);
+              return (
+                <li key={i}>
+                  {external ? (
+                    <a
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1.5 text-sm font-medium rounded-md hover:bg-accent transition-colors whitespace-nowrap"
+                    >
+                      {link.emoji ? `${link.emoji} ` : ""}{link.label}
+                    </a>
+                  ) : (
+                    <Link
+                      to={link.url}
+                      className="px-3 py-1.5 text-sm font-medium rounded-md hover:bg-accent transition-colors whitespace-nowrap"
+                    >
+                      {link.emoji ? `${link.emoji} ` : ""}{link.label}
+                    </Link>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </div>
       </nav>

@@ -309,12 +309,21 @@ export function ArticlesManager() {
 
   const handleStatusChange = async (id: string, status: ArticleStatus) => {
     try {
-      const { error } = await supabase
-        .from("articles")
-        .update({ status, updated_at: new Date().toISOString() })
-        .eq("id", id);
+      const target = articles?.find((a) => a.id === id);
+      const updates: Record<string, any> = { status, updated_at: new Date().toISOString() };
+      if (status === "published" && target && !target.published_at) {
+        updates.published_at = new Date().toISOString();
+      }
+      const { error } = await supabase.from("articles").update(updates).eq("id", id);
       if (error) throw error;
-      toast({ title: status === "published" ? "Artigo publicado!" : "Status atualizado" });
+      toast({
+        title:
+          status === "published"
+            ? "Artigo publicado!"
+            : status === "draft"
+            ? "Artigo voltou para rascunho"
+            : "Artigo arquivado",
+      });
       queryClient.invalidateQueries({ queryKey: ["articles"] });
     } catch (error: any) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
@@ -325,10 +334,9 @@ export function ArticlesManager() {
     if (selectedIds.size === 0) return;
     try {
       const ids = Array.from(selectedIds);
-      const { error } = await supabase
-        .from("articles")
-        .update({ status, updated_at: new Date().toISOString() })
-        .in("id", ids);
+      const updates: Record<string, any> = { status, updated_at: new Date().toISOString() };
+      if (status === "published") updates.published_at = new Date().toISOString();
+      const { error } = await supabase.from("articles").update(updates).in("id", ids);
       if (error) throw error;
       toast({ title: "Status atualizado", description: `${ids.length} artigo(s) atualizado(s).` });
       setSelectedIds(new Set());

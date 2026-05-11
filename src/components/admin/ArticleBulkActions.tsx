@@ -1,4 +1,4 @@
-import { Trash2, RefreshCw, Star, StarOff, X, CheckCircle, Archive } from "lucide-react";
+import { Trash2, RefreshCw, Star, StarOff, X, CheckCircle, Archive, FileEdit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -49,7 +49,12 @@ export function ArticleBulkActions({
       <div className="flex gap-2 flex-wrap">
         <Button variant="outline" size="sm" onClick={() => onBulkStatusChange("published")} className="text-green-600">
           <CheckCircle className="h-4 w-4 mr-1" />
-          Aprovar
+          Publicar
+        </Button>
+
+        <Button variant="outline" size="sm" onClick={() => onBulkStatusChange("draft")} className="text-amber-600">
+          <FileEdit className="h-4 w-4 mr-1" />
+          Rascunho
         </Button>
 
         <Button variant="outline" size="sm" onClick={() => onBulkStatusChange("archived")}>

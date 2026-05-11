@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Trash2, Edit, Eye, EyeOff, BookOpen } from "lucide-react";
+import { Plus, Trash2, Edit, Eye, EyeOff, BookOpen, Globe, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
@@ -16,6 +17,8 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { useGuides, useCreateGuide, useUpdateGuide, useDeleteGuide, type Guide, type GuideStep } from "@/hooks/useGuides";
 
 function generateSlug(title: string): string {
@@ -43,6 +46,7 @@ const EMPTY_FORM = {
 
 export function GuidesManager() {
   const { toast } = useToast();
+  const qc = useQueryClient();
   const { data: guides, isLoading } = useGuides(false);
   const createGuide = useCreateGuide();
   const updateGuide = useUpdateGuide();
@@ -51,11 +55,46 @@ export function GuidesManager() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingGuide, setEditingGuide] = useState<Guide | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [scrapeUrl, setScrapeUrl] = useState("");
+  const [scraping, setScraping] = useState(false);
+  const [activeTab, setActiveTab] = useState<"manual" | "import">("manual");
 
   const openCreate = () => {
     setEditingGuide(null);
     setForm(EMPTY_FORM);
+    setActiveTab("manual");
+    setScrapeUrl("");
     setDialogOpen(true);
+  };
+
+  const handleScrape = async () => {
+    if (!scrapeUrl.trim()) return;
+    setScraping(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("scrape-guide", {
+        body: { url: scrapeUrl.trim() },
+      });
+      if (error) throw error;
+      toast({
+        title: "Guia importado!",
+        description: "Salvo como rascunho. Revise e publique quando estiver pronto.",
+      });
+      qc.invalidateQueries({ queryKey: ["guides"] });
+      setDialogOpen(false);
+      setScrapeUrl("");
+      // Open editing on the new guide
+      if (data?.guide) {
+        openEdit(data.guide as Guide);
+      }
+    } catch (e: any) {
+      toast({
+        title: "Erro ao importar",
+        description: e.message || "Não foi possível extrair o guia.",
+        variant: "destructive",
+      });
+    } finally {
+      setScraping(false);
+    }
   };
 
   const openEdit = (guide: Guide) => {
@@ -238,94 +277,160 @@ export function GuidesManager() {
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingGuide ? "Editar Guia" : "Novo Guia"}</DialogTitle>
-            <DialogDescription>Preencha as informações do guia editorial.</DialogDescription>
+            <DialogDescription>
+              {editingGuide ? "Atualize as informações do guia." : "Crie manualmente ou importe de uma URL."}
+            </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2 col-span-2">
-                <Label>Título</Label>
-                <Input value={form.title} onChange={(e) => handleTitleChange(e.target.value)} required />
-              </div>
-              <div className="space-y-2">
-                <Label>Slug</Label>
-                <Input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} required />
-              </div>
-              <div className="space-y-2">
-                <Label>Categoria</Label>
-                <Input value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Resumo</Label>
-              <Textarea value={form.excerpt} onChange={(e) => setForm({ ...form, excerpt: e.target.value })} rows={2} />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>URL da Imagem</Label>
-                <Input value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <Label>Autor</Label>
-                <Input value={form.author_name} onChange={(e) => setForm({ ...form, author_name: e.target.value })} />
-              </div>
-            </div>
-
-            {/* Steps */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label>Passos (JSON-LD HowTo)</Label>
-                <Button type="button" variant="outline" size="sm" onClick={addStep}>
-                  <Plus className="h-3 w-3 mr-1" /> Passo
-                </Button>
-              </div>
-              {form.steps.map((step, i) => (
-                <div key={i} className="flex gap-2 items-start border rounded-md p-3">
-                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary text-sm font-bold flex-shrink-0 mt-1">
-                    {i + 1}
-                  </span>
-                  <div className="flex-1 space-y-2">
-                    <Input
-                      placeholder="Título do passo"
-                      value={step.title}
-                      onChange={(e) => updateStep(i, "title", e.target.value)}
-                    />
-                    <Textarea
-                      placeholder="Descrição do passo"
-                      value={step.description}
-                      onChange={(e) => updateStep(i, "description", e.target.value)}
-                      rows={2}
-                    />
-                  </div>
-                  <Button type="button" variant="ghost" size="icon" onClick={() => removeStep(i)} className="text-destructive flex-shrink-0">
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+          {!editingGuide && (
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="manual">✍️ Manual</TabsTrigger>
+                <TabsTrigger value="import"><Globe className="h-3 w-3 mr-1" /> Importar URL</TabsTrigger>
+              </TabsList>
+              <TabsContent value="import" className="space-y-3 pt-3">
+                <div className="space-y-2">
+                  <Label>URL do tutorial / artigo</Label>
+                  <Input
+                    type="url"
+                    placeholder="https://exemplo.com/como-fazer-..."
+                    value={scrapeUrl}
+                    onChange={(e) => setScrapeUrl(e.target.value)}
+                    disabled={scraping}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    A IA vai extrair título, passos e conteúdo. O guia será salvo como rascunho para revisão.
+                  </p>
                 </div>
-              ))}
-            </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={scraping}>
+                    Cancelar
+                  </Button>
+                  <Button onClick={handleScrape} disabled={scraping || !scrapeUrl.trim()}>
+                    {scraping ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Globe className="h-4 w-4 mr-2" />}
+                    Importar
+                  </Button>
+                </DialogFooter>
+              </TabsContent>
+              <TabsContent value="manual" className="pt-3">
+                <ManualGuideForm
+                  form={form}
+                  setForm={setForm}
+                  editingGuide={editingGuide}
+                  handleTitleChange={handleTitleChange}
+                  addStep={addStep}
+                  updateStep={updateStep}
+                  removeStep={removeStep}
+                  handleSubmit={handleSubmit}
+                  onCancel={() => setDialogOpen(false)}
+                />
+              </TabsContent>
+            </Tabs>
+          )}
 
-            <div className="space-y-2">
-              <Label>Conteúdo (Markdown)</Label>
-              <Textarea value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} rows={8} />
-            </div>
+          {editingGuide && (
+            <ManualGuideForm
+              form={form}
+              setForm={setForm}
+              editingGuide={editingGuide}
+              handleTitleChange={handleTitleChange}
+              addStep={addStep}
+              updateStep={updateStep}
+              removeStep={removeStep}
+              handleSubmit={handleSubmit}
+              onCancel={() => setDialogOpen(false)}
+            />
+          )}
 
-            <div className="flex items-center justify-between">
-              <div>
-                <Label>Publicar</Label>
-                <p className="text-xs text-muted-foreground">Torne visível para todos</p>
-              </div>
-              <Switch checked={form.is_published} onCheckedChange={(v) => setForm({ ...form, is_published: v })} />
-            </div>
-
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-              <Button type="submit">{editingGuide ? "Salvar" : "Criar"}</Button>
-            </DialogFooter>
-          </form>
         </DialogContent>
       </Dialog>
     </div>
   );
 }
+
+interface ManualGuideFormProps {
+  form: typeof EMPTY_FORM;
+  setForm: React.Dispatch<React.SetStateAction<typeof EMPTY_FORM>>;
+  editingGuide: Guide | null;
+  handleTitleChange: (t: string) => void;
+  addStep: () => void;
+  updateStep: (i: number, field: keyof GuideStep, v: string) => void;
+  removeStep: (i: number) => void;
+  handleSubmit: (e: React.FormEvent) => void;
+  onCancel: () => void;
+}
+
+function ManualGuideForm({
+  form, setForm, editingGuide, handleTitleChange, addStep, updateStep, removeStep, handleSubmit, onCancel,
+}: ManualGuideFormProps) {
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2 col-span-2">
+          <Label>Título</Label>
+          <Input value={form.title} onChange={(e) => handleTitleChange(e.target.value)} required />
+        </div>
+        <div className="space-y-2">
+          <Label>Slug</Label>
+          <Input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} required />
+        </div>
+        <div className="space-y-2">
+          <Label>Categoria</Label>
+          <Input value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} />
+        </div>
+      </div>
+      <div className="space-y-2">
+        <Label>Resumo</Label>
+        <Textarea value={form.excerpt} onChange={(e) => setForm({ ...form, excerpt: e.target.value })} rows={2} />
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>URL da Imagem</Label>
+          <Input value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} />
+        </div>
+        <div className="space-y-2">
+          <Label>Autor</Label>
+          <Input value={form.author_name} onChange={(e) => setForm({ ...form, author_name: e.target.value })} />
+        </div>
+      </div>
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <Label>Passos (JSON-LD HowTo)</Label>
+          <Button type="button" variant="outline" size="sm" onClick={addStep}>
+            <Plus className="h-3 w-3 mr-1" /> Passo
+          </Button>
+        </div>
+        {form.steps.map((step, i) => (
+          <div key={i} className="flex gap-2 items-start border rounded-md p-3">
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary text-sm font-bold flex-shrink-0 mt-1">
+              {i + 1}
+            </span>
+            <div className="flex-1 space-y-2">
+              <Input placeholder="Título do passo" value={step.title} onChange={(e) => updateStep(i, "title", e.target.value)} />
+              <Textarea placeholder="Descrição do passo" value={step.description} onChange={(e) => updateStep(i, "description", e.target.value)} rows={2} />
+            </div>
+            <Button type="button" variant="ghost" size="icon" onClick={() => removeStep(i)} className="text-destructive flex-shrink-0">
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        ))}
+      </div>
+      <div className="space-y-2">
+        <Label>Conteúdo (Markdown)</Label>
+        <Textarea value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} rows={8} />
+      </div>
+      <div className="flex items-center justify-between">
+        <div>
+          <Label>Publicar</Label>
+          <p className="text-xs text-muted-foreground">Torne visível para todos</p>
+        </div>
+        <Switch checked={form.is_published} onCheckedChange={(v) => setForm({ ...form, is_published: v })} />
+      </div>
+      <DialogFooter>
+        <Button type="button" variant="outline" onClick={onCancel}>Cancelar</Button>
+        <Button type="submit">{editingGuide ? "Salvar" : "Criar"}</Button>
+      </DialogFooter>
+    </form>
+  );
+}
+
