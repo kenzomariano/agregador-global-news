@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Trash2, Edit, Eye, EyeOff, BookOpen } from "lucide-react";
+import { Plus, Trash2, Edit, Eye, EyeOff, BookOpen, Globe, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
@@ -16,6 +17,8 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { useGuides, useCreateGuide, useUpdateGuide, useDeleteGuide, type Guide, type GuideStep } from "@/hooks/useGuides";
 
 function generateSlug(title: string): string {
@@ -43,6 +46,7 @@ const EMPTY_FORM = {
 
 export function GuidesManager() {
   const { toast } = useToast();
+  const qc = useQueryClient();
   const { data: guides, isLoading } = useGuides(false);
   const createGuide = useCreateGuide();
   const updateGuide = useUpdateGuide();
@@ -51,11 +55,46 @@ export function GuidesManager() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingGuide, setEditingGuide] = useState<Guide | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [scrapeUrl, setScrapeUrl] = useState("");
+  const [scraping, setScraping] = useState(false);
+  const [activeTab, setActiveTab] = useState<"manual" | "import">("manual");
 
   const openCreate = () => {
     setEditingGuide(null);
     setForm(EMPTY_FORM);
+    setActiveTab("manual");
+    setScrapeUrl("");
     setDialogOpen(true);
+  };
+
+  const handleScrape = async () => {
+    if (!scrapeUrl.trim()) return;
+    setScraping(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("scrape-guide", {
+        body: { url: scrapeUrl.trim() },
+      });
+      if (error) throw error;
+      toast({
+        title: "Guia importado!",
+        description: "Salvo como rascunho. Revise e publique quando estiver pronto.",
+      });
+      qc.invalidateQueries({ queryKey: ["guides"] });
+      setDialogOpen(false);
+      setScrapeUrl("");
+      // Open editing on the new guide
+      if (data?.guide) {
+        openEdit(data.guide as Guide);
+      }
+    } catch (e: any) {
+      toast({
+        title: "Erro ao importar",
+        description: e.message || "Não foi possível extrair o guia.",
+        variant: "destructive",
+      });
+    } finally {
+      setScraping(false);
+    }
   };
 
   const openEdit = (guide: Guide) => {
