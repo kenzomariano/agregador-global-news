@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Trash2, RefreshCw, Pencil, ExternalLink, Eye, MessageCircleQuestion, CheckCircle, Archive, Languages } from "lucide-react";
+import { Trash2, RefreshCw, Pencil, ExternalLink, Eye, EyeOff, MessageCircleQuestion, CheckCircle, Archive, Languages, FileEdit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -115,15 +115,39 @@ export function ArticleListItem({
               </div>
 
               <div className="flex items-center gap-1 flex-shrink-0">
-                {article.status === "draft" && (
+                {article.status !== "published" && (
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => onStatusChange(article.id, "published")}
-                    title="Aprovar e publicar"
+                    title="Publicar"
                     className="h-8 w-8 text-green-600 hover:text-green-700"
                   >
                     <CheckCircle className="h-4 w-4" />
+                  </Button>
+                )}
+
+                {article.status === "published" && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => onStatusChange(article.id, "draft")}
+                    title="Despublicar (voltar para rascunho)"
+                    className="h-8 w-8 text-amber-600 hover:text-amber-700"
+                  >
+                    <EyeOff className="h-4 w-4" />
+                  </Button>
+                )}
+
+                {article.status !== "draft" && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => onStatusChange(article.id, "draft")}
+                    title="Voltar para rascunho"
+                    className="h-8 w-8 hidden"
+                  >
+                    <FileEdit className="h-4 w-4" />
                   </Button>
                 )}
 
