@@ -390,26 +390,54 @@ export function Header() {
                 </DropdownMenu>
               </li>
             )}
-            <li>
-              <Link
-                to="/mais-lidas"
-                className="px-3 py-1.5 text-sm font-medium rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-              >
-                🔥 Mais Lidas
-              </Link>
-            </li>
-            {hasProducts !== false && (
+            {showTrending && (
+              <li>
+                <Link
+                  to="/mais-lidas"
+                  className="px-3 py-1.5 text-sm font-medium rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                >
+                  🔥 Mais Lidas
+                </Link>
+              </li>
+            )}
+            {showProducts && (
               <li>
                 <Link to="/produtos" className="px-3 py-1.5 text-sm font-medium rounded-md hover:bg-accent transition-colors">
                   🛒 Produtos
                 </Link>
               </li>
             )}
-            <li>
-              <Link to="/guias" className="px-3 py-1.5 text-sm font-medium rounded-md hover:bg-accent transition-colors">
-                📖 Guias
-              </Link>
-            </li>
+            {showGuides && (
+              <li>
+                <Link to="/guias" className="px-3 py-1.5 text-sm font-medium rounded-md hover:bg-accent transition-colors">
+                  📖 Guias
+                </Link>
+              </li>
+            )}
+            {customLinks.map((link, i) => {
+              const external = /^https?:\/\//i.test(link.url);
+              return (
+                <li key={i}>
+                  {external ? (
+                    <a
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1.5 text-sm font-medium rounded-md hover:bg-accent transition-colors whitespace-nowrap"
+                    >
+                      {link.emoji ? `${link.emoji} ` : ""}{link.label}
+                    </a>
+                  ) : (
+                    <Link
+                      to={link.url}
+                      className="px-3 py-1.5 text-sm font-medium rounded-md hover:bg-accent transition-colors whitespace-nowrap"
+                    >
+                      {link.emoji ? `${link.emoji} ` : ""}{link.label}
+                    </Link>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </div>
       </nav>
