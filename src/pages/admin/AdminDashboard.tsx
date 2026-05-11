@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Newspaper, Rss, Settings, Megaphone, LayoutDashboard, BookOpen, Package } from "lucide-react";
+import { Newspaper, Rss, Settings, Megaphone, LayoutDashboard, BookOpen, Package, Menu as MenuIcon } from "lucide-react";
 import { SourcesManager } from "@/components/admin/SourcesManager";
 import { ArticlesManager } from "@/components/admin/ArticlesManager";
 import { AdsManager } from "@/components/admin/AdsManager";
 import { SiteSettingsManager } from "@/components/admin/SiteSettingsManager";
 import { GuidesManager } from "@/components/admin/GuidesManager";
 import { ProductsManager } from "@/components/admin/ProductsManager";
+import { MenuBuilder } from "@/components/admin/MenuBuilder";
 import { useArticles } from "@/hooks/useArticles";
 import { useSources } from "@/hooks/useSources";
 import { useAdPlacements } from "@/hooks/useAdPlacements";
@@ -36,7 +37,7 @@ export default function AdminDashboard() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-7 h-auto gap-2 bg-transparent p-0">
+        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8 h-auto gap-2 bg-transparent p-0">
           <TabsTrigger 
             value="overview" 
             className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex gap-2 py-3"
@@ -78,6 +79,13 @@ export default function AdminDashboard() {
           >
             <Megaphone className="h-4 w-4" />
             <span className="hidden sm:inline">Anúncios</span>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="menu" 
+            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex gap-2 py-3"
+          >
+            <MenuIcon className="h-4 w-4" />
+            <span className="hidden sm:inline">Menu</span>
           </TabsTrigger>
           <TabsTrigger 
             value="settings" 
