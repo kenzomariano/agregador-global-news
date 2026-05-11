@@ -277,8 +277,70 @@ export function GuidesManager() {
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingGuide ? "Editar Guia" : "Novo Guia"}</DialogTitle>
-            <DialogDescription>Preencha as informações do guia editorial.</DialogDescription>
+            <DialogDescription>
+              {editingGuide ? "Atualize as informações do guia." : "Crie manualmente ou importe de uma URL."}
+            </DialogDescription>
           </DialogHeader>
+
+          {!editingGuide && (
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="manual">✍️ Manual</TabsTrigger>
+                <TabsTrigger value="import"><Globe className="h-3 w-3 mr-1" /> Importar URL</TabsTrigger>
+              </TabsList>
+              <TabsContent value="import" className="space-y-3 pt-3">
+                <div className="space-y-2">
+                  <Label>URL do tutorial / artigo</Label>
+                  <Input
+                    type="url"
+                    placeholder="https://exemplo.com/como-fazer-..."
+                    value={scrapeUrl}
+                    onChange={(e) => setScrapeUrl(e.target.value)}
+                    disabled={scraping}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    A IA vai extrair título, passos e conteúdo. O guia será salvo como rascunho para revisão.
+                  </p>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={scraping}>
+                    Cancelar
+                  </Button>
+                  <Button onClick={handleScrape} disabled={scraping || !scrapeUrl.trim()}>
+                    {scraping ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Globe className="h-4 w-4 mr-2" />}
+                    Importar
+                  </Button>
+                </DialogFooter>
+              </TabsContent>
+              <TabsContent value="manual" className="pt-3">
+                <ManualGuideForm
+                  form={form}
+                  setForm={setForm}
+                  editingGuide={editingGuide}
+                  handleTitleChange={handleTitleChange}
+                  addStep={addStep}
+                  updateStep={updateStep}
+                  removeStep={removeStep}
+                  handleSubmit={handleSubmit}
+                  onCancel={() => setDialogOpen(false)}
+                />
+              </TabsContent>
+            </Tabs>
+          )}
+
+          {editingGuide && (
+            <ManualGuideForm
+              form={form}
+              setForm={setForm}
+              editingGuide={editingGuide}
+              handleTitleChange={handleTitleChange}
+              addStep={addStep}
+              updateStep={updateStep}
+              removeStep={removeStep}
+              handleSubmit={handleSubmit}
+              onCancel={() => setDialogOpen(false)}
+            />
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
