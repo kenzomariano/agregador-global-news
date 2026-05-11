@@ -160,14 +160,16 @@ export function Header() {
                 Início
               </Link>
 
-              <Link
-                to="/mais-lidas"
-                onClick={() => setSheetOpen(false)}
-                className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-primary hover:bg-primary/10 transition-colors"
-              >
-                <Flame className="h-4 w-4" />
-                Mais Lidas
-              </Link>
+              {showTrending && (
+                <Link
+                  to="/mais-lidas"
+                  onClick={() => setSheetOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-primary hover:bg-primary/10 transition-colors"
+                >
+                  <Flame className="h-4 w-4" />
+                  Mais Lidas
+                </Link>
+              )}
 
               {/* Primary categories */}
               {visiblePrimary.length > 0 && (
@@ -216,26 +218,50 @@ export function Header() {
               )}
 
               {/* Extra links */}
-              <div className="mt-2 border-t pt-2">
-                {hasProducts !== false && (
-                  <Link
-                    to="/produtos"
-                    onClick={() => setSheetOpen(false)}
-                    className="flex items-center gap-3 px-4 py-3 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                  >
-                    <span className="text-base leading-none">🛒</span>
-                    Produtos
-                  </Link>
-                )}
-                <Link
-                  to="/guias"
-                  onClick={() => setSheetOpen(false)}
-                  className="flex items-center gap-3 px-4 py-3 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                >
-                  <span className="text-base leading-none">📖</span>
-                  Guias
-                </Link>
-              </div>
+              {(showProducts || showGuides || customLinks.length > 0) && (
+                <div className="mt-2 border-t pt-2">
+                  {showProducts && (
+                    <Link
+                      to="/produtos"
+                      onClick={() => setSheetOpen(false)}
+                      className="flex items-center gap-3 px-4 py-3 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                    >
+                      <span className="text-base leading-none">🛒</span>
+                      Produtos
+                    </Link>
+                  )}
+                  {showGuides && (
+                    <Link
+                      to="/guias"
+                      onClick={() => setSheetOpen(false)}
+                      className="flex items-center gap-3 px-4 py-3 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                    >
+                      <span className="text-base leading-none">📖</span>
+                      Guias
+                    </Link>
+                  )}
+                  {customLinks.map((link, i) => {
+                    const external = /^https?:\/\//i.test(link.url);
+                    const props = external
+                      ? { href: link.url, target: "_blank", rel: "noopener noreferrer" }
+                      : {};
+                    const Comp: any = external ? "a" : Link;
+                    const linkProp = external ? {} : { to: link.url };
+                    return (
+                      <Comp
+                        key={i}
+                        {...props}
+                        {...linkProp}
+                        onClick={() => setSheetOpen(false)}
+                        className="flex items-center gap-3 px-4 py-3 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                      >
+                        <span className="text-base leading-none">{link.emoji || "🔗"}</span>
+                        {link.label}
+                      </Comp>
+                    );
+                  })}
+                </div>
+              )}
 
               {/* Admin */}
               {isAdmin && (
