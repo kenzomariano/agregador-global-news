@@ -195,6 +195,10 @@ export default function AdminDashboard() {
           <ProductsManager />
         </TabsContent>
 
+        <TabsContent value="menu">
+          <MenuBuilder />
+        </TabsContent>
+
         <TabsContent value="settings">
           <SiteSettingsManager />
         </TabsContent>
