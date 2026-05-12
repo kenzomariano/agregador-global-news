@@ -106,44 +106,48 @@ export default function CategoryPage() {
   return (
     <>
       <SEOHead
-        title={`Notícias de ${categoryInfo.label}${page > 1 ? ` - Página ${page}` : ""}`}
-        description={`Últimas notícias de ${categoryInfo.label} no Brasil e no mundo. Fique por dentro das principais informações e atualizações.`}
-        keywords={[categoryInfo.label.toLowerCase(), "notícias", "brasil", "atualidades"]}
+        title={`${subInfo ? `${subInfo.label} — ` : ""}Notícias de ${categoryInfo.label}${page > 1 ? ` - Página ${page}` : ""}`}
+        description={`Últimas notícias de ${subInfo ? `${subInfo.label} em ` : ""}${categoryInfo.label}. Fique por dentro das principais informações e atualizações.`}
+        keywords={[categoryInfo.label.toLowerCase(), subInfo?.label.toLowerCase() || "", "notícias", "brasil"].filter(Boolean) as string[]}
       />
       <PaginationLinks page={page} totalPages={totalPages} category={categoryKey} />
 
       <div className="container py-6">
         <StructuredBreadcrumb items={[
           { label: "Início", href: "/" },
-          { label: categoryInfo.label },
+          { label: categoryInfo.label, href: `/categoria/${categoryKey}` },
+          ...(subInfo ? [{ label: subInfo.label }] : []),
         ]} />
 
         <header className="mb-8">
           <h1 className="text-3xl font-bold font-serif flex items-center gap-3">
             <span className="w-2 h-8 rounded-full bg-primary" />
-            {categoryInfo.label}
+            {subInfo ? `${subInfo.icon} ${subInfo.label}` : categoryInfo.label}
           </h1>
           <p className="text-muted-foreground mt-2">
-            Últimas notícias e atualizações de {categoryInfo.label}
+            {subInfo
+              ? `Notícias de ${subInfo.label} em ${categoryInfo.label}`
+              : `Últimas notícias e atualizações de ${categoryInfo.label}`}
           </p>
           {isEntertainment && (
             <div className="flex flex-wrap gap-2 mt-4">
-              <Badge
-                variant={subcategoryFilter === null ? "default" : "outline"}
-                className="cursor-pointer"
-                onClick={() => setSubcategoryFilter(null)}
-              >
-                Todos
-              </Badge>
-              {Object.entries(ENTERTAINMENT_SUBCATEGORIES).map(([key, { label, icon }]) => (
+              <Link to={`/categoria/${categoryKey}`}>
                 <Badge
-                  key={key}
-                  variant={subcategoryFilter === key ? "default" : "outline"}
+                  variant={subcategoryFilter === null ? "default" : "outline"}
                   className="cursor-pointer"
-                  onClick={() => setSubcategoryFilter(subcategoryFilter === key ? null : key)}
                 >
-                  {icon} {label}
+                  Todos
                 </Badge>
+              </Link>
+              {Object.entries(ENTERTAINMENT_SUBCATEGORIES).map(([key, { label, icon }]) => (
+                <Link key={key} to={subcategoryFilter === key ? `/categoria/${categoryKey}` : `/categoria/${categoryKey}/${key}`}>
+                  <Badge
+                    variant={subcategoryFilter === key ? "default" : "outline"}
+                    className="cursor-pointer"
+                  >
+                    {icon} {label}
+                  </Badge>
+                </Link>
               ))}
             </div>
           )}
