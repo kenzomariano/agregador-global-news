@@ -71,22 +71,28 @@ function PaginationLinks({ page, totalPages, category }: { page: number; totalPa
 }
 
 export default function CategoryPage() {
-  const { category } = useParams<{ category: string }>();
+  const { category, subcategory: subParam } = useParams<{ category: string; subcategory?: string }>();
   const [searchParams] = useSearchParams();
   const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
   const categoryKey = category as CategoryKey;
   const categoryInfo = CATEGORIES[categoryKey];
-  const [subcategoryFilter, setSubcategoryFilter] = useState<string | null>(null);
-  
+  const isEntertainment = categoryKey === "entretenimento";
+  const validSub = isEntertainment && subParam && subParam in ENTERTAINMENT_SUBCATEGORIES ? subParam : null;
+  const [subcategoryFilter, setSubcategoryFilter] = useState<string | null>(validSub);
+
+  useEffect(() => {
+    setSubcategoryFilter(validSub);
+  }, [validSub]);
+
   const { data, isLoading } = useArticles(categoryKey, PER_PAGE, page);
   const articles = data?.articles;
-  const isEntertainment = categoryKey === "entretenimento";
 
   const filteredArticles = subcategoryFilter
     ? articles?.filter((a) => a.subcategory === subcategoryFilter)
     : articles;
   const total = subcategoryFilter ? (filteredArticles?.length || 0) : (data?.total || 0);
   const totalPages = subcategoryFilter ? 1 : Math.ceil(total / PER_PAGE);
+  const subInfo = subcategoryFilter ? ENTERTAINMENT_SUBCATEGORIES[subcategoryFilter as keyof typeof ENTERTAINMENT_SUBCATEGORIES] : null;
 
   if (!categoryInfo) {
     return (
