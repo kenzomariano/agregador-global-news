@@ -384,7 +384,20 @@ function ManualGuideForm({
         </div>
         <div className="space-y-2">
           <Label>Categoria</Label>
-          <Input value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} />
+          <Select value={form.category} onValueChange={(v) => setForm({ ...form, category: v })}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="geral">Geral</SelectItem>
+              <SelectItem value="receitas">🍳 Receitas</SelectItem>
+              <SelectItem value="culinaria">🍴 Culinária</SelectItem>
+              <SelectItem value="tecnologia">💻 Tecnologia</SelectItem>
+              <SelectItem value="financas">💰 Finanças</SelectItem>
+              <SelectItem value="saude">❤️ Saúde</SelectItem>
+              <SelectItem value="viagem">✈️ Viagem</SelectItem>
+              <SelectItem value="educacao">📚 Educação</SelectItem>
+              <SelectItem value="entretenimento">🎬 Entretenimento</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
       <div className="space-y-2">
@@ -424,8 +437,8 @@ function ManualGuideForm({
         ))}
       </div>
       <div className="space-y-2">
-        <Label>Conteúdo (Markdown)</Label>
-        <Textarea value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} rows={8} />
+        <Label>Conteúdo (texto, imagens e vídeos)</Label>
+        <RichContentEditor value={form.content} onChange={(content) => setForm({ ...form, content })} rows={12} />
       </div>
       <div className="flex items-center justify-between">
         <div>
