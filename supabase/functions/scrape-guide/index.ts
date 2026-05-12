@@ -104,7 +104,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
         Authorization: `Bearer ${fcKey}`,
       },
-      body: JSON.stringify({ url, formats: ["markdown"], onlyMainContent: true }),
+      body: JSON.stringify({ url, formats: ["markdown", "html"], onlyMainContent: true }),
     });
     if (!scrapeRes.ok) {
       const t = await scrapeRes.text();
@@ -112,8 +112,9 @@ serve(async (req) => {
     }
     const scrapeJson = await scrapeRes.json();
     const markdown: string = scrapeJson?.data?.markdown || "";
+    const html: string = scrapeJson?.data?.html || "";
     const meta = scrapeJson?.data?.metadata || {};
-    if (!markdown.trim()) throw new Error("Não foi possível extrair conteúdo da página");
+    if (!markdown.trim() && !html.trim()) throw new Error("Não foi possível extrair conteúdo da página");
 
     // 2) Convert to structured guide via Lovable AI
     const aiKey = Deno.env.get("LOVABLE_API_KEY");
@@ -131,7 +132,7 @@ serve(async (req) => {
           { role: "system", content: SYSTEM_PROMPT },
           {
             role: "user",
-            content: `URL: ${url}\nTítulo original: ${meta?.title || ""}\nImagem original: ${meta?.ogImage || ""}\n\nConteúdo:\n${markdown.substring(0, 12000)}`,
+            content: `URL: ${url}\nTítulo original: ${meta?.title || ""}\nImagem original: ${meta?.ogImage || ""}\n\nHTML (use para extrair imagens e vídeos):\n${html.substring(0, 9000)}\n\nMarkdown:\n${markdown.substring(0, 6000)}`,
           },
         ],
         response_format: { type: "json_object" },
