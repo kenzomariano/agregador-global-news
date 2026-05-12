@@ -7,21 +7,28 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const SYSTEM_PROMPT = `Você converte um artigo/tutorial em um GUIA EDITORIAL estruturado em Português do Brasil.
+const SYSTEM_PROMPT = `Você converte um artigo/tutorial/receita em um GUIA EDITORIAL estruturado em Português do Brasil.
 
 Responda SOMENTE com JSON válido neste formato:
 {
   "title": "string (máx 100 chars)",
   "excerpt": "string (resumo de 1-2 frases, máx 200 chars)",
-  "category": "geral | tecnologia | financas | saude | viagem | culinaria | educacao | entretenimento",
+  "category": "geral | receitas | culinaria | tecnologia | financas | saude | viagem | educacao | entretenimento",
   "image_url": "string (url da imagem principal, se houver)",
   "steps": [{ "title": "string curto", "description": "string com instrução clara" }],
-  "content": "string em markdown com a explicação completa"
+  "content": "string em HTML rico com a explicação completa"
 }
 
-Regras:
+Regras de conteúdo (campo content):
+- Use HTML válido com tags como <p>, <h2>, <h3>, <ul>, <ol>, <li>, <strong>, <em>, <blockquote>, <a href>.
+- Preserve TODAS as imagens relevantes do original como <figure><img src="URL" alt="descrição" /><figcaption>legenda</figcaption></figure>.
+- Preserve vídeos embedados (YouTube/Vimeo) usando <div class="aspect-video my-6"><iframe src="URL_EMBED" class="w-full h-full rounded-lg" allowfullscreen></iframe></div>. Converta links do YouTube em https://www.youtube.com/embed/ID e do Vimeo em https://player.vimeo.com/video/ID.
+- Mantenha subtítulos como <h2>/<h3>.
+- Para RECEITAS: inclua seções "Ingredientes" (lista) e "Modo de preparo" (passos).
 - Sempre traduza para PT-BR mantendo nomes próprios.
-- Crie de 3 a 10 passos práticos.
+
+Regras gerais:
+- Crie de 3 a 12 passos práticos no array steps.
 - Não invente conteúdo: baseie-se apenas no texto fornecido.`;
 
 function slugify(s: string) {
