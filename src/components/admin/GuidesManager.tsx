@@ -233,10 +233,15 @@ export function GuidesManager() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="icon" onClick={() => togglePublish(guide)}>
+                  <Button variant="ghost" size="icon" asChild title="Ver no site">
+                    <Link to={`/guia/${guide.slug}`} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="h-4 w-4" />
+                    </Link>
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={() => togglePublish(guide)} title={guide.is_published ? "Despublicar" : "Publicar"}>
                     {guide.is_published ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
-                  <Button variant="ghost" size="icon" onClick={() => openEdit(guide)}>
+                  <Button variant="ghost" size="icon" onClick={() => openEdit(guide)} title="Editar">
                     <Edit className="h-4 w-4" />
                   </Button>
                   <AlertDialog>
