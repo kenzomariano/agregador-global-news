@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { addHeadingIds } from "./ArticleTableOfContents";
+import { sanitizeHtml } from "@/lib/sanitizeHtml";
 
 interface ArticleContentProps {
   content: string;
@@ -100,10 +101,11 @@ export function ArticleContent({ content, className = "" }: ArticleContentProps)
     // Determine content type and render accordingly
     if (isHtml(content)) {
       const enhanced = addHeadingIds(enhanceHtmlContent(content));
+      const safe = sanitizeHtml(enhanced);
       return (
         <div
           className={`article-content ${className}`}
-          dangerouslySetInnerHTML={{ __html: enhanced }}
+          dangerouslySetInnerHTML={{ __html: safe }}
         />
       );
     }
@@ -174,7 +176,7 @@ export function ArticleContent({ content, className = "" }: ArticleContentProps)
     }
 
     // Plain text fallback
-    const htmlContent = convertPlainTextToHtml(content);
+    const htmlContent = sanitizeHtml(convertPlainTextToHtml(content));
     return (
       <div
         className={`article-content ${className}`}

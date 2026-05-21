@@ -11,6 +11,10 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { ArticleContent } from "@/components/news/ArticleContent";
+import { isSafeUrl, isAllowedIframeSrc } from "@/lib/sanitizeHtml";
+import { useToast } from "@/hooks/use-toast";
+
+
 
 interface RichContentEditorProps {
   value: string;
@@ -44,10 +48,15 @@ function toEmbedUrl(url: string): string {
 
 export function RichContentEditor({ value, onChange, rows = 14 }: RichContentEditorProps) {
   const ref = useRef<HTMLTextAreaElement>(null);
+  const { toast } = useToast();
   const [preview, setPreview] = useState(false);
   const [dialog, setDialog] = useState<DialogMode>(null);
   const [dialogUrl, setDialogUrl] = useState("");
   const [dialogText, setDialogText] = useState("");
+
+  const escapeAttr = (s: string) =>
+    s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
 
   const surround = (before: string, after: string, placeholder = "") => {
     const ta = ref.current;
@@ -91,17 +100,37 @@ export function RichContentEditor({ value, onChange, rows = 14 }: RichContentEdi
   };
 
   const handleDialogConfirm = () => {
-    if (!dialogUrl.trim()) { setDialog(null); return; }
+    const url = dialogUrl.trim();
+    if (!url) { setDialog(null); return; }
+
+    if (dialog === "link" || dialog === "image") {
+      if (!isSafeUrl(url)) {
+        toast({ title: "URL inválida", description: "Use http(s)://, mailto: ou tel:", variant: "destructive" });
+        return;
+      }
+    }
+    const safeUrl = escapeAttr(url);
+    const safeText = escapeAttr(dialogText || "");
+
     if (dialog === "link") {
-      surround(`<a href="${dialogUrl}" target="_blank" rel="noopener">`, `</a>`, dialogText || dialogUrl);
+      surround(`<a href="${safeUrl}" target="_blank" rel="noopener noreferrer">`, `</a>`, dialogText || url);
     } else if (dialog === "image") {
-      insertBlock(`<figure><img src="${dialogUrl}" alt="${dialogText || ""}" />${dialogText ? `<figcaption>${dialogText}</figcaption>` : ""}</figure>`);
+      insertBlock(`<figure><img src="${safeUrl}" alt="${safeText}" loading="lazy" />${safeText ? `<figcaption>${safeText}</figcaption>` : ""}</figure>`);
     } else if (dialog === "video") {
-      const embed = toEmbedUrl(dialogUrl);
-      insertBlock(`<div class="aspect-video my-6"><iframe src="${embed}" class="w-full h-full rounded-lg" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`);
+      const embed = toEmbedUrl(url);
+      if (!isAllowedIframeSrc(embed)) {
+        toast({
+          title: "Vídeo não suportado",
+          description: "Apenas YouTube, Vimeo, Spotify, SoundCloud, Twitter, Instagram e TikTok.",
+          variant: "destructive",
+        });
+        return;
+      }
+      insertBlock(`<div class="aspect-video my-6"><iframe src="${escapeAttr(embed)}" class="w-full h-full rounded-lg" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`);
     }
     setDialog(null);
   };
+
 
   return (
     <div className="space-y-2">
