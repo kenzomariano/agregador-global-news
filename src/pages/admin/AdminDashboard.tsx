@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Newspaper, Rss, Settings, Megaphone, LayoutDashboard, BookOpen, Package, Menu as MenuIcon } from "lucide-react";
+import { Newspaper, Rss, Settings, Megaphone, LayoutDashboard, BookOpen, Package, Menu as MenuIcon, Sparkles } from "lucide-react";
 import { SourcesManager } from "@/components/admin/SourcesManager";
 import { ArticlesManager } from "@/components/admin/ArticlesManager";
 import { AdsManager } from "@/components/admin/AdsManager";
@@ -9,6 +9,8 @@ import { SiteSettingsManager } from "@/components/admin/SiteSettingsManager";
 import { GuidesManager } from "@/components/admin/GuidesManager";
 import { ProductsManager } from "@/components/admin/ProductsManager";
 import { MenuBuilder } from "@/components/admin/MenuBuilder";
+import { GuidesMenuBuilder } from "@/components/admin/GuidesMenuBuilder";
+import { AISettingsManager } from "@/components/admin/AISettingsManager";
 import { useArticles } from "@/hooks/useArticles";
 import { useSources } from "@/hooks/useSources";
 import { useAdPlacements } from "@/hooks/useAdPlacements";
@@ -37,62 +39,36 @@ export default function AdminDashboard() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8 h-auto gap-2 bg-transparent p-0">
-          <TabsTrigger 
-            value="overview" 
-            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex gap-2 py-3"
-          >
-            <LayoutDashboard className="h-4 w-4" />
-            <span className="hidden sm:inline">Visão Geral</span>
+        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-10 h-auto gap-2 bg-transparent p-0">
+          <TabsTrigger value="overview" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex gap-2 py-3">
+            <LayoutDashboard className="h-4 w-4" /><span className="hidden sm:inline">Visão Geral</span>
           </TabsTrigger>
-          <TabsTrigger 
-            value="articles" 
-            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex gap-2 py-3"
-          >
-            <Newspaper className="h-4 w-4" />
-            <span className="hidden sm:inline">Artigos</span>
+          <TabsTrigger value="articles" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex gap-2 py-3">
+            <Newspaper className="h-4 w-4" /><span className="hidden sm:inline">Artigos</span>
           </TabsTrigger>
-          <TabsTrigger 
-            value="guides" 
-            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex gap-2 py-3"
-          >
-            <BookOpen className="h-4 w-4" />
-            <span className="hidden sm:inline">Guias</span>
+          <TabsTrigger value="guides" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex gap-2 py-3">
+            <BookOpen className="h-4 w-4" /><span className="hidden sm:inline">Guias</span>
           </TabsTrigger>
-          <TabsTrigger 
-            value="sources" 
-            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex gap-2 py-3"
-          >
-            <Rss className="h-4 w-4" />
-            <span className="hidden sm:inline">Fontes</span>
+          <TabsTrigger value="sources" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex gap-2 py-3">
+            <Rss className="h-4 w-4" /><span className="hidden sm:inline">Fontes</span>
           </TabsTrigger>
-          <TabsTrigger 
-            value="products" 
-            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex gap-2 py-3"
-          >
-            <Package className="h-4 w-4" />
-            <span className="hidden sm:inline">Produtos</span>
+          <TabsTrigger value="products" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex gap-2 py-3">
+            <Package className="h-4 w-4" /><span className="hidden sm:inline">Produtos</span>
           </TabsTrigger>
-          <TabsTrigger 
-            value="ads" 
-            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex gap-2 py-3"
-          >
-            <Megaphone className="h-4 w-4" />
-            <span className="hidden sm:inline">Anúncios</span>
+          <TabsTrigger value="ads" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex gap-2 py-3">
+            <Megaphone className="h-4 w-4" /><span className="hidden sm:inline">Anúncios</span>
           </TabsTrigger>
-          <TabsTrigger 
-            value="menu" 
-            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex gap-2 py-3"
-          >
-            <MenuIcon className="h-4 w-4" />
-            <span className="hidden sm:inline">Menu</span>
+          <TabsTrigger value="menu" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex gap-2 py-3">
+            <MenuIcon className="h-4 w-4" /><span className="hidden sm:inline">Menu</span>
           </TabsTrigger>
-          <TabsTrigger 
-            value="settings" 
-            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex gap-2 py-3"
-          >
-            <Settings className="h-4 w-4" />
-            <span className="hidden sm:inline">Configurações</span>
+          <TabsTrigger value="guides-menu" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex gap-2 py-3">
+            <BookOpen className="h-4 w-4" /><span className="hidden sm:inline">Menu Guias</span>
+          </TabsTrigger>
+          <TabsTrigger value="ai" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex gap-2 py-3">
+            <Sparkles className="h-4 w-4" /><span className="hidden sm:inline">IA</span>
+          </TabsTrigger>
+          <TabsTrigger value="settings" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex gap-2 py-3">
+            <Settings className="h-4 w-4" /><span className="hidden sm:inline">Config</span>
           </TabsTrigger>
         </TabsList>
 
@@ -197,6 +173,14 @@ export default function AdminDashboard() {
 
         <TabsContent value="menu">
           <MenuBuilder />
+        </TabsContent>
+
+        <TabsContent value="guides-menu">
+          <GuidesMenuBuilder />
+        </TabsContent>
+
+        <TabsContent value="ai">
+          <AISettingsManager />
         </TabsContent>
 
         <TabsContent value="settings">
