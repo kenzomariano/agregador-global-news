@@ -113,6 +113,7 @@ export function GuidesManager() {
       category: guide.category,
       author_name: guide.author_name,
       is_published: guide.is_published,
+      scheduled_at: isoToLocalInput((guide as any).scheduled_at),
       steps: guide.steps || [],
     });
     setDialogOpen(true);
