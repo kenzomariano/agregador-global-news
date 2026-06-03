@@ -45,6 +45,7 @@ const EMPTY_FORM = {
   category: "geral",
   author_name: "Equipe DESIGNE",
   is_published: false,
+  scheduled_at: "",
   steps: [] as GuideStep[],
 };
 
