@@ -99,6 +99,7 @@ export function ArticlesManager() {
       image_url: article.image_url || "",
       video_url: (article as any).video_url || "",
       is_featured: article.is_featured,
+      scheduled_at: isoToLocalInput((article as any).scheduled_at),
     });
   };
 
@@ -138,6 +139,7 @@ export function ArticlesManager() {
           image_url: editForm.image_url || null,
           video_url: editForm.video_url || null,
           is_featured: editForm.is_featured,
+          scheduled_at: localInputToIso(editForm.scheduled_at),
           updated_at: new Date().toISOString(),
         })
         .eq("id", editingArticle.id);
