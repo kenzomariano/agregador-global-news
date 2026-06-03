@@ -1,8 +1,24 @@
-# Welcome to your Lovable project
+# DESIGNE
+
+Portal de notícias, guias e entretenimento em PT-BR, com scraping automatizado,
+IA plugável e integração TMDB / Mercado Livre / Shopee.
+
+## 🚀 Quero rodar fora do Lovable
+Leia **[DEPLOYMENT.md](./DEPLOYMENT.md)** — guia passo a passo para exportar
+o projeto e hospedar em **Vercel, Netlify, Cloudflare Pages, Docker ou VPS**,
+com Supabase Cloud ou Supabase self-hosted, e trocar o provedor de IA via env vars.
+
+Arquivos relevantes:
+- `.env.example` — variáveis do frontend
+- `.env.functions.example` — secrets das Edge Functions (IA, scraping, etc.)
+- `Dockerfile` + `docker-compose.yml` — build + deploy em container
+- `deploy/nginx.conf` — config Nginx para SPA
+- `vercel.json` / `public/_redirects` — SPA fallback p/ Vercel e Netlify
 
 ## Project info
 
 **URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+
 
 ## How can I edit this code?
 
