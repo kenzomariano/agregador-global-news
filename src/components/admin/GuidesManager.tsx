@@ -155,6 +155,7 @@ export function GuidesManager() {
         author_name: form.author_name,
         is_published: form.is_published,
         steps: form.steps,
+        scheduled_at: localInputToIso(form.scheduled_at),
         ...(form.is_published && !editingGuide?.published_at ? { published_at: new Date().toISOString() } : {}),
       };
 
