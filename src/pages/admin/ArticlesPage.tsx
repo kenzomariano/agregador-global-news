@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { isoToLocalInput, localInputToIso } from "@/lib/scheduledAt";
 import { RefreshCw } from "lucide-react";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -44,6 +45,7 @@ export default function ArticlesPage() {
     image_url: "",
     video_url: "",
     is_featured: false,
+    scheduled_at: "",
   });
 
   const { data: sources } = useQuery({
@@ -100,6 +102,7 @@ export default function ArticlesPage() {
       image_url: article.image_url || "",
       video_url: (article as any).video_url || "",
       is_featured: article.is_featured,
+      scheduled_at: isoToLocalInput((article as any).scheduled_at),
     });
   };
 
@@ -118,6 +121,7 @@ export default function ArticlesPage() {
           image_url: editForm.image_url || null,
           video_url: editForm.video_url || null,
           is_featured: editForm.is_featured,
+          scheduled_at: localInputToIso(editForm.scheduled_at),
           updated_at: new Date().toISOString(),
         })
         .eq("id", editingArticle.id);

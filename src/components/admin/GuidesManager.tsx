@@ -23,6 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useGuides, useCreateGuide, useUpdateGuide, useDeleteGuide, type Guide, type GuideStep } from "@/hooks/useGuides";
+import { isoToLocalInput, localInputToIso } from "@/lib/scheduledAt";
 
 function generateSlug(title: string): string {
   return title
@@ -44,6 +45,7 @@ const EMPTY_FORM = {
   category: "geral",
   author_name: "Equipe DESIGNE",
   is_published: false,
+  scheduled_at: "",
   steps: [] as GuideStep[],
 };
 
@@ -111,6 +113,7 @@ export function GuidesManager() {
       category: guide.category,
       author_name: guide.author_name,
       is_published: guide.is_published,
+      scheduled_at: isoToLocalInput((guide as any).scheduled_at),
       steps: guide.steps || [],
     });
     setDialogOpen(true);
@@ -152,6 +155,7 @@ export function GuidesManager() {
         author_name: form.author_name,
         is_published: form.is_published,
         steps: form.steps,
+        scheduled_at: localInputToIso(form.scheduled_at),
         ...(form.is_published && !editingGuide?.published_at ? { published_at: new Date().toISOString() } : {}),
       };
 
@@ -446,6 +450,25 @@ function ManualGuideForm({
           <p className="text-xs text-muted-foreground">Torne visível para todos</p>
         </div>
         <Switch checked={form.is_published} onCheckedChange={(v) => setForm({ ...form, is_published: v })} />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="guide-scheduled">Agendar publicação (opcional)</Label>
+        <div className="flex gap-2">
+          <Input
+            id="guide-scheduled"
+            type="datetime-local"
+            value={form.scheduled_at}
+            onChange={(e) => setForm({ ...form, scheduled_at: e.target.value })}
+          />
+          {form.scheduled_at && (
+            <Button type="button" variant="outline" onClick={() => setForm({ ...form, scheduled_at: "" })}>
+              Cancelar
+            </Button>
+          )}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Se preenchido e o guia estiver como rascunho, ele será publicado automaticamente nesse horário.
+        </p>
       </div>
       <DialogFooter>
         <Button type="button" variant="outline" onClick={onCancel}>Cancelar</Button>

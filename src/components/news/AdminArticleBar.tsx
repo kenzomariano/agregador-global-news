@@ -18,6 +18,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { ArticleEditDialog } from "@/components/admin/ArticleEditDialog";
+import { isoToLocalInput, localInputToIso } from "@/lib/scheduledAt";
 import type { Article, ArticleStatus } from "@/hooks/useArticles";
 import type { CategoryKey } from "@/lib/categories";
 
@@ -43,6 +44,7 @@ export function AdminArticleBar({ article }: AdminArticleBarProps) {
     image_url: article.image_url || "",
     video_url: (article as any).video_url || "",
     is_featured: article.is_featured,
+    scheduled_at: isoToLocalInput((article as any).scheduled_at),
   });
 
   if (!isAdmin) return null;
@@ -58,6 +60,7 @@ export function AdminArticleBar({ article }: AdminArticleBarProps) {
       image_url: article.image_url || "",
       video_url: (article as any).video_url || "",
       is_featured: article.is_featured,
+      scheduled_at: isoToLocalInput((article as any).scheduled_at),
     });
     setEditing(true);
   };
@@ -86,6 +89,7 @@ export function AdminArticleBar({ article }: AdminArticleBarProps) {
         video_url: editForm.video_url || null,
         is_featured: editForm.is_featured,
         status: editForm.status,
+        scheduled_at: localInputToIso(editForm.scheduled_at),
         updated_at: new Date().toISOString(),
       }).eq("id", article.id);
       if (error) throw error;

@@ -1,0 +1,19 @@
+version: "3.9"
+
+# Sobe o frontend (Nginx) servindo o build do Vite.
+# O backend (Supabase) é externo — você pode usar Supabase Cloud,
+# Supabase auto-hospedado (https://github.com/supabase/supabase/tree/master/docker)
+# ou qualquer outra hospedagem.
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL}
+        VITE_SUPABASE_PUBLISHABLE_KEY: ${VITE_SUPABASE_PUBLISHABLE_KEY}
+        VITE_SUPABASE_PROJECT_ID: ${VITE_SUPABASE_PROJECT_ID}
+    ports:
+      - "8080:80"
+    restart: unless-stopped
