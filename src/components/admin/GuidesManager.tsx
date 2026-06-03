@@ -23,6 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useGuides, useCreateGuide, useUpdateGuide, useDeleteGuide, type Guide, type GuideStep } from "@/hooks/useGuides";
+import { isoToLocalInput, localInputToIso } from "@/lib/scheduledAt";
 
 function generateSlug(title: string): string {
   return title
