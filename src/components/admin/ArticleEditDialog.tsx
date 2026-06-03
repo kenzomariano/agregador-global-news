@@ -34,6 +34,7 @@ interface EditFormData {
   image_url: string;
   video_url: string;
   is_featured: boolean;
+  scheduled_at: string;
 }
 
 interface ArticleEditDialogProps {
