@@ -451,6 +451,25 @@ function ManualGuideForm({
         </div>
         <Switch checked={form.is_published} onCheckedChange={(v) => setForm({ ...form, is_published: v })} />
       </div>
+      <div className="space-y-2">
+        <Label htmlFor="guide-scheduled">Agendar publicação (opcional)</Label>
+        <div className="flex gap-2">
+          <Input
+            id="guide-scheduled"
+            type="datetime-local"
+            value={form.scheduled_at}
+            onChange={(e) => setForm({ ...form, scheduled_at: e.target.value })}
+          />
+          {form.scheduled_at && (
+            <Button type="button" variant="outline" onClick={() => setForm({ ...form, scheduled_at: "" })}>
+              Cancelar
+            </Button>
+          )}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Se preenchido e o guia estiver como rascunho, ele será publicado automaticamente nesse horário.
+        </p>
+      </div>
       <DialogFooter>
         <Button type="button" variant="outline" onClick={onCancel}>Cancelar</Button>
         <Button type="submit">{editingGuide ? "Salvar" : "Criar"}</Button>
