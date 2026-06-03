@@ -288,6 +288,7 @@ export type Database = {
           likes_count: number
           original_url: string
           published_at: string | null
+          scheduled_at: string | null
           slug: string
           source_id: string | null
           status: Database["public"]["Enums"]["article_status"]
@@ -309,6 +310,7 @@ export type Database = {
           likes_count?: number
           original_url: string
           published_at?: string | null
+          scheduled_at?: string | null
           slug: string
           source_id?: string | null
           status?: Database["public"]["Enums"]["article_status"]
@@ -330,6 +332,7 @@ export type Database = {
           likes_count?: number
           original_url?: string
           published_at?: string | null
+          scheduled_at?: string | null
           slug?: string
           source_id?: string | null
           status?: Database["public"]["Enums"]["article_status"]
@@ -360,6 +363,7 @@ export type Database = {
           image_url: string | null
           is_published: boolean | null
           published_at: string | null
+          scheduled_at: string | null
           slug: string
           steps: Json | null
           title: string
@@ -376,6 +380,7 @@ export type Database = {
           image_url?: string | null
           is_published?: boolean | null
           published_at?: string | null
+          scheduled_at?: string | null
           slug: string
           steps?: Json | null
           title: string
@@ -392,6 +397,7 @@ export type Database = {
           image_url?: string | null
           is_published?: boolean | null
           published_at?: string | null
+          scheduled_at?: string | null
           slug?: string
           steps?: Json | null
           title?: string
@@ -733,6 +739,14 @@ export type Database = {
       increment_article_views: {
         Args: { article_id: string }
         Returns: undefined
+      }
+      publish_scheduled_items: {
+        Args: never
+        Returns: {
+          id: string
+          kind: string
+          title: string
+        }[]
       }
     }
     Enums: {
