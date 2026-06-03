@@ -191,6 +191,31 @@ export function ArticleEditDialog({
             />
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="edit-scheduled">Agendar publicação (opcional)</Label>
+            <div className="flex gap-2">
+              <Input
+                id="edit-scheduled"
+                type="datetime-local"
+                value={editForm.scheduled_at}
+                onChange={(e) => onFormChange({ ...editForm, scheduled_at: e.target.value })}
+              />
+              {editForm.scheduled_at && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => onFormChange({ ...editForm, scheduled_at: "" })}
+                >
+                  Cancelar
+                </Button>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Se preenchido, o artigo será publicado automaticamente no horário escolhido (status deve ser Rascunho).
+            </p>
+          </div>
+
+
           <Separator className="my-4" />
 
           {article && (
