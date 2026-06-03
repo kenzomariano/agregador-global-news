@@ -43,6 +43,7 @@ export function ArticlesManager() {
     image_url: "",
     video_url: "",
     is_featured: false,
+    scheduled_at: "",
   });
 
   const { data: sources } = useQuery({
