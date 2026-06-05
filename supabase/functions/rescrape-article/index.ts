@@ -247,6 +247,10 @@ FORMATE o conteúdo usando HTML semântico:
 - <ul>/<li> para listas APENAS se fizerem parte do conteúdo
 - <strong> para destaques importantes
 - <em> para ênfase
+- <figure><img src="..." alt="..." /></figure> para imagens do corpo
+- <figure><iframe src="..." allowfullscreen></iframe></figure> para vídeos embedados
+
+${PRESERVE_MEDIA_INSTRUCTION}
 
 REGRAS CRÍTICAS:
 1. NÃO inclua o título principal
@@ -256,8 +260,11 @@ REGRAS CRÍTICAS:
 
 Título original: ${title}
 
-Conteúdo bruto:
-${rawContent.slice(0, 12000)}`;
+HTML original (com imagens e embeds que devem ser preservados):
+${rawHtml.slice(0, 8000)}
+
+Conteúdo textual bruto:
+${rawContent.slice(0, 10000)}`;
 
       const cleanResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
