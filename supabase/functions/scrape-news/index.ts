@@ -1429,6 +1429,11 @@ Responda SOMENTE com JSON válido: {"title": "...", "excerpt": "..."}`,
             continue;
           }
 
+          // Preserve any images / video embeds the AI may have dropped
+          if (rawHtml) {
+            content = mergeMediaIntoContent(content, rawHtml, { coverImageUrl: imageUrl });
+          }
+
           let category = "brasil";
           let tags: string[] = [];
 
