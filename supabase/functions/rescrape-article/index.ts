@@ -285,6 +285,11 @@ ${rawContent.slice(0, 10000)}`;
       }
     }
 
+    // Re-inject any images/iframes the AI dropped from the original article body
+    if (rawHtml) {
+      content = mergeMediaIntoContent(content, rawHtml, { coverImageUrl: imageUrl });
+    }
+
     // Build update object
     const updateData: Record<string, unknown> = {
       content,
