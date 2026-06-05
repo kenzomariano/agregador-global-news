@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { mergeMediaIntoContent, PRESERVE_MEDIA_INSTRUCTION } from "../_shared/media-extract.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -195,6 +196,10 @@ FORMATE com HTML semântico:
 - <blockquote> para citações destacadas
 - <strong>/<em> para ênfase
 - <ul>/<li> apenas se já existirem listas relevantes
+- <figure><img src="..." alt="..." /></figure> para imagens
+- <figure><iframe src="..." allowfullscreen></iframe></figure> para vídeos embedados
+
+${PRESERVE_MEDIA_INSTRUCTION}
 
 REGRAS CRÍTICAS:
 1. NÃO inclua o título principal
@@ -203,8 +208,11 @@ REGRAS CRÍTICAS:
 
 Título: ${title}
 
-Conteúdo original a reescrever:
-${rawContent.slice(0, 14000)}` : `Você é um editor de notícias profissional brasileiro.
+HTML original (com imagens e embeds que devem ser preservados):
+${rawHtml.slice(0, 8000)}
+
+Conteúdo textual original a reescrever:
+${rawContent.slice(0, 12000)}` : `Você é um editor de notícias profissional brasileiro.
 
 TAREFA: Extraia APENAS o corpo principal do artigo e ${isForeign ? "TRADUZA COMPLETAMENTE para Português do Brasil. NENHUMA frase deve permanecer em inglês." : "mantenha em Português"}.
 ${sourceSpecificRules}
@@ -239,6 +247,10 @@ FORMATE o conteúdo usando HTML semântico:
 - <ul>/<li> para listas APENAS se fizerem parte do conteúdo
 - <strong> para destaques importantes
 - <em> para ênfase
+- <figure><img src="..." alt="..." /></figure> para imagens do corpo
+- <figure><iframe src="..." allowfullscreen></iframe></figure> para vídeos embedados
+
+${PRESERVE_MEDIA_INSTRUCTION}
 
 REGRAS CRÍTICAS:
 1. NÃO inclua o título principal
@@ -248,8 +260,11 @@ REGRAS CRÍTICAS:
 
 Título original: ${title}
 
-Conteúdo bruto:
-${rawContent.slice(0, 12000)}`;
+HTML original (com imagens e embeds que devem ser preservados):
+${rawHtml.slice(0, 8000)}
+
+Conteúdo textual bruto:
+${rawContent.slice(0, 10000)}`;
 
       const cleanResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
@@ -268,6 +283,11 @@ ${rawContent.slice(0, 12000)}`;
         content = cleanData.choices?.[0]?.message?.content || rawContent;
         content = content.replace(/^```html?\s*/i, "").replace(/\s*```$/i, "").trim();
       }
+    }
+
+    // Re-inject any images/iframes the AI dropped from the original article body
+    if (rawHtml) {
+      content = mergeMediaIntoContent(content, rawHtml, { coverImageUrl: imageUrl });
     }
 
     // Build update object

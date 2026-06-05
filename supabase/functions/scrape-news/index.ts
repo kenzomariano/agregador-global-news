@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { mergeMediaIntoContent, PRESERVE_MEDIA_INSTRUCTION } from "../_shared/media-extract.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -1209,6 +1210,10 @@ FORMATE o conteúdo usando HTML semântico:
 - <ol>/<li> para listas ordenadas/cronológicas APENAS se fizerem parte do conteúdo
 - <strong> para destaques importantes
 - <em> para ênfase
+- <figure><img src="..." alt="..." /></figure> para imagens do corpo
+- <figure><iframe src="..." allowfullscreen></iframe></figure> para vídeos embedados (YouTube, Vimeo, TikTok, X)
+
+${PRESERVE_MEDIA_INSTRUCTION}
 
 REGRAS CRÍTICAS:
 1. NÃO inclua o título principal (já temos separadamente)
@@ -1220,8 +1225,11 @@ REGRAS CRÍTICAS:
 
 Título original: ${title}
 
-Conteúdo bruto:
-${rawContent.slice(0, 12000)}`;
+HTML original (com imagens e embeds que devem ser preservados):
+${rawHtml.slice(0, 8000)}
+
+Conteúdo textual bruto:
+${rawContent.slice(0, 10000)}`;
 
             const cleanResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
               method: "POST",
@@ -1419,6 +1427,11 @@ Responda SOMENTE com JSON válido: {"title": "...", "excerpt": "..."}`,
             console.log(`Skipping article with insufficient content: ${title}`);
             skippedCount++;
             continue;
+          }
+
+          // Preserve any images / video embeds the AI may have dropped
+          if (rawHtml) {
+            content = mergeMediaIntoContent(content, rawHtml, { coverImageUrl: imageUrl });
           }
 
           let category = "brasil";

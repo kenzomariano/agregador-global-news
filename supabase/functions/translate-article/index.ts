@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { mergeMediaIntoContent } from "../_shared/media-extract.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -52,7 +53,8 @@ TAREFA: Traduza o conteúdo HTML abaixo COMPLETAMENTE para Português do Brasil.
 
 REGRAS:
 - Traduza TODO o texto para Português do Brasil. NENHUMA frase deve permanecer em inglês.
-- MANTENHA toda a estrutura HTML intacta (tags, atributos)
+- MANTENHA toda a estrutura HTML intacta (tags, atributos, classes)
+- PRESERVE OBRIGATORIAMENTE todas as tags <img>, <figure>, <iframe>, <video> e <source> exatamente como estão (mesmas URLs em src). Apenas traduza os atributos alt e os textos em <figcaption>.
 - Use nomes oficiais no Brasil para filmes, séries, animes (ex: "Squid Game" → "Round 6")
 - Mantenha nomes de pessoas, empresas, plataformas e marcas em inglês
 - Retorne APENAS o HTML traduzido, sem explicações ou marcação extra`;
@@ -181,8 +183,10 @@ serve(async (req) => {
           let translated = cData.choices?.[0]?.message?.content || "";
           translated = translated.replace(/^```html?\s*/i, "").replace(/\s*```$/i, "").trim();
           if (translated.length > 50) {
-            updateData.content = translated;
-            console.log(`Content translated (${translated.length} chars)`);
+            // Re-inject any images/iframes the translator may have dropped from the original
+            const merged = mergeMediaIntoContent(translated, article.content);
+            updateData.content = merged;
+            console.log(`Content translated (${merged.length} chars)`);
           }
         }
       } catch (e) {
