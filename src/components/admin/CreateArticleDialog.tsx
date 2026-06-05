@@ -98,15 +98,15 @@ export function CreateArticleDialog() {
         .single();
       if (error) throw error;
 
-      // Trigger rescrape (which scrapes + translates if foreign)
+      // Trigger rescrape + AI rewrite (paraphrases PT content; translates foreign)
       const { error: fnError } = await supabase.functions.invoke("rescrape-article", {
-        body: { articleId: inserted.id, url: importUrl },
+        body: { articleId: inserted.id, url: importUrl, rewrite: true },
       });
       if (fnError) throw fnError;
 
       toast({
         title: "Artigo importado!",
-        description: "O conteúdo foi extraído e traduzido. Revise e publique.",
+        description: "O conteúdo foi extraído, reescrito por IA (preservando os fatos) e salvo como rascunho. Revise e publique.",
       });
       qc.invalidateQueries({ queryKey: ["articles"] });
       reset();
