@@ -53,7 +53,8 @@ TAREFA: Traduza o conteúdo HTML abaixo COMPLETAMENTE para Português do Brasil.
 
 REGRAS:
 - Traduza TODO o texto para Português do Brasil. NENHUMA frase deve permanecer em inglês.
-- MANTENHA toda a estrutura HTML intacta (tags, atributos)
+- MANTENHA toda a estrutura HTML intacta (tags, atributos, classes)
+- PRESERVE OBRIGATORIAMENTE todas as tags <img>, <figure>, <iframe>, <video> e <source> exatamente como estão (mesmas URLs em src). Apenas traduza os atributos alt e os textos em <figcaption>.
 - Use nomes oficiais no Brasil para filmes, séries, animes (ex: "Squid Game" → "Round 6")
 - Mantenha nomes de pessoas, empresas, plataformas e marcas em inglês
 - Retorne APENAS o HTML traduzido, sem explicações ou marcação extra`;
