@@ -183,8 +183,10 @@ serve(async (req) => {
           let translated = cData.choices?.[0]?.message?.content || "";
           translated = translated.replace(/^```html?\s*/i, "").replace(/\s*```$/i, "").trim();
           if (translated.length > 50) {
-            updateData.content = translated;
-            console.log(`Content translated (${translated.length} chars)`);
+            // Re-inject any images/iframes the translator may have dropped from the original
+            const merged = mergeMediaIntoContent(translated, article.content);
+            updateData.content = merged;
+            console.log(`Content translated (${merged.length} chars)`);
           }
         }
       } catch (e) {
