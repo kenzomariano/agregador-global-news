@@ -23,6 +23,7 @@ import { ArticleTagsManager } from "./ArticleTagsManager";
 import { ArticleTMDBEditor } from "./ArticleTMDBEditor";
 import { RichContentEditor } from "./RichContentEditor";
 import type { Article, ArticleStatus } from "@/hooks/useArticles";
+import { formatLocalSchedulePreview } from "@/lib/scheduledAt";
 
 interface EditFormData {
   title: string;
@@ -210,8 +211,13 @@ export function ArticleEditDialog({
                 </Button>
               )}
             </div>
+            {editForm.scheduled_at && (
+              <p className="text-xs font-medium text-primary">
+                📅 Publicará em: {formatLocalSchedulePreview(editForm.scheduled_at)}
+              </p>
+            )}
             <p className="text-xs text-muted-foreground">
-              Se preenchido, o artigo será publicado automaticamente no horário escolhido (status deve ser Rascunho).
+              Horário no seu fuso local. Se preenchido, o artigo será publicado automaticamente nesse horário (status deve ser Rascunho).
             </p>
           </div>
 

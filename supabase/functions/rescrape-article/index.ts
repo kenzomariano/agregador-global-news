@@ -68,7 +68,7 @@ serve(async (req) => {
   }
 
   try {
-    const { articleId, url } = await req.json();
+    const { articleId, url, rewrite } = await req.json();
 
     if (!articleId || !url) {
       return new Response(
@@ -163,7 +163,48 @@ REGRAS ESPECÍFICAS PARA OTAKUKART:
 
     // Use AI to clean content and translate if needed
     if (lovableApiKey && rawContent) {
-      const cleanPrompt = `Você é um editor de notícias profissional brasileiro.
+      const shouldRewrite = rewrite && !isForeign;
+      const cleanPrompt = shouldRewrite ? `Você é um jornalista brasileiro experiente reescrevendo uma matéria para um portal de notícias.
+
+TAREFA CRÍTICA: REESCREVA COMPLETAMENTE o artigo abaixo em Português do Brasil, de forma que NENHUMA frase fique igual ao original, MAS PRESERVANDO 100% dos fatos, números, datas, nomes, citações diretas (entre aspas) e dados.
+
+REGRAS DE REESCRITA:
+- Reorganize a ordem das informações quando fizer sentido jornalístico
+- Use sinônimos, mude estruturas de frase, varie conectivos
+- Substitua voz passiva por ativa (e vice-versa) quando possível
+- Combine ou divida parágrafos
+- Reescreva o lead/abertura com ângulo próprio
+- Mantenha o tom jornalístico, profissional e neutro
+- NÃO invente fatos, números ou citações que não estejam no original
+- Mantenha citações diretas (entre aspas) IDÊNTICAS ao original
+- Preserve nomes próprios, marcas, plataformas e termos técnicos
+
+REMOVA COMPLETAMENTE:
+- Anúncios, banners, "Remove Ads", popups, captchas
+- Menus, breadcrumbs, sidebar, header, footer do site de origem
+- Links de redes sociais e botões de compartilhamento
+- Seções de "Leia também", "Relacionados", "Você pode gostar"
+- Créditos de imagens ("Image Courtesy", "Source:")
+- Newsletters, "Subscribe", "Sign up"
+- Disclaimers e avisos legais do portal original
+- Qualquer menção ao portal/site original como fonte editorial
+
+FORMATE com HTML semântico:
+- <h2>/<h3> para subtítulos
+- <p> para parágrafos
+- <blockquote> para citações destacadas
+- <strong>/<em> para ênfase
+- <ul>/<li> apenas se já existirem listas relevantes
+
+REGRAS CRÍTICAS:
+1. NÃO inclua o título principal
+2. Retorne APENAS o HTML reescrito, sem explicações nem markdown
+3. O texto final DEVE ser substancialmente diferente do original em forma, mas idêntico em substância
+
+Título: ${title}
+
+Conteúdo original a reescrever:
+${rawContent.slice(0, 14000)}` : `Você é um editor de notícias profissional brasileiro.
 
 TAREFA: Extraia APENAS o corpo principal do artigo e ${isForeign ? "TRADUZA COMPLETAMENTE para Português do Brasil. NENHUMA frase deve permanecer em inglês." : "mantenha em Português"}.
 ${sourceSpecificRules}
