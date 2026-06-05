@@ -466,8 +466,13 @@ function ManualGuideForm({
             </Button>
           )}
         </div>
+        {form.scheduled_at && (
+          <p className="text-xs font-medium text-primary">
+            📅 Publicará em: {formatLocalSchedulePreview(form.scheduled_at)}
+          </p>
+        )}
         <p className="text-xs text-muted-foreground">
-          Se preenchido e o guia estiver como rascunho, ele será publicado automaticamente nesse horário.
+          Horário no seu fuso local. Se preenchido e o guia estiver como rascunho, ele será publicado automaticamente nesse horário.
         </p>
       </div>
       <DialogFooter>
