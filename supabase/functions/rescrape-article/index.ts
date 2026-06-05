@@ -196,6 +196,10 @@ FORMATE com HTML semântico:
 - <blockquote> para citações destacadas
 - <strong>/<em> para ênfase
 - <ul>/<li> apenas se já existirem listas relevantes
+- <figure><img src="..." alt="..." /></figure> para imagens
+- <figure><iframe src="..." allowfullscreen></iframe></figure> para vídeos embedados
+
+${PRESERVE_MEDIA_INSTRUCTION}
 
 REGRAS CRÍTICAS:
 1. NÃO inclua o título principal
@@ -204,8 +208,11 @@ REGRAS CRÍTICAS:
 
 Título: ${title}
 
-Conteúdo original a reescrever:
-${rawContent.slice(0, 14000)}` : `Você é um editor de notícias profissional brasileiro.
+HTML original (com imagens e embeds que devem ser preservados):
+${rawHtml.slice(0, 8000)}
+
+Conteúdo textual original a reescrever:
+${rawContent.slice(0, 12000)}` : `Você é um editor de notícias profissional brasileiro.
 
 TAREFA: Extraia APENAS o corpo principal do artigo e ${isForeign ? "TRADUZA COMPLETAMENTE para Português do Brasil. NENHUMA frase deve permanecer em inglês." : "mantenha em Português"}.
 ${sourceSpecificRules}
