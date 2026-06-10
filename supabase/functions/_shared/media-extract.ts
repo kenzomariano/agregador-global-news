@@ -195,29 +195,49 @@ export function mergeMediaIntoContent(
   if (!cleanedHtml) return cleanedHtml;
   const maxImg = options?.maxImages ?? 8;
   const maxIfr = options?.maxIframes ?? 4;
-  const coverKey = options?.coverImageUrl ? normalizeUrl(options.coverImageUrl) : null;
+  const coverKey = options?.coverImageUrl ? canonicalImageKey(options.coverImageUrl) : null;
+
+  // Also scan for tweet/instagram blockquote embeds and YouTube link cards so we
+  // don't append a second player when the AI already kept the alternate embed form.
+  const present = new Set<string>();
+  const recordEmbed = (src: string) => present.add(canonicalEmbedKey(src));
+
+  cleanedHtml.replace(/<iframe\b[^>]*\bsrc\s*=\s*["']([^"']+)["']/gi, (_, src) => {
+    recordEmbed(src);
+    return "";
+  });
+  // Twitter / Instagram / TikTok blockquote embeds carry the canonical URL as an attribute.
+  cleanedHtml.replace(/<blockquote\b[^>]*(?:data-tweet-id|data-instgrm-permalink|cite)\s*=\s*["']([^"']+)["']/gi, (_, val) => {
+    if (/^https?:\/\//i.test(val)) recordEmbed(val);
+    else if (/^\d+$/.test(val)) present.add(`tweet:${val}`);
+    return "";
+  });
+  // Anchor cards to videos that the editor may have kept as a link instead of an iframe.
+  cleanedHtml.replace(/<a\b[^>]*\bhref\s*=\s*["']([^"']+)["']/gi, (_, href) => {
+    try {
+      const host = new URL(href).hostname.toLowerCase();
+      if (EMBED_HOSTS.some((h) => host === h || host.endsWith("." + h))) recordEmbed(href);
+    } catch { /* noop */ }
+    return "";
+  });
 
   const presentImg = new Set<string>();
   cleanedHtml.replace(/<img\b[^>]*\bsrc\s*=\s*["']([^"']+)["']/gi, (_, src) => {
-    presentImg.add(normalizeUrl(src));
-    return "";
-  });
-  const presentIfr = new Set<string>();
-  cleanedHtml.replace(/<iframe\b[^>]*\bsrc\s*=\s*["']([^"']+)["']/gi, (_, src) => {
-    presentIfr.add(normalizeUrl(src));
+    presentImg.add(canonicalImageKey(src));
     return "";
   });
 
   const missingImages = extractImages(rawHtml)
     .filter((i) => {
-      const k = normalizeUrl(i.src);
+      const k = canonicalImageKey(i.src);
       return !presentImg.has(k) && (!coverKey || k !== coverKey);
     })
     .slice(0, maxImg);
 
   const missingIframes = extractIframes(rawHtml)
-    .filter((src) => !presentIfr.has(normalizeUrl(src)))
+    .filter((src) => !present.has(canonicalEmbedKey(src)))
     .slice(0, maxIfr);
+
 
   if (missingImages.length === 0 && missingIframes.length === 0) {
     return cleanedHtml;
