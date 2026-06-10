@@ -23,6 +23,22 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // Optional filter: priority bucket (1=national, 2=products, 3=foreign).
+    // Allows staggering the scrape across the day instead of running everything at once.
+    let priorityFilter: number | null = null;
+    let limitParam: number | null = null;
+    try {
+      if (req.method === "POST") {
+        const body = await req.json().catch(() => ({}));
+        if (body && typeof body.priority === "number" && [1, 2, 3].includes(body.priority)) {
+          priorityFilter = body.priority;
+        }
+        if (body && typeof body.limit === "number" && body.limit > 0) {
+          limitParam = Math.min(20, Math.floor(body.limit));
+        }
+      }
+    } catch (_) { /* ignore */ }
+
     // Get all active sources
     const { data: sources, error: sourcesError } = await supabase
       .from("news_sources")
@@ -37,7 +53,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`Auto-scrape: found ${sources.length} active sources`);
+    console.log(`Auto-scrape: found ${sources.length} active sources (priorityFilter=${priorityFilter ?? "all"})`);
+
 
     // Build priority queue:
     // 1. National article sources (fastest, most reliable)
