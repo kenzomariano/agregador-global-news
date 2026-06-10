@@ -134,7 +134,7 @@ export function extractImages(rawHtml: string): Array<{ src: string; alt: string
     if (!src || src.startsWith("data:")) continue;
     if (!/^https?:\/\//i.test(src)) continue;
     if (IMG_BLOCKLIST.some((p) => p.test(src))) continue;
-    const key = normalizeUrl(src);
+    const key = canonicalImageKey(src);
     if (seen.has(key)) continue;
     seen.add(key);
     const altMatch = tag.match(/\balt\s*=\s*["']([^"']*)["']/i);
@@ -158,13 +158,14 @@ export function extractIframes(rawHtml: string): string[] {
     } catch {
       continue;
     }
-    const key = normalizeUrl(src);
+    const key = canonicalEmbedKey(src);
     if (seen.has(key)) continue;
     seen.add(key);
     results.push(src);
   }
   return results;
 }
+
 
 function htmlEscape(s: string): string {
   return s.replace(/[&<>"']/g, (c) =>
