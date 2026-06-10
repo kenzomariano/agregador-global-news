@@ -81,7 +81,19 @@ Deno.serve(async (req) => {
     // Sort by priority (ascending = higher priority first)
     queue.sort((a, b) => a.priority - b.priority);
 
-    console.log(`Queue order: ${queue.map((q) => `${q.name} (p${q.priority})`).join(" → ")}`);
+    // Apply priority bucket filter (staggered scheduling) and optional limit
+    let filteredQueue = priorityFilter ? queue.filter((q) => q.priority === priorityFilter) : queue;
+    if (limitParam) filteredQueue = filteredQueue.slice(0, limitParam);
+    if (filteredQueue.length === 0) {
+      return new Response(
+        JSON.stringify({ message: "No sources in this bucket", priorityFilter, results: [] }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    // Replace the variable name used below
+    const _origQueue = queue;
+    (globalThis as any).__queue = filteredQueue;
+
 
     // Save queue start status
     await supabase
