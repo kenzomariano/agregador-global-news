@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
     // 1. National article sources (fastest, most reliable)
     // 2. Product sources
     // 3. International article sources (slowest due to translation)
-    const queue: ScrapeQueueItem[] = sources.map((source) => {
+    let queue: ScrapeQueueItem[] = sources.map((source) => {
       let priority: number;
       if (source.source_type === "article" && !source.is_foreign) {
         priority = 1; // National articles first
@@ -82,17 +82,18 @@ Deno.serve(async (req) => {
     queue.sort((a, b) => a.priority - b.priority);
 
     // Apply priority bucket filter (staggered scheduling) and optional limit
-    let filteredQueue = priorityFilter ? queue.filter((q) => q.priority === priorityFilter) : queue;
-    if (limitParam) filteredQueue = filteredQueue.slice(0, limitParam);
-    if (filteredQueue.length === 0) {
+    if (priorityFilter) queue = queue.filter((q) => q.priority === priorityFilter);
+    if (limitParam) queue = queue.slice(0, limitParam);
+
+    if (queue.length === 0) {
       return new Response(
-        JSON.stringify({ message: "No sources in this bucket", priorityFilter, results: [] }),
+        JSON.stringify({ message: "No sources match the bucket/limit", priorityFilter, results: [] }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-    // Replace the variable name used below
-    const _origQueue = queue;
-    (globalThis as any).__queue = filteredQueue;
+
+    console.log(`Queue order: ${queue.map((q) => `${q.name} (p${q.priority})`).join(" → ")}`);
+
 
 
     // Save queue start status
