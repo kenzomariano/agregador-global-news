@@ -38,11 +38,85 @@ function normalizeUrl(u: string): string {
   try {
     const url = new URL(u);
     url.hash = "";
+    // Strip tracking params that change between sources but reference the same media
+    const dropParams = ["utm_source","utm_medium","utm_campaign","utm_term","utm_content","feature","si","ref","ref_src","fbclid","gclid"];
+    dropParams.forEach((p) => url.searchParams.delete(p));
+    // Drop default ports + trailing slash + lowercase host
+    url.hostname = url.hostname.toLowerCase();
+    let s = url.toString().replace(/\/$/, "");
+    return s.toLowerCase();
+  } catch {
+    return u.trim().toLowerCase();
+  }
+}
+
+// Returns a canonical embed identifier (provider + content id) when possible so the
+// same video referenced via different URLs (youtu.be vs youtube.com/watch vs /embed/)
+// is treated as a duplicate. Falls back to the normalized URL.
+function canonicalEmbedKey(u: string): string {
+  try {
+    const url = new URL(u);
+    const host = url.hostname.toLowerCase().replace(/^www\./, "");
+    // YouTube
+    if (host === "youtu.be") {
+      const id = url.pathname.replace(/^\/+/, "").split("/")[0];
+      if (id) return `youtube:${id.toLowerCase()}`;
+    }
+    if (host.endsWith("youtube.com") || host.endsWith("youtube-nocookie.com")) {
+      const v = url.searchParams.get("v");
+      if (v) return `youtube:${v.toLowerCase()}`;
+      const m = url.pathname.match(/^\/(embed|shorts|v|live)\/([^\/?#]+)/);
+      if (m) return `youtube:${m[2].toLowerCase()}`;
+    }
+    // Vimeo
+    if (host.endsWith("vimeo.com")) {
+      const m = url.pathname.match(/(\d{4,})/);
+      if (m) return `vimeo:${m[1]}`;
+    }
+    // TikTok
+    if (host.endsWith("tiktok.com")) {
+      const m = url.pathname.match(/\/video\/(\d+)/) || url.pathname.match(/\/embed\/v\d+\/(\d+)/);
+      if (m) return `tiktok:${m[1]}`;
+    }
+    // Twitter / X
+    if (host === "twitter.com" || host === "x.com" || host.endsWith(".twitter.com") || host.endsWith(".x.com")) {
+      const m = url.pathname.match(/\/status\/(\d+)/);
+      if (m) return `tweet:${m[1]}`;
+    }
+    // Instagram
+    if (host.endsWith("instagram.com")) {
+      const m = url.pathname.match(/\/(p|reel|tv)\/([^\/?#]+)/);
+      if (m) return `instagram:${m[2].toLowerCase()}`;
+    }
+    // Spotify / SoundCloud / Twitch
+    if (host.endsWith("spotify.com")) {
+      const m = url.pathname.match(/\/(track|episode|playlist|album|show)\/([^\/?#]+)/);
+      if (m) return `spotify:${m[1]}:${m[2].toLowerCase()}`;
+    }
+  } catch { /* ignore */ }
+  return `url:${normalizeUrl(u)}`;
+}
+
+// Normalize an image URL by stripping CDN size/quality query params and image-resizer
+// path segments so the same source image isn't appended twice.
+function canonicalImageKey(u: string): string {
+  try {
+    const url = new URL(u);
+    const dropImgParams = ["w","h","width","height","quality","q","fit","crop","resize","format","fm","auto","dpr","ssl"];
+    dropImgParams.forEach((p) => url.searchParams.delete(p));
+    url.hostname = url.hostname.toLowerCase();
+    // Common CDN size patterns: /-/resize/800x/, /w_800,h_600/, /800x600/
+    let path = url.pathname
+      .replace(/\/(w|h|c|q|f)_[^\/]+\//gi, "/")
+      .replace(/\/\d{2,4}x\d{0,4}\//g, "/")
+      .replace(/-\d{2,4}x\d{2,4}(?=\.[a-z]{3,4}$)/i, "");
+    url.pathname = path;
     return url.toString().replace(/\/$/, "").toLowerCase();
   } catch {
     return u.trim().toLowerCase();
   }
 }
+
 
 export function extractImages(rawHtml: string): Array<{ src: string; alt: string }> {
   if (!rawHtml) return [];
