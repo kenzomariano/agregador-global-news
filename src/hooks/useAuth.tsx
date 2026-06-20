@@ -8,9 +8,9 @@ interface AuthContextValue {
   loading: boolean;
   isAdmin: boolean;
   adminLoading: boolean;
-  signUp: (email: string, password: string, displayName?: string) => Promise<{ error: unknown }>;
-  signIn: (email: string, password: string) => Promise<{ error: unknown }>;
-  signOut: () => Promise<{ error: unknown }>;
+  signUp: (email: string, password: string, displayName?: string) => Promise<{ error: { message: string } | null }>;
+  signIn: (email: string, password: string) => Promise<{ error: { message: string } | null }>;
+  signOut: () => Promise<{ error: { message: string } | null }>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
