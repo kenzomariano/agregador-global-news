@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import { memo, useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -32,7 +32,7 @@ interface ArticleFullViewProps {
   onTitleVisible?: (slug: string) => void;
 }
 
-export function ArticleFullView({ article, isFirst = false, onTitleVisible }: ArticleFullViewProps) {
+function ArticleFullViewImpl({ article, isFirst = false, onTitleVisible }: ArticleFullViewProps) {
   const incrementViews = useIncrementViews();
   const titleRef = useRef<HTMLHeadingElement>(null);
 
@@ -266,3 +266,13 @@ export function ArticleFullView({ article, isFirst = false, onTitleVisible }: Ar
     </>
   );
 }
+
+export const ArticleFullView = memo(
+  ArticleFullViewImpl,
+  (prev, next) =>
+    prev.article.id === next.article.id &&
+    prev.article.updated_at === next.article.updated_at &&
+    prev.isFirst === next.isFirst &&
+    prev.onTitleVisible === next.onTitleVisible
+);
+

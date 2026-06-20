@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { SEOHead } from "@/components/seo/SEOHead";
 import { StructuredBreadcrumb } from "@/components/seo/StructuredBreadcrumb";
@@ -9,7 +9,7 @@ import { ArticleNavigation } from "@/components/news/ArticleNavigation";
 import { TrendingSidebar } from "@/components/news/TrendingSidebar";
 import { SidebarAd } from "@/components/ads/AdBanner";
 import { SidebarProducts } from "@/components/products/SidebarProducts";
-import { useArticleBySlug, useRelatedArticles, useIncrementViews } from "@/hooks/useArticles";
+import { useArticleBySlug, useRelatedArticles } from "@/hooks/useArticles";
 import { supabase } from "@/integrations/supabase/client";
 import { CATEGORIES, type CategoryKey } from "@/lib/categories";
 import type { Article } from "@/hooks/useArticles";
@@ -26,6 +26,17 @@ export default function ArticlePage() {
   const [visibleSlug, setVisibleSlug] = useState(slug);
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const currentSlugRef = useRef(slug);
+
+  // Refs mirror state so the loader callback stays stable
+  const articleRef = useRef<Article | null>(null);
+  const extrasRef = useRef<Article[]>([]);
+  const loadingNextRef = useRef(false);
+  const noMoreRef = useRef(false);
+
+  useEffect(() => { articleRef.current = article ?? null; }, [article]);
+  useEffect(() => { extrasRef.current = extraArticles; }, [extraArticles]);
+  useEffect(() => { loadingNextRef.current = isLoadingNext; }, [isLoadingNext]);
+  useEffect(() => { noMoreRef.current = noMoreArticles; }, [noMoreArticles]);
 
   // Reset extras when initial slug changes (user navigated via link)
   useEffect(() => {
@@ -54,25 +65,31 @@ export default function ArticlePage() {
     }
   }, [isLoading, article, slug, navigate]);
 
-  // All articles in view (primary + extras)
-  const allArticles = article ? [article, ...extraArticles] : [];
-  const allIds = allArticles.map((a) => a.id);
+  // All articles in view (primary + extras) — memoized for referential stability
+  const allArticles = useMemo(
+    () => (article ? [article, ...extraArticles] : []),
+    [article, extraArticles]
+  );
 
-  // Load next article when reaching the bottom
+  // Stable loader reads from refs
   const loadNextArticle = useCallback(async () => {
-    if (isLoadingNext || noMoreArticles || allArticles.length === 0) return;
-
-    const lastArticle = allArticles[allArticles.length - 1];
+    if (loadingNextRef.current || noMoreRef.current) return;
+    const primary = articleRef.current;
+    if (!primary) return;
+    const stack = [primary, ...extrasRef.current];
+    const lastArticle = stack[stack.length - 1];
     if (!lastArticle.published_at) return;
 
+    loadingNextRef.current = true;
     setIsLoadingNext(true);
     try {
+      const ids = stack.map((a) => a.id);
       const { data, error } = await supabase
         .from("articles")
         .select("*, news_sources(name, logo_url)")
         .eq("status", "published")
         .lt("published_at", lastArticle.published_at)
-        .not("id", "in", `(${allIds.join(",")})`)
+        .not("id", "in", `(${ids.join(",")})`)
         .order("published_at", { ascending: false })
         .limit(1);
 
@@ -86,46 +103,42 @@ export default function ArticlePage() {
     } catch {
       // silently fail
     } finally {
+      loadingNextRef.current = false;
       setIsLoadingNext(false);
     }
-  }, [isLoadingNext, noMoreArticles, allArticles, allIds]);
+  }, []);
 
-  // Infinite scroll observer
+  // Infinite scroll observer — registered once
   useEffect(() => {
-    if (!loadMoreRef.current) return;
+    const el = loadMoreRef.current;
+    if (!el) return;
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting) {
           loadNextArticle();
         }
       },
-      { threshold: 0.1 }
+      { threshold: 0.1, rootMargin: "200px 0px" }
     );
-    observer.observe(loadMoreRef.current);
+    observer.observe(el);
     return () => observer.disconnect();
   }, [loadNextArticle]);
 
-  // Update URL and SEO when scrolling to a different article's title
-  const handleTitleVisible = useCallback(
-    (slug: string) => {
-      if (slug !== currentSlugRef.current) {
-        window.history.replaceState(null, "", `/noticia/${slug}`);
-        currentSlugRef.current = slug;
-        setVisibleSlug(slug);
-      }
-    },
-    []
+  // Stable callback: update URL/SEO when scrolling to a different article's title
+  const handleTitleVisible = useCallback((nextSlug: string) => {
+    if (nextSlug !== currentSlugRef.current) {
+      window.history.replaceState(null, "", `/noticia/${nextSlug}`);
+      currentSlugRef.current = nextSlug;
+      setVisibleSlug(nextSlug);
+    }
+  }, []);
+
+  const seoArticle = useMemo(
+    () => allArticles.find((a) => a.slug === visibleSlug) || article,
+    [allArticles, visibleSlug, article]
   );
 
-  // Determine which article to use for SEO
-  const seoArticle = allArticles.find((a) => a.slug === visibleSlug) || article;
-
-  // Related articles for the primary article
-  const { data: relatedArticles } = useRelatedArticles(
-    article?.id || "",
-    article?.category as CategoryKey,
-    4
-  );
+  useRelatedArticles(article?.id || "", article?.category as CategoryKey, 4);
 
   if (isLoading) {
     return (
@@ -179,24 +192,20 @@ export default function ArticlePage() {
       <article className="container py-6">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           <div className="lg:col-span-8 xl:col-span-9">
-            {/* Breadcrumb for primary article */}
             <StructuredBreadcrumb items={[
               { label: "Início", href: "/" },
               { label: category?.label || article.category, href: `/categoria/${article.category}` },
               { label: article.title },
             ]} />
 
-            {/* Primary article */}
             <ArticleFullView
               article={article}
               isFirst
               onTitleVisible={handleTitleVisible}
             />
 
-            {/* Prev/Next Navigation after primary */}
             <ArticleNavigation publishedAt={article.published_at} articleId={article.id} />
 
-            {/* Extra articles loaded via infinite scroll */}
             {extraArticles.map((extraArticle) => (
               <ArticleFullView
                 key={extraArticle.id}
@@ -205,7 +214,6 @@ export default function ArticlePage() {
               />
             ))}
 
-            {/* Sentinel for infinite scroll */}
             <div ref={loadMoreRef} className="h-4" />
 
             {isLoadingNext && (
@@ -221,7 +229,6 @@ export default function ArticlePage() {
             )}
           </div>
 
-          {/* Sidebar */}
           <aside className="lg:col-span-4 xl:col-span-3">
             <div className="sticky top-32 space-y-6">
               <SidebarProducts
