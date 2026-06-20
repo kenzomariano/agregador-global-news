@@ -25,7 +25,16 @@ import NotFound from "./pages/NotFound";
 import TitlePage from "./pages/TitlePage";
 import PersonPage from "./pages/PersonPage";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      staleTime: 1000 * 60 * 5,
+      retry: 1,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
