@@ -183,8 +183,11 @@ export function useArticleTMDBMentions(
 
       return results;
     },
-    enabled: !!(articleContent || articleTitle),
+    enabled: !!(articleContent || articleTitle) && category === "entretenimento",
     staleTime: 1000 * 60 * 60, // 1 hour
+    gcTime: 1000 * 60 * 60 * 2,
     retry: false,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
   });
 }
