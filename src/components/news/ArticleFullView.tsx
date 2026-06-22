@@ -272,12 +272,17 @@ function ArticleFullViewImpl({ article, isFirst = false, onTitleVisible }: Artic
   );
 }
 
-export const ArticleFullView = memo(
-  ArticleFullViewImpl,
-  (prev, next) =>
+export function articleFullViewPropsAreEqual(
+  prev: ArticleFullViewProps,
+  next: ArticleFullViewProps
+) {
+  return (
     prev.article.id === next.article.id &&
     prev.article.updated_at === next.article.updated_at &&
     prev.isFirst === next.isFirst &&
     prev.onTitleVisible === next.onTitleVisible
-);
+  );
+}
+
+export const ArticleFullView = memo(ArticleFullViewImpl, articleFullViewPropsAreEqual);
 
