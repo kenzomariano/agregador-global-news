@@ -43,7 +43,8 @@ function ArticleFullViewImpl({ article, isFirst = false, onTitleVisible }: Artic
   const { data: autoTmdbMentions } = useArticleTMDBMentions(
     article.content || null,
     article.title,
-    article.category
+    article.category,
+    article.id
   );
 
   // Load saved/curated TMDB mentions from DB (admin-edited)
@@ -58,6 +59,10 @@ function ArticleFullViewImpl({ article, isFirst = false, onTitleVisible }: Artic
       if (error) throw error;
       return data;
     },
+    staleTime: 1000 * 60 * 30,
+    gcTime: 1000 * 60 * 60,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
   });
 
   // Use saved mentions if available, otherwise auto-detected
