@@ -112,10 +112,11 @@ function isEntertainmentContent(_text: string, category: string): boolean {
 export function useArticleTMDBMentions(
   articleContent: string | null,
   articleTitle: string,
-  category: string
+  category: string,
+  articleId?: string
 ) {
   return useQuery({
-    queryKey: ["tmdb-mentions", articleTitle],
+    queryKey: ["tmdb-mentions", articleId ?? articleTitle, category],
     queryFn: async (): Promise<TMDBItem[]> => {
       const fullText = `${articleTitle} ${articleContent || ""}`;
       
