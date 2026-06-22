@@ -125,7 +125,7 @@ function ArticleFullViewImpl({ article, isFirst = false, onTitleVisible }: Artic
 
   return (
     <>
-      <div className={!isFirst ? "border-t-4 border-primary/20 pt-8 mt-8" : ""}>
+      <div className={`animate-in fade-in duration-300 ${!isFirst ? "border-t-4 border-primary/20 pt-8 mt-8" : ""}`}>
         <AdminArticleBar article={article} />
         {/* Article header */}
         <header className="mb-6">
