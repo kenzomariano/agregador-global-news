@@ -43,7 +43,8 @@ function ArticleFullViewImpl({ article, isFirst = false, onTitleVisible }: Artic
   const { data: autoTmdbMentions } = useArticleTMDBMentions(
     article.content || null,
     article.title,
-    article.category
+    article.category,
+    article.id
   );
 
   // Load saved/curated TMDB mentions from DB (admin-edited)
@@ -58,6 +59,10 @@ function ArticleFullViewImpl({ article, isFirst = false, onTitleVisible }: Artic
       if (error) throw error;
       return data;
     },
+    staleTime: 1000 * 60 * 30,
+    gcTime: 1000 * 60 * 60,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
   });
 
   // Use saved mentions if available, otherwise auto-detected
@@ -120,7 +125,7 @@ function ArticleFullViewImpl({ article, isFirst = false, onTitleVisible }: Artic
 
   return (
     <>
-      <div className={!isFirst ? "border-t-4 border-primary/20 pt-8 mt-8" : ""}>
+      <div className={`animate-in fade-in duration-300 ${!isFirst ? "border-t-4 border-primary/20 pt-8 mt-8" : ""}`}>
         <AdminArticleBar article={article} />
         {/* Article header */}
         <header className="mb-6">
@@ -267,12 +272,17 @@ function ArticleFullViewImpl({ article, isFirst = false, onTitleVisible }: Artic
   );
 }
 
-export const ArticleFullView = memo(
-  ArticleFullViewImpl,
-  (prev, next) =>
+export function articleFullViewPropsAreEqual(
+  prev: ArticleFullViewProps,
+  next: ArticleFullViewProps
+) {
+  return (
     prev.article.id === next.article.id &&
     prev.article.updated_at === next.article.updated_at &&
     prev.isFirst === next.isFirst &&
     prev.onTitleVisible === next.onTitleVisible
-);
+  );
+}
+
+export const ArticleFullView = memo(ArticleFullViewImpl, articleFullViewPropsAreEqual);
 

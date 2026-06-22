@@ -112,10 +112,11 @@ function isEntertainmentContent(_text: string, category: string): boolean {
 export function useArticleTMDBMentions(
   articleContent: string | null,
   articleTitle: string,
-  category: string
+  category: string,
+  articleId?: string
 ) {
   return useQuery({
-    queryKey: ["tmdb-mentions", articleTitle],
+    queryKey: ["tmdb-mentions", articleId ?? articleTitle, category],
     queryFn: async (): Promise<TMDBItem[]> => {
       const fullText = `${articleTitle} ${articleContent || ""}`;
       
@@ -182,8 +183,11 @@ export function useArticleTMDBMentions(
 
       return results;
     },
-    enabled: !!(articleContent || articleTitle),
+    enabled: !!(articleContent || articleTitle) && category === "entretenimento",
     staleTime: 1000 * 60 * 60, // 1 hour
+    gcTime: 1000 * 60 * 60 * 2,
     retry: false,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
   });
 }

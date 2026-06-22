@@ -217,8 +217,16 @@ export default function ArticlePage() {
             <div ref={loadMoreRef} className="h-4" />
 
             {isLoadingNext && (
-              <div className="flex justify-center py-8">
-                <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+              <div className="border-t-4 border-primary/20 pt-8 mt-8 space-y-4 animate-in fade-in duration-300">
+                <Skeleton className="h-6 w-24" />
+                <Skeleton className="h-10 w-3/4" />
+                <Skeleton className="h-4 w-48" />
+                <Skeleton className="aspect-video w-full rounded-lg" />
+                <div className="space-y-3">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-2/3" />
+                </div>
               </div>
             )}
 
