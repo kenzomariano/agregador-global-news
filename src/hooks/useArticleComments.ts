@@ -20,6 +20,20 @@ const ANON_COMMENT_COLUMNS = "id,article_id,content,created_at,updated_at";
 // Authenticated readers additionally need user_id to render the "delete my own" affordance.
 const AUTH_COMMENT_COLUMNS = `${ANON_COMMENT_COLUMNS},user_id`;
 
+export async function fetchArticleComments(
+  articleId: string,
+  isAuthed: boolean,
+): Promise<ArticleComment[]> {
+  const columns = isAuthed ? AUTH_COMMENT_COLUMNS : ANON_COMMENT_COLUMNS;
+  const { data, error } = await supabase
+    .from("article_comments")
+    .select(columns)
+    .eq("article_id", articleId)
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return (data || []) as unknown as ArticleComment[];
+}
+
 export function useArticleComments(articleId: string) {
   const { user } = useAuth();
   const isAuthed = !!user;
@@ -27,16 +41,7 @@ export function useArticleComments(articleId: string) {
   return useQuery({
     // Bucket cache by auth state so anon payloads (no user_id) never leak into the authed view.
     queryKey: ["article-comments", articleId, isAuthed ? "auth" : "anon"],
-    queryFn: async () => {
-      const columns = isAuthed ? AUTH_COMMENT_COLUMNS : ANON_COMMENT_COLUMNS;
-      const { data, error } = await supabase
-        .from("article_comments")
-        .select(columns)
-        .eq("article_id", articleId)
-        .order("created_at", { ascending: true });
-      if (error) throw error;
-      return (data || []) as unknown as ArticleComment[];
-    },
+    queryFn: () => fetchArticleComments(articleId, isAuthed),
     enabled: !!articleId,
   });
 }
