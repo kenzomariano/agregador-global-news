@@ -9,9 +9,11 @@ export function useArticleLikes(articleId: string) {
   const { data: likesCount = 0 } = useQuery({
     queryKey: ["article-likes-count", articleId],
     queryFn: async () => {
+      // Use "id" instead of "*" so anonymous readers stay within their column-level GRANT
+      // (anon cannot SELECT user_id on article_likes).
       const { count, error } = await supabase
         .from("article_likes")
-        .select("*", { count: "exact", head: true })
+        .select("id", { count: "exact", head: true })
         .eq("article_id", articleId);
       if (error) throw error;
       return count || 0;
