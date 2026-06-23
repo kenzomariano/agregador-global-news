@@ -2,20 +2,24 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
+// Exported for regression tests — anon may only SELECT (id, article_id, created_at),
+// so the count query must request an allowed column instead of "*".
+export async function fetchArticleLikesCount(articleId: string): Promise<number> {
+  const { count, error } = await supabase
+    .from("article_likes")
+    .select("id", { count: "exact", head: true })
+    .eq("article_id", articleId);
+  if (error) throw error;
+  return count || 0;
+}
+
 export function useArticleLikes(articleId: string) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
   const { data: likesCount = 0 } = useQuery({
     queryKey: ["article-likes-count", articleId],
-    queryFn: async () => {
-      const { count, error } = await supabase
-        .from("article_likes")
-        .select("*", { count: "exact", head: true })
-        .eq("article_id", articleId);
-      if (error) throw error;
-      return count || 0;
-    },
+    queryFn: () => fetchArticleLikesCount(articleId),
     enabled: !!articleId,
   });
 

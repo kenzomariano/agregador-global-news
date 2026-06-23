@@ -1,10 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 export interface ArticleComment {
   id: string;
   article_id: string;
-  user_id: string;
+  user_id: string | null;
   content: string;
   created_at: string;
   updated_at: string;
@@ -14,18 +15,33 @@ export interface ArticleComment {
   };
 }
 
+// Columns the anon role is allowed to read (matches GRANT in migration 20260623182637).
+const ANON_COMMENT_COLUMNS = "id,article_id,content,created_at,updated_at";
+// Authenticated readers additionally need user_id to render the "delete my own" affordance.
+const AUTH_COMMENT_COLUMNS = `${ANON_COMMENT_COLUMNS},user_id`;
+
+export async function fetchArticleComments(
+  articleId: string,
+  isAuthed: boolean,
+): Promise<ArticleComment[]> {
+  const columns = isAuthed ? AUTH_COMMENT_COLUMNS : ANON_COMMENT_COLUMNS;
+  const { data, error } = await supabase
+    .from("article_comments")
+    .select(columns)
+    .eq("article_id", articleId)
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return (data || []) as unknown as ArticleComment[];
+}
+
 export function useArticleComments(articleId: string) {
+  const { user } = useAuth();
+  const isAuthed = !!user;
+
   return useQuery({
-    queryKey: ["article-comments", articleId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("article_comments")
-        .select("*")
-        .eq("article_id", articleId)
-        .order("created_at", { ascending: true });
-      if (error) throw error;
-      return (data || []) as ArticleComment[];
-    },
+    // Bucket cache by auth state so anon payloads (no user_id) never leak into the authed view.
+    queryKey: ["article-comments", articleId, isAuthed ? "auth" : "anon"],
+    queryFn: () => fetchArticleComments(articleId, isAuthed),
     enabled: !!articleId,
   });
 }
@@ -65,3 +81,5 @@ export function useDeleteComment() {
     },
   });
 }
+
+export const __test__ = { ANON_COMMENT_COLUMNS, AUTH_COMMENT_COLUMNS };
