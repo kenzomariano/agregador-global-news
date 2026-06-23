@@ -16,9 +16,9 @@ export interface ArticleComment {
 }
 
 // Columns the anon role is allowed to read (matches GRANT in migration 20260623182637).
-const ANON_COMMENT_COLUMNS = "id, article_id, content, created_at, updated_at";
+const ANON_COMMENT_COLUMNS = "id,article_id,content,created_at,updated_at";
 // Authenticated readers additionally need user_id to render the "delete my own" affordance.
-const AUTH_COMMENT_COLUMNS = `${ANON_COMMENT_COLUMNS}, user_id`;
+const AUTH_COMMENT_COLUMNS = `${ANON_COMMENT_COLUMNS},user_id`;
 
 export function useArticleComments(articleId: string) {
   const { user } = useAuth();
@@ -35,7 +35,7 @@ export function useArticleComments(articleId: string) {
         .eq("article_id", articleId)
         .order("created_at", { ascending: true });
       if (error) throw error;
-      return (data || []) as ArticleComment[];
+      return (data || []) as unknown as ArticleComment[];
     },
     enabled: !!articleId,
   });
