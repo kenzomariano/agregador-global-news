@@ -1,12 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const selectMock = vi.fn();
-const eqMock = vi.fn();
-const orderMock = vi.fn();
-const fromMock = vi.fn(() => ({ select: selectMock }));
+const mocks = vi.hoisted(() => {
+  const selectMock = vi.fn();
+  const eqMock = vi.fn();
+  const orderMock = vi.fn();
+  const fromMock = vi.fn(() => ({ select: selectMock }));
+  return { selectMock, eqMock, orderMock, fromMock };
+});
+const { selectMock, eqMock, orderMock, fromMock } = mocks;
 
 vi.mock("@/integrations/supabase/client", () => ({
-  supabase: { from: (...args: unknown[]) => fromMock(...args) },
+  supabase: { from: mocks.fromMock },
 }));
 
 import { fetchArticleComments } from "@/hooks/useArticleComments";
