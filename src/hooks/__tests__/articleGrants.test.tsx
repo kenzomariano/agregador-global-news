@@ -6,7 +6,7 @@ const orderMock = vi.fn();
 const fromMock = vi.fn(() => ({ select: selectMock }));
 
 vi.mock("@/integrations/supabase/client", () => ({
-  supabase: { from: fromMock },
+  supabase: { from: (...args: unknown[]) => fromMock(...args) },
 }));
 
 import { fetchArticleComments } from "@/hooks/useArticleComments";
